@@ -397,7 +397,7 @@ class Utility(commands.Cog):
 		except:
 			return await ctx.deny(f"Could not create sticker {sticker_name}")
 
-	@emoji.command(name="steal", description="Steals a sticker.")
+	@sticker.command(name="steal", description="Steals a sticker.")
 	@has_permissions(manage_emojis=True)
 	@bot_has_guild_permissions(manage_emojis=True)
 	@guild_only()
@@ -412,7 +412,7 @@ class Utility(commands.Cog):
 		except:
 			return await ctx.deny(f"Could not steal sticker {sticker}")
 
-	@emoji.command(name="delete", description="Deletes an emoji.")
+	@sticker.command(name="delete", description="Deletes an sticker.")
 	@has_permissions(manage_emojis=True)
 	@bot_has_guild_permissions(manage_emojis=True)
 	@guild_only()
@@ -421,35 +421,61 @@ class Utility(commands.Cog):
 			if sticker in ctx.guild.stickers:
 				await ctx.guild.delete_sticker(sticker)
 
-				return await ctx.approve(f"Deleted emoji {sticker}")
+				return await ctx.approve(f"Deleted sticker {sticker}")
 			else:
-				return await ctx.warn(f"That emoji is not from this server.")
+				return await ctx.warn(f"That sticker is not from this server.")
 		except:
-			return await ctx.deny(f"Could not delete emoji {sticker}")
+			return await ctx.deny(f"Could not delete sticker {sticker}")
 	
-	@emoji.command(name='rename', description="Renames an emoji.")
+	@sticker.command(name='rename', description="Renames an sticker.")
 	@has_permissions(manage_emojis=True)
 	@bot_has_guild_permissions(manage_emojis=True)
 	@guild_only()
-	async def emojirename(self, ctx:StealContext, emoji:discord.PartialEmoji, name:str):
+	async def emojirename(self, ctx:StealContext, sticker:discord.Sticker, name:str):
 		try:
-			if emoji in ctx.guild.emojis:
-				emoji = await ctx.guild.fetch_emoji(emoji.id)
-				await emoji.edit(name=f"{name}")
+			if sticker in ctx.guild.stickers:
+				sticker = await ctx.guild.fetch_sticker(sticker.id)
+				await sticker.edit(name=f"{name}")
 				
-				return await ctx.approve(f"Renamed {emoji} to '{name}'")
+				return await ctx.approve(f"Renamed {sticker} to '{name}'")
 			else:
 				return await ctx.warn(f"That emoji is not from this server.")
 		except:
-			return await ctx.deny(f"Could not rename emoji {emoji}")				
+			return await ctx.deny(f"Could not rename sticker {sticker}")				
 
-"""
+	@command(name='nitrohavers', description='Users with nitro.', aliases=['nhavers', 'nhs'], usage="nitrohavers")
+	@guild_only()
+	async def nhavers(self, ctx: StealContext):
+		nhavers_ = []
 
-Create sticker group and commands later.
-Use above as baseplate
+		def guns(user:discord.Member):
+			if isinstance(user, discord.Member):
+				has_emote_status = any([a.emoji.is_custom_emoji() for a in user.activities if getattr(a, 'emoji', None)])
+ 
+				return any([user.display_avatar.is_animated(), has_emote_status, user.premium_since, user.guild_avatar, user.banner])
+		def get_nhavers():
+			for i in ctx.guild.members:
+				if not i.bot:
+					if guns(i):
+						nhavers_.append(f"{i.mention} | `{i.id}`\n")
 
-"""
+		get_nhavers()
+		if not nhavers_:
+			await ctx.warn(f"No premium users in `{ctx.guild}`")
+			return
+		await ctx.neutral("".join(i for i in nhavers_))
 
+	@command(name="boosters", description='Users server boosting.', usage='boosters')
+	@guild_only()
+	async def boosters(self, ctx: StealContext):
+		boosters = [f"> <@{i_.id}> | {i_.id}\n" for i_ in ctx.guild.premium_subscribers]
+		
+		if not boosters:
+			await ctx.reply(embed=discord.Embed(description=f"No boosters in `{ctx.guild}`", color=Color.red()))
+			return        
+
+		embed1 = discord.Embed(title='__Boosters__', description=f''.join(i for i in boosters), color=Color.pink()).set_footer(icon_url=ctx.author.avatar.url, text=f'Command run by {ctx.author} || {ctx.author.id}')
+		await ctx.reply(embed=embed1)        
 
 async def setup(bot):
 	await bot.add_cog(Utility(bot))

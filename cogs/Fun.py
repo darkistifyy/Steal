@@ -218,15 +218,15 @@ class Fun(commands.Cog):
 	async def weather(self, ctx: StealContext, *, location: str):
 		await ctx.defer()
 
-		msg = await ctx.warn(embed=discord.Embed(description='Gathering Data...', color=Color.yellow()))
+		msg = await ctx.send(embed=discord.Embed(description=f'{Emojis.WARN} Gathering Data...', color=Colors.WARN_COLOR))
 
 		async with pw.Client(unit=pw.METRIC) as client:
 			weather = await client.get(location)
 			await msg.edit(embed=discord.Embed(title=f'{weather.description} in {location.capitalize()}',
 			color=Colors.BASE_COLOR).add_field(
-				name='Temperature', value=f'{weather.temperature}C°', inline=False).add_field(
-				name='Humidity', value=f'{weather.humidity}%', inline=False).add_field(
-				name='Wind Speed', value=f'{weather.wind_speed} Km/h', inline=False).set_author(
+				name='Temperature', value=f'`{weather.temperature}C°`').add_field(
+				name='Humidity', value=f'`{weather.humidity}%`').add_field(
+				name='Wind Speed', value=f'`{weather.wind_speed} Km/h`').set_author(
 				icon_url=ctx.author.avatar.url, name=ctx.author.name))	
 
 	async def get_string(self): 

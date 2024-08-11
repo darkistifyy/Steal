@@ -44,9 +44,9 @@ class Mod(commands.Cog):
 		description='Bans a user.',
 		usage = "ban add @jpeg.dev raider"
 	)
-	@cooldown(1, 5, BucketType.user)
+	@cooldown(1, 10, BucketType.user)
 	@has_permissions(moderate_members=True)
-	async def banadd(self, ctx: StealContext, user: discord.User, *, reason: str = "no reason"):
+	async def banadd(self, ctx: StealContext, user: discord.User, *, reason: Optional[str] = "no reason"):
 		reason += ' | Executed by {}'.format(ctx.author)
 		await ctx.typing()
 
@@ -72,8 +72,9 @@ class Mod(commands.Cog):
 	@ban.command(name='remove', description='Removes a ban.', aliases=['revoke'], usage='ban remove @jpeg.dev false ban')
 	@has_permissions(ban_members=True)
 	@bot_has_guild_permissions(ban_members=True)
+	@cooldown(1, 10, BucketType.user)
 	@guild_only()
-	async def banremove(self, ctx: StealContext, user:discord.User, *, reason: str = 'No reason.'):
+	async def banremove(self, ctx: StealContext, user:discord.User, *, reason: Optional[str] = 'No reason.'):
 		reason += ' | Executed by {}'.format(ctx.author)
 		try:
 			bans = [entry async for entry in ctx.guild.bans(limit=None)]
@@ -91,9 +92,9 @@ class Mod(commands.Cog):
 		aliases = ["getout", "bye"],
 		usage = "kick @jpeg.dev rule breaker"
 	)
-	@cooldown(1, 5, BucketType.user)
+	@cooldown(1, 10, BucketType.user)
 	@has_permissions(moderate_members=True)
-	async def kick(self, ctx: StealContext, user: discord.Member, *, reason: str = "No reason."):
+	async def kick(self, ctx: StealContext, user: discord.Member, *, reason: Optional[str] = "No reason."):
 		reason += ' | Executed by {}'.format(ctx.author)
 		await ctx.typing()
 
@@ -121,8 +122,9 @@ class Mod(commands.Cog):
 	@mute.command(name='add', description='Mutes a user.', brief='mute add @jpeg.dev raider', usage='mute add @jpeg.dev raider')
 	@has_permissions(manage_messages=True)
 	@bot_has_guild_permissions(mute_members=True)
-	@cooldown(1, 10, commands.BucketType.user)
-	async def muteadd(self, ctx: StealContext, user: discord.Member, time: str="60s", *, reason: str = "No reason."):
+	@cooldown(1, 10, BucketType.user)
+	@guild_only()
+	async def muteadd(self, ctx: StealContext, user: discord.Member, time: str="60s", *, reason: Optional[str] = "No reason."):
 		reason += ' | Executed by {}'.format(ctx.author)
 		try:
 			if user.id == self.bot.user.id:
@@ -155,8 +157,9 @@ class Mod(commands.Cog):
 	@mute.command(name='remove', description='Unmutes a member.', usage='mute remove @jpeg.dev false mute')
 	@has_permissions(moderate_members=True)
 	@bot_has_guild_permissions(moderate_members=True)
+	@cooldown(1, 10, BucketType.user)
 	@guild_only()
-	async def muteremove(self, ctx: StealContext, member:discord.Member, reason: str = 'No reason.'):
+	async def muteremove(self, ctx: StealContext, member:discord.Member, *, reason: Optional[str] = 'No reason.'):
 		reason += ' | Executed by {}'.format(ctx.author)
 		try:
 			if member.is_timed_out():
@@ -166,43 +169,6 @@ class Mod(commands.Cog):
 			return await ctx.warn(f"{member.mention} is not muted.")
 		except:
 			return await ctx.deny(f"Failed to unmute {member.mention}")
-		
-	@command(name='nitrohavers', description='Users with nitro.', aliases=['nhavers', 'nhs'], usage="nitrohavers")
-	@guild_only()
-	async def nhavers(self, ctx: StealContext):
-		nhavers_ = []
-
-		def guns(user:discord.Member):
-			"""Guess if an user or member has Discord Nitro"""
-
-			if isinstance(user, discord.Member):
-			# Check if they have a custom emote in their status
-				has_emote_status = any([a.emoji.is_custom_emoji() for a in user.activities if getattr(a, 'emoji', None)])
- 
-				return any([user.display_avatar.is_animated(), has_emote_status, user.premium_since, user.guild_avatar, user.banner])
-		def get_nhavers():
-			for i in ctx.guild.members:
-				if not i.bot:
-					if guns(i):
-						nhavers_.append(f"{i.mention} | `{i.id}`\n")
-
-		get_nhavers()
-		if not nhavers_:
-			await ctx.warn(f"No premium users in `{ctx.guild}`")
-			return
-		await ctx.neutral("".join(i for i in nhavers_))
-
-	@command(name="boosters", description='Users server boosting.', usage='boosters')
-	@guild_only()
-	async def boosters(self, ctx: StealContext):
-		boosters = [f"> <@{i_.id}> | {i_.id}\n" for i_ in ctx.guild.premium_subscribers]
-		
-		if not boosters:
-			await ctx.reply(embed=discord.Embed(description=f"No boosters in `{ctx.guild}`", color=Color.red()))
-			return        
-
-		embed1 = discord.Embed(title='__Boosters__', description=f''.join(i for i in boosters), color=Color.pink()).set_footer(icon_url=ctx.author.avatar.url, text=f'Command run by {ctx.author} || {ctx.author.id}')
-		await ctx.reply(embed=embed1)        
 
 	@group(name="role", description="Manage roles.")
 	async def userrole(self, ctx: StealContext):
@@ -212,6 +178,7 @@ class Mod(commands.Cog):
 	@userrole.command(name='add', description='Adds a role', usage='role add @jpeg.dev @moderator new mod')
 	@has_permissions(manage_roles=True)
 	@bot_has_guild_permissions(manage_roles=True)
+	@cooldown(1, 10, BucketType.user)
 	@guild_only()
 	async def roleadd(self, ctx: StealContext, member:discord.Member, role:discord.Role, reason: str = "No reason."):
 			reason += ' | Executed by {}'.format(ctx.author)
@@ -229,6 +196,7 @@ class Mod(commands.Cog):
 	@userrole.command(name='remove', description='Removes a role', usage='role remove @jpeg.dev @moderator mod abuse')
 	@has_permissions(manage_roles=True)
 	@bot_has_guild_permissions(manage_roles=True)
+	@cooldown(1, 10, BucketType.user)
 	@guild_only()
 	async def roleremove(self, ctx: StealContext, member:discord.Member, role:discord.Role, reason: str = "No reason."): 
 			reason += ' | Executed by {}'.format(ctx.author)
@@ -243,9 +211,10 @@ class Mod(commands.Cog):
 			)
 			return await ctx.approve(f"Removed {role.mention} from {member.mention} - {reason.split(' |')[0]}")
 
-	@userrole.command(name='rename', description='Renames a role.', usage='role renmae @newrole @admin')
+	@userrole.command(name='rename', description='Renames a role.', usage='role renmae @newrole admin')
 	@has_permissions(manage_roles=True)
 	@bot_has_guild_permissions(manage_roles=True)
+	@cooldown(1, 10, BucketType.user)
 	@guild_only()
 	async def rolerename(self, ctx: StealContext, role:discord.Role, *,name:str):
 		if role.position > ctx.author.top_role.position and ctx.author != ctx.guild.owner:
@@ -347,16 +316,21 @@ class Mod(commands.Cog):
 	@userrole.command(name='hoist', description='Hoists or unhoists a role.', usage='role hoist @moderator')
 	@has_permissions(manage_roles=True)
 	@bot_has_guild_permissions(manage_roles=True)
+	@cooldown(1, 10, BucketType.user)
 	@guild_only()
 	async def hoistrole(self, ctx: StealContext, role:discord.Role):
 		await role.edit(hoist=False if role.hoist else True, reason=f'Executed by {ctx.author}')
-		await ctx.approve(f"Hoisted {role.mention}")
+		await ctx.approve(f"{'Hoisted' if not role.hoist else 'Dehoisted'} {role.mention}")
 
 	@userrole.command(name='color', description='Sets a role color.', usage='role color @moderator #hexcode')
 	@has_permissions(manage_roles=True)
 	@bot_has_guild_permissions(manage_roles=True)
+	@cooldown(1, 10, BucketType.user)
 	@guild_only()
-	async def colorrole(self, ctx: StealContext, role:discord.Role, hex:str):
+	async def colorrole(self, ctx: StealContext, role:discord.Role, hex:Optional[str] = None):
+		if hex is None:
+			return await ctx.approve(f"Hex color of {role.mention}: {role.color}")
+
 		import regex as re
 		from isHex import isHex, isHexLower, isHexUpper
 		
@@ -374,32 +348,47 @@ class Mod(commands.Cog):
 	@userrole.command(name='delete', description='Deletes a role.', usage='role delete @newrole')
 	@has_permissions(manage_roles=True)
 	@bot_has_guild_permissions(manage_roles=True)
+	@cooldown(1, 10, BucketType.user)
 	@guild_only()
 	async def deleterole(self, ctx: StealContext, role:discord.Role):
-		if role.position >= ctx.author.top_role.position:
+		if role.position >= ctx.author.top_role.position and ctx.author != ctx.guild.owner:
 			return await ctx.deny(f'You do not have permission to manage {role.mention}.')
 
 		await role.delete(reason=f'Executed by {ctx.author}')
 		return await ctx.approve(f"Deleted  {role.name}")	
 
-	@userrole.command(name='create', description='Creates a role.')
+	@userrole.command(name='create', description='Creates a role.', usage='role create fart True #hexcode')
 	@has_permissions(manage_roles=True)
 	@bot_has_guild_permissions(manage_roles=True)
+	@cooldown(1, 10, BucketType.user)
 	@guild_only()
-	async def createrole(self, ctx: StealContext, name:Optional[str]):
-		role = await ctx.guild.create_role(name=name if name else "new role", reason = f"Executed by {ctx.author}")
+	async def createrole(self, ctx: StealContext, name:Optional[str], hoist:Optional[bool] = False, hex:Optional[str] = None):
+		from isHex import isHex
+		if hex:
+			if isHex(hex):
+				rgb = tuple(int(hex[i:i+2], 16) for i in (0, 2, 4)) if [isHex(hex) if hex else False] else False
+			else: rgb = False
+		else: rgb = False
+
+
+		role = await ctx.guild.create_role(name=name if name else "new role", hoist=hoist, color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2]) if rgb else None, reason = f"Executed by {ctx.author}")
 		await ctx.approve(f"Created role {role.mention}.")
 
-	@command(name='purge', description='Purges messages.')
+	@command(name='purge', description='Purges messages.', usage='purge 100')
 	@has_permissions(manage_messages=True)
 	@bot_has_guild_permissions(manage_messages=True)
+	@cooldown(1, 30, BucketType.user)
 	@guild_only()
 	async def purge(self, ctx: StealContext, number: Optional[int] = 5):
-		if number <= 100:
-			await ctx.channel.purge(limit=number + 1)
-			await ctx.approve(f"Purged {number} messages.")
+		if number <= 100 and ctx.author != ctx.guild.owner or ctx.author == ctx.guild.owner and number <= 200:
+			await ctx.channel.purge(limit=number + 1, reason=f'Executed by {ctx.author}')
+			embed=discord.Embed(
+				color = Colors.BASE_COLOR,
+		   		description = f'{Emojis.APPROVE} {ctx.author.mention}: Purged `{number}` messages.'
+			)
+			await ctx.send(embed=embed, delete_after=5.0)
 		else:
-			return await ctx.deny("Number of messages to purge must be **less** than `100`.")
+			return await ctx.deny(f"Number of messages to purge must be **less** than `{"100" if ctx.author != ctx.guild.owner else "200"}`.")
 
 async def setup(bot):
 	await bot.add_cog(Mod(bot))
