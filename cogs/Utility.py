@@ -316,11 +316,11 @@ class Utility(commands.Cog):
 		if ctx.invoked_subcommand is None:
 			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `emoji`.')
 	
-	@emoji.command(name="add", description="Adds an emoji.")
+	@emoji.command(name="add", description="Adds an emoji.", aliases=['create'])
 	@has_permissions(manage_emojis=True)
 	@bot_has_guild_permissions(manage_emojis=True)
 	@guild_only()
-	async def emojiadd(self, ctx: StealContext, emoji:discord.Attachment, emoji_name:Optional[str]=None):
+	async def emojiadd(self, ctx: StealContext, emoji:discord.Attachment, *, emoji_name:Optional[str]=None):
 		try:
 			if not emoji_name: emoji_name = emoji.filename.split(".")[0]
 
@@ -335,7 +335,7 @@ class Utility(commands.Cog):
 	@has_permissions(manage_emojis=True)
 	@bot_has_guild_permissions(manage_emojis=True)
 	@guild_only()
-	async def emojisteal(self, ctx: StealContext, emoji:discord.PartialEmoji, emoji_name:Optional[str]=None):
+	async def emojisteal(self, ctx: StealContext, emoji:discord.PartialEmoji, *, emoji_name:Optional[str]=None):
 		try:
 			if not emoji_name: emoji_name = emoji.name
 
@@ -365,7 +365,7 @@ class Utility(commands.Cog):
 	@has_permissions(manage_emojis=True)
 	@bot_has_guild_permissions(manage_emojis=True)
 	@guild_only()
-	async def emojirename(self, ctx:StealContext, emoji:discord.PartialEmoji, name:str):
+	async def emojirename(self, ctx:StealContext, emoji:discord.PartialEmoji, *, name:str):
 		try:
 			if emoji in ctx.guild.emojis:
 				emoji = await ctx.guild.fetch_emoji(emoji.id)
@@ -377,21 +377,23 @@ class Utility(commands.Cog):
 		except:
 			return await ctx.deny(f"Could not rename emoji {emoji}")				
 
+	"""
+
 	@group(name='sticker', description='Manage emojis.')
 	async def sticker(self, ctx: StealContext):
 		if ctx.invoked_subcommand is None:
 			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `sticker`.')
 	
-	@sticker.command(name="add", description="Adds a sticker.")
+	@sticker.command(name="add", description="Adds a sticker.", aliases=['create'])
 	@has_permissions(manage_emojis=True)
 	@bot_has_guild_permissions(manage_emojis=True)
 	@guild_only()
-	async def stickeradd(self, ctx: StealContext, emoji:discord.Attachment, sticker_name:Optional[str]=None):
+	async def stickeradd(self, ctx: StealContext, sticker:discord.Attachment, emoji:str, *, sticker_name:Optional[str]=None):
 		try:
-			if not sticker_name: sticker_name = emoji.filename.split(".")[0]
+			if not sticker_name: sticker_name = sticker.filename.split(".")[0]
 
 
-			sticker = await ctx.guild.create_sticker(name=f"{sticker_name}", image=await emoji.read(), reason=f'Executed by {ctx.author}')
+			sticker = await ctx.guild.create_sticker(name=f"{sticker_name}", image=await emoji.read(), emoji=f"{emoji}", reason=f'Executed by {ctx.author}')
 
 			return await ctx.approve(f"Created sticker {sticker}")
 		except:
@@ -441,7 +443,7 @@ class Utility(commands.Cog):
 			else:
 				return await ctx.warn(f"That emoji is not from this server.")
 		except:
-			return await ctx.deny(f"Could not rename sticker {sticker}")				
+			return await ctx.deny(f"Could not rename sticker {sticker}") """
 
 	@command(name='nitrohavers', description='Users with nitro.', aliases=['nhavers', 'nhs'], usage="nitrohavers")
 	@guild_only()
