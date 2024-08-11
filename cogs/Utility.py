@@ -214,15 +214,15 @@ class Utility(commands.Cog):
 
 	@command(name="userinfo", description="Gives userinfo.", aliases=["ui", "uinfo"], usage='userinfo [user]')
 	@cooldown(1,15, commands.BucketType.user)
-	async def userinfo(self, ctx:StealContext, member: Optional[discord.Member]) -> None:
+	async def userinfo(self, ctx:StealContext, member: Optional[discord.User]) -> None:
 
 		if not member:member = ctx.author
 
 		timestamp1 = discord.utils.format_dt(member.created_at, style="F")
 		
-		timestamp2 = [discord.utils.format_dt(member.joined_at, style="F") if member.joined_at else "?"] if not isinstance(ctx.channel, discord.DMChannel) else "?"
+		timestamp2 = [[discord.utils.format_dt(member.joined_at, style="F") if member.joined_at else "?"] if not isinstance(ctx.channel, discord.DMChannel) else "?"]
 
-		if not isinstance(member, discord.User):
+		if ctx.guild:
 			roles = member.roles[-1:0:-1]
 
 			if roles:
@@ -258,7 +258,7 @@ class Utility(commands.Cog):
 			inline=True
 		).add_field(
 			name='Joined at:',
-			value=f'{timestamp2}',
+			value=f'{timestamp2[0]}',
 			inline=True
 		).add_field(
 			name='Roles:',
