@@ -88,13 +88,13 @@ class StealHelp(HelpCommand):
         return await self.context.reply(
                 embed=discord.Embed(
                 color = Colors.BASE_COLOR,
-                title = f'Group Command: {command.qualified_name}',
+                title = f'Group Command: {command.parent}',
                 description = f'>>> {command.description or "No Description Provided"}',
             )
                 .set_author(name = self.context.author.display_name, icon_url = self.context.author.display_avatar.url)
                 .add_field(name = 'Aliases', value = ', '.join(command.aliases) or 'N/A', inline = True)
                 .add_field(name = 'Subcommands', value = ', '.join([parameter.name for parameter in group.commands]) or 'N/A', inline = True)
-                .add_field(name = 'Usage', value = f'>>> Syntax: `{prefix}{command.qualified_name} {"/".join(parameter.name for parameter in group.commands)}`', inline = False)
+                .add_field(name = 'Usage', value = f'>>> Syntax: `{prefix}{command.parent} {"/".join(parameter.name for parameter in group.commands)}`', inline = False)
         )
     
 class CategorySelector(discord.ui.Select):
