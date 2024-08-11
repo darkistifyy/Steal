@@ -90,6 +90,7 @@ class Utility(commands.Cog):
 
 	@command(name="avatar", description='Gets someones avatar.', aliases=['av', 'pfp'], usage='avatar [@user]')
 	async def avatar(self, ctx: StealContext, member:Optional[discord.User]) -> None:
+		await ctx.typing()
 		if not member:member=ctx.author
 		if not member.display_avatar:
 			return await ctx.deny(f"**{member}** does not have an avatar.")
@@ -106,6 +107,7 @@ class Utility(commands.Cog):
 
 	@command(name="banner", description='Gets someones avatar.', usage='avatar [@user]')
 	async def banner(self, ctx: StealContext, member:Optional[discord.User]) -> None:
+		await ctx.typing()
 		if not member:member=ctx.author
 		user = await self.bot.fetch_user(member.id)
 		if user.banner:
@@ -126,6 +128,7 @@ class Utility(commands.Cog):
 	@command(name="members", description='Server members.')
 	@guild_only()
 	async def members(self, ctx: StealContext) -> None:
+		await ctx.typing()
 		await ctx.reply(embed=discord.Embed(description=f'There are `{len(ctx.guild.members)-len([i for i in ctx.guild.members if i.bot])}` members excluding bots.', color=Colors.BASE_COLOR).add_field(
 			name='Members:',
 			value=f'`{len(ctx.guild.members)}`'
@@ -145,6 +148,7 @@ class Utility(commands.Cog):
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
 	async def deletechannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = None) -> None:
+		await ctx.typing()
 		if not channel or channel == ctx.channel:
 			bs = "\'"
 			return await ctx.warn(f'{f"I couldn{bs}t find a channel with those parameters" if not channel else ""}. Would you like to delete {ctx.channel.mention}?', view=ChannelDeleteConfirm())
@@ -162,6 +166,7 @@ class Utility(commands.Cog):
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
 	async def createchannel(self, ctx: StealContext, name:Optional[str]) -> None:
+		await ctx.typing()
 
 		channel = await ctx.guild.create_text_channel(name=name if name else "channel", reason=f'Executed by {ctx.author}')
 		await ctx.approve(f'Created {channel.mention}.')
@@ -172,6 +177,7 @@ class Utility(commands.Cog):
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
 	async def renamechannel(self, ctx: StealContext, channel:discord.abc.GuildChannel,name:Optional[str]) -> None:
+		await ctx.typing()
 		#if not isinstance(channel, discord.GuildChannel):
 		#    await ctx.reply(embed=discord.Embed(description=f'{channel} is not a valid channel.', color=Color.red()))
 		#    return
@@ -195,6 +201,7 @@ class Utility(commands.Cog):
 	@bot_has_permissions(manage_channels=True)
 	@guild_only()
 	async def slowmode_set(self, ctx:StealContext, time, channel:Optional[discord.abc.GuildChannel]) -> None:
+		await ctx.typing()
 		def time_conv(time):
 			try:
 				return int(time[:-1]) * time_convert[time[-1]]
@@ -208,13 +215,15 @@ class Utility(commands.Cog):
 	@has_permissions(manage_channels=True)
 	@bot_has_permissions(manage_channels=True)
 	@guild_only()
-	async def slowmode_remove(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel]):
+	async def slowmode_remove(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel]) -> None:
+		await ctx.typing()
 		await channel.edit(slowmode_delay=0, reason=f'Executed by {ctx.author}')
 		await ctx.approve(f"Removed {channel}'s slowmode.")
 
 	@command(name="userinfo", description="Gives userinfo.", aliases=["ui", "uinfo"], usage='userinfo [user]')
 	@cooldown(1,15, commands.BucketType.user)
 	async def userinfo(self, ctx:StealContext, member: Optional[discord.User]) -> None:
+		await ctx.typing()
 
 		if not member:member = ctx.author
 
@@ -280,6 +289,7 @@ class Utility(commands.Cog):
 	@bot_has_guild_permissions(manage_guild=True)
 	@guild_only()
 	async def servericon(self, ctx: StealContext, image:Optional[discord.Attachment]) -> None:
+		await ctx.typing()
 
 		if image:
 			bytes_image = await image.read()
@@ -292,6 +302,7 @@ class Utility(commands.Cog):
 	@bot_has_guild_permissions(manage_guild=True)
 	@guild_only()
 	async def serversplash(self, ctx: StealContext, image:Optional[discord.Attachment]) -> None:
+		await ctx.typing()
 
 		if image:
 			bytes_image = await image.read()
@@ -304,6 +315,7 @@ class Utility(commands.Cog):
 	@bot_has_guild_permissions(manage_guild=True)
 	@guild_only()
 	async def serverbanner(self, ctx: StealContext, image:Optional[discord.Attachment]) -> None:
+		await ctx.typing()
 
 		if image:
 			bytes_image = await image.read()
@@ -320,7 +332,8 @@ class Utility(commands.Cog):
 	@has_permissions(manage_emojis=True)
 	@bot_has_guild_permissions(manage_emojis=True)
 	@guild_only()
-	async def emojiadd(self, ctx: StealContext, emoji:discord.Attachment, *, emoji_name:Optional[str]=None):
+	async def emojiadd(self, ctx: StealContext, emoji:discord.Attachment, *, emoji_name:Optional[str]=None) -> None:
+		await ctx.typing()
 		try:
 			if not emoji_name: emoji_name = emoji.filename.split(".")[0]
 
@@ -335,7 +348,8 @@ class Utility(commands.Cog):
 	@has_permissions(manage_emojis=True)
 	@bot_has_guild_permissions(manage_emojis=True)
 	@guild_only()
-	async def emojisteal(self, ctx: StealContext, emoji:discord.PartialEmoji, *, emoji_name:Optional[str]=None):
+	async def emojisteal(self, ctx: StealContext, emoji:discord.PartialEmoji, *, emoji_name:Optional[str]=None) -> None:
+		await ctx.typing()
 		try:
 			if not emoji_name: emoji_name = emoji.name
 
@@ -350,7 +364,8 @@ class Utility(commands.Cog):
 	@has_permissions(manage_emojis=True)
 	@bot_has_guild_permissions(manage_emojis=True)
 	@guild_only()
-	async def emojidelete(self, ctx: StealContext, emoji:discord.PartialEmoji):
+	async def emojidelete(self, ctx: StealContext, emoji:discord.PartialEmoji) -> None:
+		await ctx.typing()
 		try:
 			if emoji in ctx.guild.emojis:
 				await ctx.guild.delete_emoji(emoji)
@@ -365,7 +380,8 @@ class Utility(commands.Cog):
 	@has_permissions(manage_emojis=True)
 	@bot_has_guild_permissions(manage_emojis=True)
 	@guild_only()
-	async def emojirename(self, ctx:StealContext, emoji:discord.PartialEmoji, *, name:str):
+	async def emojirename(self, ctx:StealContext, emoji:discord.PartialEmoji, *, name:str) -> None:
+		await ctx.typing()
 		try:
 			if emoji in ctx.guild.emojis:
 				emoji = await ctx.guild.fetch_emoji(emoji.id)
@@ -389,6 +405,7 @@ class Utility(commands.Cog):
 	@bot_has_guild_permissions(manage_emojis=True)
 	@guild_only()
 	async def stickeradd(self, ctx: StealContext, sticker:discord.Attachment, emoji:str, *, sticker_name:Optional[str]=None):
+		await ctx.typing()
 		try:
 			if not sticker_name: sticker_name = sticker.filename.split(".")[0]
 
@@ -404,6 +421,7 @@ class Utility(commands.Cog):
 	@bot_has_guild_permissions(manage_emojis=True)
 	@guild_only()
 	async def stickersteal(self, ctx: StealContext, sticker:discord.Sticker, sticker_name:Optional[str]=None):
+		await ctx.typing()
 		try:
 			if not sticker_name: sticker_name = sticker.name
 
@@ -419,6 +437,7 @@ class Utility(commands.Cog):
 	@bot_has_guild_permissions(manage_emojis=True)
 	@guild_only()
 	async def stickerdelete(self, ctx: StealContext, sticker:discord.Sticker):
+		await ctx.typing()
 		try:
 			if sticker in ctx.guild.stickers:
 				await ctx.guild.delete_sticker(sticker)
@@ -434,6 +453,7 @@ class Utility(commands.Cog):
 	@bot_has_guild_permissions(manage_emojis=True)
 	@guild_only()
 	async def emojirename(self, ctx:StealContext, sticker:discord.Sticker, name:str):
+		await ctx.typing()
 		try:
 			if sticker in ctx.guild.stickers:
 				sticker = await ctx.guild.fetch_sticker(sticker.id)
@@ -447,7 +467,8 @@ class Utility(commands.Cog):
 
 	@command(name='nitrohavers', description='Users with nitro.', aliases=['nhavers', 'nhs'], usage="nitrohavers")
 	@guild_only()
-	async def nhavers(self, ctx: StealContext):
+	async def nhavers(self, ctx: StealContext) -> None:
+		await ctx.typing()
 		nhavers_ = []
 
 		def guns(user:discord.Member):
@@ -469,7 +490,8 @@ class Utility(commands.Cog):
 
 	@command(name="boosters", description='Users server boosting.', usage='boosters')
 	@guild_only()
-	async def boosters(self, ctx: StealContext):
+	async def boosters(self, ctx: StealContext) -> None:
+		await ctx.typing()
 		boosters = [f"> {i_.mention} | {i_.id}\n" for i_ in ctx.guild.premium_subscribers]
 		
 		if not boosters:

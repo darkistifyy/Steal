@@ -161,7 +161,9 @@ class Tickets(commands.Cog):
 	@has_permissions(administrator=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@cooldown(1,120, commands.BucketType.guild)
-	async def create_panel(self, ctx: StealContext):
+	async def create_panel(self, ctx: StealContext) -> None:
+		await ctx.typing()
+
 		tcg = await ctx.guild.create_category(name='◜ 🎫 ◞ @ TICKETS')
 		tc = await tcg.create_text_channel(name='🎟﹒tickets', topic='Open tickets here.\nDo not move this channel from the bot created category.')
 		
@@ -182,7 +184,8 @@ class Tickets(commands.Cog):
 	@ticket.command(name='delete', description='Deletes a ticket.', aliases=['d', 'dt'], usage="ticket delete")
 	@guild_only()
 	@cooldown(1,5, commands.BucketType.channel)
-	async def delete_ticket(self, ctx: StealContext):
+	async def delete_ticket(self, ctx: StealContext) -> None:
+		await ctx.typing()
 		if ctx.channel.topic:
 			if "Open - " in ctx.channel.topic or "Closed - " in ctx.channel.topic:
 				await ctx.message.add_reaction(
@@ -197,7 +200,8 @@ class Tickets(commands.Cog):
 	@ticket.command(name='close', description='Closes a ticket.', aliases=['lock', 'tc', 'tl'], usage='ticket close')
 	@guild_only()
 	@cooldown(1,5, commands.BucketType.channel)
-	async def close_ticket(self, ctx: StealContext):
+	async def close_ticket(self, ctx: StealContext) -> None:
+		await ctx.typing()
 
 		tpic = ctx.channel.topic
 		tpic1 = tpic.replace("Closed - ", "")
@@ -234,7 +238,8 @@ class Tickets(commands.Cog):
 	@ticket.command(name='open', description='Opens a ticket.', aliases=['unlock', 'to', 'tu'], usage="ticket open")
 	@guild_only()
 	@cooldown(1,5, commands.BucketType.channel)
-	async def open_ticket(self, ctx: StealContext):
+	async def open_ticket(self, ctx: StealContext) -> None:
+		await ctx.typing()
 
 		tpic = ctx.channel.topic
 		tpic1 = tpic.replace("Closed - ", "")

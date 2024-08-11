@@ -32,6 +32,7 @@ class BotManagement(commands.Cog):
 
 	@profile.command(name='pfp', description='Changes bot pfp.', aliases=['pic', 'avatar'])
 	async def profilepfp(self, ctx: StealContext, image:Optional[discord.Attachment] = None) -> None:
+		await ctx.typing()
 		if image is None:
 			try:
 				await self.bot.user.edit(avatar=None)
@@ -65,7 +66,8 @@ class BotManagement(commands.Cog):
 			return await ctx.deny("Fuck off.")
 
 	@profile.command(name='banner', description='Changes bot banner.', aliases=['ban'])
-	async def profilebanner(self, ctx: StealContext, image:Optional[discord.Attachment]):
+	async def profilebanner(self, ctx: StealContext, image:Optional[discord.Attachment]) -> None:
+		await ctx.typing()
 		if image is None:
 			try:
 				await self.bot.user.edit(avatar=None)
@@ -99,7 +101,8 @@ class BotManagement(commands.Cog):
 			return await ctx.deny("Fuck off.")
 
 	@profile.command(name='name', description='Changes bot name.')
-	async def profilename(self, ctx: StealContext, username:str):
+	async def profilename(self, ctx: StealContext, username:str) -> None:
+		await ctx.typing()
 		if ctx.author.id in self.bot.owner_ids:
 			try:
 				headers = {
@@ -124,6 +127,7 @@ class BotManagement(commands.Cog):
 
 	@profile.command(name='fetchpfp', description='Fetches bot pfp.', alises=['getpfp'])
 	async def fetchpfp(self, ctx: StealContext) -> None:
+		await ctx.typing()
 		if ctx.author.id in self.bot.owner_ids:
 			if self.bot.user.display_avatar:
 				await ctx.reply(
@@ -140,6 +144,7 @@ class BotManagement(commands.Cog):
 
 	@profile.command(name='fetchbanner', description='Fetches bot banner.', alises=['getbanner'])
 	async def fetchbanner(self, ctx: StealContext) -> None:
+		await ctx.typing()
 		if ctx.author.id in self.bot.owner_ids:
 			user = await self.bot.fetch_user(ctx.me.id)
 			if user.banner:
@@ -156,7 +161,8 @@ class BotManagement(commands.Cog):
 			return await ctx.deny("Fuck off.")
 
 	@command(name='reload')
-	async def reload(self, ctx: StealContext, cog):
+	async def reload(self, ctx: StealContext, cog) -> None:
+		await ctx.typing()
 		if ctx.author.id in self.bot.owner_ids:
 			cog=cog + ".py"
 			if cog in os.listdir("./cogs"):
@@ -170,7 +176,8 @@ class BotManagement(commands.Cog):
 			return await ctx.deny("Fuck off.")
 	
 	@command(name='load')
-	async def load(self, ctx: StealContext, cog):
+	async def load(self, ctx: StealContext, cog) -> None:
+		await ctx.typing()
 		if ctx.author.id in self.bot.owner_ids:
 			cog=cog + ".py"
 			if cog in os.listdir("./cogs"):
@@ -184,7 +191,8 @@ class BotManagement(commands.Cog):
 			return await ctx.deny("Fuck off.")
 	
 	@command(name='sync')
-	async def sync(self, ctx: StealContext):
+	async def sync(self, ctx: StealContext) -> None:
+		await ctx.typing()
 		if ctx.author.id in self.bot.owner_ids:
 			await self.bot.tree.sync()
 			await ctx.message.add_reaction(
@@ -220,14 +228,15 @@ class BotManagement(commands.Cog):
 		aliases=['sys'],
 		description='System commands.'
 	)
-	async def system(self, ctx: StealContext):
+	async def system(self, ctx: StealContext) -> None:
 		if ctx.invoked_subcommand is None:
 			await ctx.deny(f"{ctx.invoked_subcommand} is not a valid subcommand of `system`")
 	def restart_bot(self):
 		os.execv(sys.executable, ["python3"] + sys.argv)
 
 	@system.command(name='Restart', aliases=['rs', 'reboot'], description='Restarts the bot.')
-	async def systemrestart(self, ctx: StealContext):
+	async def systemrestart(self, ctx: StealContext) -> None:
+		await ctx.typing()
 		if ctx.author.id in self.bot.owner_ids:
 			await ctx.approve(f"{self.bot.user} proccess is restarting.")
 			await self.restart_bot()

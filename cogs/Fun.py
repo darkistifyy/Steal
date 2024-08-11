@@ -11,6 +11,7 @@ import asyncio
 import sys
 import random
 import aiohttp
+import time
 
 from tools.Steal import Steal
 from managers.context import StealContext
@@ -169,9 +170,12 @@ class Fun(commands.Cog):
 		self.lifes = {}
 
 	@command(name="ping", description='Bot ping.')
-	async def ping(self, ctx: StealContext):
-		lat = self.bot.latency * 1000.0
-		await ctx.neutral(f"Latency (ms): {round(lat)}")
+	async def ping(self, ctx: StealContext) -> None:
+		time_1 = time.perf_counter()
+		await ctx.typing()
+		time_2 = time.perf_counter()
+		ping = round((time_2-time_1)*1000)
+		await ctx.neutral(f"Latency (ms): `{ping}`")
 
 	@command(
 		name = "botinfo",
@@ -179,7 +183,8 @@ class Fun(commands.Cog):
 		description = "Get information about the bot."
 	)
 	@cooldown(1, 5, commands.BucketType.user)
-	async def botinfo(self, ctx: Context):
+	async def botinfo(self, ctx: Context) -> None:
+		await ctx.typing()
 		commands = [command for command in set(self.bot.walk_commands()) if command.cog_name not in ['BotManagement', 'Auth', 'Profile', 'Bs']]
 
 		embed = discord.Embed(
@@ -197,7 +202,8 @@ class Fun(commands.Cog):
 
 	@command(name="tic", description="TTT battle with an opp.")
 	@guild_only()
-	async def tic(self, ctx: StealContext, opp: discord.Member):
+	async def tic(self, ctx: StealContext, opp: discord.Member) -> None:
+		await ctx.typing()
 		await ctx.neutral(f"Tic Tac Toe, {ctx.author.mention} goes first.",view=TicTacToe())
 
 		global player1
@@ -208,15 +214,16 @@ class Fun(commands.Cog):
 
 	@command(name='explode', description='Explodes a user.')
 	@guild_only()
-	async def explode(self, ctx: StealContext, opp: discord.Member):
+	async def explode(self, ctx: StealContext, opp: discord.Member) -> None:
+		await ctx.typing()
 		await ctx.warn(f'Are you sure you would like to explode {opp.mention}', view=Explosion())
 		global explosionuser
 		explosionuser = opp	
 
 	@command(name='weather', description='Gets the forecast in the selected area.')
 	@cooldown(1,15, commands.BucketType.guild)
-	async def weather(self, ctx: StealContext, *, location: str):
-		await ctx.defer()
+	async def weather(self, ctx: StealContext, *, location: str) -> None:
+		await ctx.typing()
 
 		msg = await ctx.send(embed=discord.Embed(description=f'{Emojis.WARN} Gathering Data...', color=Colors.WARN_COLOR))
 
@@ -246,7 +253,8 @@ class Fun(commands.Cog):
 		description = "Play a game of blacktea."
 	)
 	@cooldown(1, 5, commands.BucketType.user)
-	async def blacktea(self, ctx: StealContext): 
+	async def blacktea(self, ctx: StealContext) -> None: 
+		await ctx.typing()
 		try:
 			if self.MatchStart[ctx.guild.id] is True: 
 				return await ctx.deny("Somebody in this server is already playing blacktea.", mention_author=False)
