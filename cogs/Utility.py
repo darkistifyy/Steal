@@ -470,13 +470,13 @@ class Utility(commands.Cog):
 	@command(name="boosters", description='Users server boosting.', usage='boosters')
 	@guild_only()
 	async def boosters(self, ctx: StealContext):
-		boosters = [f"> <@{i_.id}> | {i_.id}\n" for i_ in ctx.guild.premium_subscribers]
+		boosters = [f"> {i_.mention} | {i_.id}\n" for i_ in ctx.guild.premium_subscribers]
 		
 		if not boosters:
 			await ctx.reply(embed=discord.Embed(description=f"No boosters in `{ctx.guild}`", color=Color.red()))
 			return        
 
-		embed1 = discord.Embed(title='__Boosters__', description=f''.join(i for i in boosters), color=Color.pink()).set_footer(icon_url=ctx.author.avatar.url, text=f'Command run by {ctx.author} || {ctx.author.id}')
+		embed1 = discord.Embed(title='__Boosters__', description=f''.join(i for i in boosters), color=Color.pink()).set_author(icon_url=ctx.author.display_avatar.url if ctx.author.display_avatar else None, name=ctx.author)
 		await ctx.reply(embed=embed1)        
 
 async def setup(bot):
