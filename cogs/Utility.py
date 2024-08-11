@@ -165,6 +165,60 @@ class Utility(commands.Cog):
 		channel = await ctx.guild.create_text_channel(name=name if name else "channel", reason=f'Executed by {ctx.author}')
 		await ctx.approve(f'Created {channel.mention}.')
 
+	@managechannels.command(name="remove", description="Removes a member from a channel.", usage=f'channel remove <user> <channel')
+	@cooldown(2,5, commands.BucketType.guild)
+	@has_permissions(manage_channels=True)
+	@bot_has_guild_permissions(manage_channels=True)
+	@guild_only()
+	async def removechannel(self, ctx: StealContext, member:discord.Member, channel: Optional[discord.abc.GuildChannel]):
+		if channel is None: channel = ctx.channel	
+		if member in channel.members:
+			await channel.set_permissions(target=member, view_channel=False, reason=f'Executed by {ctx.author}')
+			await ctx.approve(f"Removed {member.mention} from {channel.mention}.")
+		else:	
+			await ctx.deny(f"{member.mention} is not a member of {channel.mention}")
+
+	@managechannels.command(name="add", description="Adds a member to a channel.", usage=f'channel add <user> <channel')
+	@cooldown(2,5, commands.BucketType.guild)
+	@has_permissions(manage_channels=True)
+	@bot_has_guild_permissions(manage_channels=True)
+	@guild_only()
+	async def addchannel(self, ctx: StealContext, member:discord.Member, channel: Optional[discord.abc.GuildChannel]):
+		if channel is None: channel = ctx.channel	
+		if member not in channel.members:
+			await channel.set_permissions(target=member, view_channel=True, reason=f'Executed by {ctx.author}')
+			await ctx.approve(f"Added {member.mention} to {channel.mention}.")
+		else:	
+			await ctx.deny(f"{member.mention} is already a member of {channel.mention}.")
+
+	@managechannels.command(name='hide', description='Hides a channel from @everyone.', usage='channel hide <channel>')
+	@cooldown(2,5, BucketType.guild)
+	@has_permissions(manage_channels=True)
+	@bot_has_guild_permissions(manage_channels=True)
+	@guild_only()
+	async def hidechannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = None):
+		if channel is None: channel = ctx.channel	
+		perms = channel.overwrites_for(ctx.guild.default_role)
+		if perms.view_channel is None or perms.view_channel is True:
+			await channel.set_permissions(ctx.guild.default_role, view_channel=False, reason=f'Executed by {ctx.author}')
+			await ctx.approve(f"Hidden {channel.mention}.")
+		else:
+			await ctx.deny(f"{channel.mention} is already hidden.")
+
+	@managechannels.command(name='reveal', description='Reveals a channel to @everyone.', usage='channel reveal <channel>')
+	@cooldown(2,5, BucketType.guild)
+	@has_permissions(manage_channels=True)
+	@bot_has_guild_permissions(manage_channels=True)
+	@guild_only()
+	async def revealchannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = None):
+		if channel is None: channel = ctx.channel	
+		perms = channel.overwrites_for(ctx.guild.default_role)
+		if not perms.view_channel:
+			await channel.set_permissions(ctx.guild.default_role, view_channel=True, reason=f'Executed by {ctx.author}')
+			await ctx.approve(f"Revealed {channel.mention}.")
+		else:
+			await ctx.deny(f"{channel.mention} is already visible.")
+
 	@managechannels.command(name='rename', description='Renames a channel.', usage='channel rename <channel> <name>')
 	@cooldown(2,5, commands.BucketType.guild)
 	@has_permissions(manage_channels=True)
@@ -184,34 +238,13 @@ class Utility(commands.Cog):
 		except Exception as e:
 			return await ctx.deny(description=f'Error:\n```{e}```')
 
-	"""
-	@managechannels.command(name='hide', description='Hides a channel.', usage='channel hide <channel>')
-	@cooldown(2,5, BucketType.guild)
-	@has_permissions(manage_channels=True)
-	@bot_has_guild_permissions(manage_channels=True)
-	@guild_only()
-	async def hidechannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = None):
-		if channel is None: channel = ctx.channel	
-		perms = channel.overwrites_for(ctx.guild.default_role)
-		if perms.view_channel is True:
-			overwrites = {
-				ctx.guild.default_role : discord.PermissionOverwrite(view_channel = False)
-			}
-			await channel.edit(overwrites=overwrites)
-			await ctx.approve(f"Hidden {channel.mention}.")
-		else:
-			await ctx.deny(f"{channel.mention} is already hidden.")"""
-
-	@managechannels.group(name='slowmode', description='Sets slowmodes.')
-	async def slowmode(self, ctx: StealContext):
-		if ctx.invoked_subcommand is None:
-			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `slowmode`.')
-
-	@slowmode.command(name="set", description="Set a channel slowmode.", aliases=["add"], usage='channel slowmode set 10s [channel]')
+	@command(name="slowmode", description="Set a channel slowmode", usage='slowmode 10s [channel]')
+	@cooldown(2,5, commands.BucketType.guild)
 	@has_permissions(manage_channels=True)
 	@bot_has_permissions(manage_channels=True)
 	@guild_only()
 	async def slowmode_set(self, ctx:StealContext, time, channel:Optional[discord.abc.GuildChannel]) -> None:
+		if not channel:channel=ctx.channel
 		def time_conv(time):
 			try:
 				return int(time[:-1]) * time_convert[time[-1]]
@@ -219,15 +252,7 @@ class Utility(commands.Cog):
 				return time
 		seconds = time_conv(time.lower())
 		await channel.edit(slowmode_delay=seconds, reason=f'Executed by {ctx.author}')
-		await ctx.approve(f"Set {channel}'s slowmode to {time}")
-
-	@slowmode.command(name="remove", description="Set a channel slowmode.", aliases=["clear"], usage='channel slowmode remove [channel]')
-	@has_permissions(manage_channels=True)
-	@bot_has_permissions(manage_channels=True)
-	@guild_only()
-	async def slowmode_remove(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel]) -> None:
-		await channel.edit(slowmode_delay=0, reason=f'Executed by {ctx.author}')
-		await ctx.approve(f"Removed {channel}'s slowmode.")
+		await ctx.approve(f'{f"Set {channel}'s slowmode to `{time}`" if int(seconds) > 0 else f"Removed {channel}'s slowmode."}')
 
 	@command(name="inviteinfo", description="Gives invite info.", aliases=["ii"])
 	@cooldown(1,15, BucketType.user)
@@ -338,7 +363,8 @@ class Utility(commands.Cog):
 
 	@command(name="userinfo", description="Gives userinfo.", aliases=["ui", "uinfo"], usage='userinfo [user]')
 	@cooldown(1,15, commands.BucketType.user)
-	async def userinfo(self, ctx:StealContext, member: Optional[discord.User]) -> None:
+	@guild_only()
+	async def userinfo(self, ctx:StealContext, member: Optional[discord.Member]) -> None:
 
 		if not member:member = ctx.author
 
