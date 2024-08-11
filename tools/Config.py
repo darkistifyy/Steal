@@ -9,6 +9,6 @@ class Colors:
     WARN_COLOR = Color.yellow()
 
 class Emojis:
-    APPROVE = "<:Success:1182764836682203196>"
+    APPROVE = "✅"
     WARN = "⚠️"
-    DENY = "<:Error:1182764757938339901>"
+    DENY = "❌"
