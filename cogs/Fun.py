@@ -184,7 +184,6 @@ class Fun(commands.Cog):
 	)
 	@cooldown(1, 5, commands.BucketType.user)
 	async def botinfo(self, ctx: Context) -> None:
-		await ctx.typing()
 		commands = [command for command in set(self.bot.walk_commands()) if command.cog_name not in ['BotManagement', 'Auth', 'Profile', 'Bs']]
 
 		embed = discord.Embed(
@@ -203,7 +202,6 @@ class Fun(commands.Cog):
 	@command(name="tic", description="TTT battle with an opp.")
 	@guild_only()
 	async def tic(self, ctx: StealContext, opp: discord.Member) -> None:
-		await ctx.typing()
 		await ctx.neutral(f"Tic Tac Toe, {ctx.author.mention} goes first.",view=TicTacToe())
 
 		global player1
@@ -215,7 +213,6 @@ class Fun(commands.Cog):
 	@command(name='explode', description='Explodes a user.')
 	@guild_only()
 	async def explode(self, ctx: StealContext, opp: discord.Member) -> None:
-		await ctx.typing()
 		await ctx.warn(f'Are you sure you would like to explode {opp.mention}', view=Explosion())
 		global explosionuser
 		explosionuser = opp	
@@ -223,7 +220,6 @@ class Fun(commands.Cog):
 	@command(name='weather', description='Gets the forecast in the selected area.')
 	@cooldown(1,15, commands.BucketType.guild)
 	async def weather(self, ctx: StealContext, *, location: str) -> None:
-		await ctx.typing()
 
 		msg = await ctx.send(embed=discord.Embed(description=f'{Emojis.WARN} Gathering Data...', color=Colors.WARN_COLOR))
 
@@ -254,7 +250,6 @@ class Fun(commands.Cog):
 	)
 	@cooldown(1, 5, commands.BucketType.user)
 	async def blacktea(self, ctx: StealContext) -> None: 
-		await ctx.typing()
 		try:
 			if self.MatchStart[ctx.guild.id] is True: 
 				return await ctx.deny("Somebody in this server is already playing blacktea.", mention_author=False)

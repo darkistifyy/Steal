@@ -47,7 +47,6 @@ class Mod(commands.Cog):
 	@cooldown(1, 10, BucketType.user)
 	@has_permissions(moderate_members=True)
 	async def banadd(self, ctx: StealContext, user: discord.User, *, reason: Optional[str] = "no reason") -> None:
-		await ctx.typing()
 		reason += ' | Executed by {}'.format(ctx.author)
 
 		try:
@@ -75,7 +74,6 @@ class Mod(commands.Cog):
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
 	async def banremove(self, ctx: StealContext, user:discord.User, *, reason: Optional[str] = 'No reason.') -> None:
-		await ctx.typing()
 		reason += ' | Executed by {}'.format(ctx.author)
 		try:
 			bans = [entry async for entry in ctx.guild.bans(limit=None)]
@@ -96,7 +94,6 @@ class Mod(commands.Cog):
 	@cooldown(1, 10, BucketType.user)
 	@has_permissions(moderate_members=True)
 	async def kick(self, ctx: StealContext, user: discord.Member, *, reason: Optional[str] = "No reason.") -> None:
-		await ctx.typing()
 		reason += ' | Executed by {}'.format(ctx.author)
 
 		try:
@@ -126,7 +123,6 @@ class Mod(commands.Cog):
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
 	async def muteadd(self, ctx: StealContext, user: discord.Member, time: str="60s", *, reason: Optional[str] = "No reason.") -> None:
-		await ctx.typing()
 		reason += ' | Executed by {}'.format(ctx.author)
 		try:
 			if user.id == self.bot.user.id:
@@ -162,7 +158,6 @@ class Mod(commands.Cog):
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
 	async def muteremove(self, ctx: StealContext, member:discord.Member, *, reason: Optional[str] = 'No reason.') -> None:
-		await ctx.typing()
 		reason += ' | Executed by {}'.format(ctx.author)
 		try:
 			if member.is_timed_out():
@@ -184,7 +179,6 @@ class Mod(commands.Cog):
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
 	async def roleadd(self, ctx: StealContext, member:discord.Member, role:discord.Role, reason: str = "No reason.") -> None:
-			await ctx.typing()
 			reason += ' | Executed by {}'.format(ctx.author)
 			if member.top_role.position > ctx.author.top_role.position and ctx.author != ctx.guild.owner:
 				return await ctx.deny("You do not have permission to manage this users roles.")
@@ -203,7 +197,6 @@ class Mod(commands.Cog):
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
 	async def roleremove(self, ctx: StealContext, member:discord.Member, role:discord.Role, reason: Optional[str] = "No reason.") -> None: 
-			await ctx.typing()
 			reason += ' | Executed by {}'.format(ctx.author)
 			if member.top_role.position > ctx.author.top_role.position and ctx.author != ctx.guild.owner:
 				return await ctx.deny(f'You do not have permission to manage this users roles.')
@@ -222,7 +215,6 @@ class Mod(commands.Cog):
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
 	async def rolerename(self, ctx: StealContext, role:discord.Role, *,name:str) -> None:
-		await ctx.typing()
 		if role.position > ctx.author.top_role.position and ctx.author != ctx.guild.owner:
 			return await ctx.deny('You do not have permission to manage this role.')
 		if role.position > ctx.guild.me.top_role.position:
@@ -241,7 +233,6 @@ class Mod(commands.Cog):
 	@bot_has_guild_permissions(manage_roles=True)
 	@guild_only()
 	async def roleaddall(self, ctx: StealContext, role:discord.Role) -> None:
-		await ctx.typing()
 		if role.position > ctx.author.top_role.position and ctx.author != ctx.guild.owner:
 			return await ctx.deny('You do not have permission to manage this role.')
 		if role.position > ctx.guild.me.top_role.position:
@@ -286,7 +277,6 @@ class Mod(commands.Cog):
 	@bot_has_guild_permissions(manage_roles=True)
 	@guild_only()
 	async def roleremoveall(self, ctx: StealContext, role:discord.Role) -> None:
-		await ctx.typing()
 		if role.position > ctx.author.top_role.position and ctx.author != ctx.guild.owner:
 			return await ctx.deny('You do not have permission to manage this role.')
 		if role.position > ctx.guild.me.top_role.position:
@@ -327,7 +317,6 @@ class Mod(commands.Cog):
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
 	async def hoistrole(self, ctx: StealContext, role:discord.Role) -> None:
-		await ctx.typing()
 		await role.edit(hoist=False if role.hoist else True, reason=f'Executed by {ctx.author}')
 		await ctx.approve(f"{'Hoisted' if not role.hoist else 'Dehoisted'} {role.mention}")
 
@@ -337,7 +326,6 @@ class Mod(commands.Cog):
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
 	async def colorrole(self, ctx: StealContext, role:discord.Role, hex:Optional[str] = None) -> None:
-		await ctx.typing()
 		if hex is None:
 			return await ctx.approve(f"Hex color of {role.mention}: {role.color}")
 
@@ -361,7 +349,6 @@ class Mod(commands.Cog):
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
 	async def deleterole(self, ctx: StealContext, role:discord.Role) -> None:
-		await ctx.typing()
 		if role.position >= ctx.author.top_role.position and ctx.author != ctx.guild.owner:
 			return await ctx.deny(f'You do not have permission to manage {role.mention}.')
 
@@ -374,7 +361,6 @@ class Mod(commands.Cog):
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
 	async def createrole(self, ctx: StealContext, name:Optional[str], hoist:Optional[bool] = False, hex:Optional[str] = None) -> None:
-		await ctx.typing()
 		from isHex import isHex
 		if hex:
 			if isHex(hex):
@@ -392,7 +378,6 @@ class Mod(commands.Cog):
 	@cooldown(1, 30, BucketType.user)
 	@guild_only()
 	async def purge(self, ctx: StealContext, number: Optional[int] = 5) -> None:
-		await ctx.typing()
 		if number <= 100 and ctx.author != ctx.guild.owner or ctx.author == ctx.guild.owner and number <= 200:
 			await ctx.channel.purge(limit=number + 1, reason=f'Executed by {ctx.author}')
 			embed=discord.Embed(
