@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+from io import BytesIO
 import jishaku
 import logging
 import asyncpg
@@ -25,6 +26,7 @@ from discord.ext import commands
 from discord import Message, Embed
 
 from managers.help import StealHelp
+from tools.Session import Session, NekosApi
 from managers.context import StealContext
 from tools.Config import Colors, Emojis
 from discord.ext import commands
@@ -39,17 +41,19 @@ class Steal(commands.Bot):
 	def __init__(self):
 		self.errors = Dict[str, commands.CommandError]
 		self._uptime = time.time()
+		self.session = Session()
+		self.nekos = NekosApi()
 
 		super().__init__(
 			command_prefix=[';'],
-            help_command=StealHelp(),
+			help_command=StealHelp(),
 			intents=intents,
-            allowed_mentions=discord.AllowedMentions(
-                everyone=False,
-                users=True,
-                roles=False,
-                replied_user=False
-            ),
+			allowed_mentions=discord.AllowedMentions(
+				everyone=False,
+				users=True,
+				roles=False,
+				replied_user=False
+			),
 			case_insensitive=True,
 			owner_ids=[1182755690071212092, 1039379534409117717],
 		)
@@ -99,6 +103,13 @@ class Steal(commands.Bot):
 			('minute', 60),
 			('second', 1),
 		)
+
+	async def getbyte(self, url: str) -> BytesIO:
+		"""
+		Get the BytesIO object of an url
+		"""
+
+		return BytesIO(await self.session.get_bytes(url))
 
 		result = []
 		for name, count in intervals:

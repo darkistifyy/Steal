@@ -1,6 +1,7 @@
 import sys, os, discord
 from discord.ext import commands
 from typing import Union
+from tools.Config import Colors
 
 
 class EmbedBuilder:
@@ -70,6 +71,50 @@ class EmbedBuilder:
 
     return params
 
+ def copy_embed(self, message: discord.Message) -> str:
+    to_return = ""
+    if embeds := message.embeds:
+        embed: dict = discord.Embed.to_dict(embeds[0])
+        to_return += "{embed}"
+        if embed.get("color"):
+            to_return += "{color: " + hex(embed["color"]).replace("0x", "#") + "}"
+        if embed.get("title"):
+            to_return += "{title: " + embed["title"] + "}"
+        if embed.get("description"):
+            to_return += "{description: " + embed["description"] + "}"
+        if embed.get("author"):
+            author = embed["author"]
+            to_return += "{author: "
+            if author.get("name"):
+                to_return += f"name: {author.get('name')}"
+            if author.get("icon_url"):
+                to_return += f" && icon: {author.get('icon_url')}"
+            if author.get("url"):
+                to_return += f" && url: {author.get('url')}"
+            to_return += "}"
+        if embed.get("thumbnail"):
+            to_return += "{thumbnail: " + embed["thumbnail"]["url"]
+        if embed.get("image"):
+            to_return += "{image: " + embed["image"]["url"] + "}"
+        if embed.get("fields"):
+            for field in embed["fields"]:
+                to_return += (
+                    "{field: "
+                    + f"name: {field['name']} && value: {field['value']}{' && inline' if field['inline'] else ''}"
+                    + "}"
+                )
+        if embed.get("footer"):
+            to_return += "{footer: "
+            footer = embed["footer"]
+            if footer.get("text"):
+                to_return += f"text: {footer.get('text')}"
+            if footer.get("icon_url"):
+                to_return += f" && icon: {footer.get('icon_url')}"
+            to_return += "}"
+    if message.content:
+        to_return += "{content: " + message.content + "}"
+    return to_return
+
  async def to_object(params):
 
     x={}
@@ -93,7 +138,7 @@ class EmbedBuilder:
             try:
                 x['color']=int(part[len('color:'):].replace("#", ""), 16)
             except:
-                x['color']=0x2f3136
+                x['color']=Colors.BASECOLOR
 
         if part.startswith('image:'):
             x['image']={'url': part[len('image:'):]}
@@ -121,6 +166,10 @@ class EmbedBuilder:
                 x['author']['icon_url']=icon_url
             if url:
                 x['author']['url']=url
+
+        if x:
+            if "color" not in EmbedBuilder.get_parts(params):
+                x['color']=Colors.BASE_COLOR
 
         if part.startswith('field:'):
             z=part[len('field:'):].split(' && ')
