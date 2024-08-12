@@ -345,9 +345,16 @@ class Utility(commands.Cog):
 		else:
 			role_list = None
 		
+		avatarbytes = await ctx.guild.icon.read() if ctx.guild.icon else None
+		if avatarbytes is not None:
+			dominant_color = dom_color(avatarbytes)
+			from isHex import isHex
+			if isHex(dominant_color):
+				rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
+
 		embed = discord.Embed(
 			description=f'{server_creation} ({server_creation_relative})',
-			color=Colors.BASE_COLOR
+			color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2]) if avatarbytes else Colors.BASE_COLOR
 		).add_field(
 			name='Information',
 			value=f'>>> Owner: {server_owner}\nVerification level: {str(server_verification)}\nNitro boosts: {str(server_boosts)} (`Level {str(server_boost_level)}`)',
@@ -465,41 +472,105 @@ class Utility(commands.Cog):
 		if ctx.invoked_subcommand is None:
 			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `server`.')
 
-	@server.command(name='icon', description='Changes server icon.', aliases=['pfp', 'logo'], usage="server icon <image/attatchment>")
+	@server.command(name='icon', description='Changes or gets server icon without args.', aliases=['pfp', 'logo'], usage="server icon <image/attatchment>")
 	@has_permissions(manage_guild=True)
 	@bot_has_guild_permissions(manage_guild=True)
 	@guild_only()
-	async def servericon(self, ctx: StealContext, image:Optional[discord.Attachment]) -> None:
+	async def servericon(self, ctx: StealContext, image:Optional[discord.Attachment] = None) -> None:
 
-		if image:
+		if image is not None:
+
 			bytes_image = await image.read()
+			await ctx.guild.edit(icon=bytes_image, reason=f'Updated icon | Executed by {ctx.author}')
+			return await ctx.approve(f"Updated guild icon.")
+		elif ctx.guild.icon:
 
-		await ctx.guild.edit(icon=bytes_image if image else None, reason=f'Updated icon | Executed by {ctx.author}')
-		return await ctx.approve(f"Updated guild icon.")
+			avatarbytes = await ctx.guild.icon.read()
+			dominant_color = dom_color(avatarbytes)
+			from isHex import isHex
+			if isHex(dominant_color):
+				rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
 
-	@server.command(name='splash', description='Changes server splash.')
+			return await ctx.send(embed=discord.Embed(
+				title=f"{ctx.guild}'s icon",
+				color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])
+			).set_image(
+				url=ctx.guild.icon.url
+				).set_author(
+					name=f"{ctx.author}",
+					url=ctx.guild.icon.url,
+					icon_url=ctx.author.display_avatar.url if ctx.author.display_avatar else None
+				)
+			)
+		else:
+			return await ctx.deny(f"Missing argument `image`")
+
+	@server.command(name='splash', description='Changes or gets server splash without args.')
 	@has_permissions(manage_guild=True)
 	@bot_has_guild_permissions(manage_guild=True)
 	@guild_only()
-	async def serversplash(self, ctx: StealContext, image:Optional[discord.Attachment]) -> None:
+	async def serversplash(self, ctx: StealContext, image:Optional[discord.Attachment] = None) -> None:
 
-		if image:
+		if image is not None:
 			bytes_image = await image.read()
 
-		await ctx.guild.edit(splash=bytes_image if image else None, reason=f'Updated splash | Executed by {ctx.author}')
-		return await ctx.approve("Updated guild splash.")
+			await ctx.guild.edit(splash=bytes_image, reason=f'Updated splash | Executed by {ctx.author}')
+			return await ctx.approve("Updated guild splash.")
+		elif ctx.guild.splash:
 
-	@server.command(name='banner', description='Changes server banner.')
+			avatarbytes = await ctx.guild.splash.read()
+			dominant_color = dom_color(avatarbytes)
+			from isHex import isHex
+			if isHex(dominant_color):
+				rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
+
+			return await ctx.send(embed=discord.Embed(
+				title=f"{ctx.guild}'s splash",
+				color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])
+			).set_image(
+				url=ctx.guild.splash
+				).set_author(
+					name=f"{ctx.author}",
+					url=ctx.guild.icon.url,
+					icon_url=ctx.author.display_avatar.url if ctx.author.display_avatar else None
+				)
+			)
+		else:
+			return await ctx.deny(f"Missing argument `image`")
+
+	@server.command(name='banner', description='Changes or gets server banner without args.')
 	@has_permissions(manage_guild=True)
 	@bot_has_guild_permissions(manage_guild=True)
 	@guild_only()
-	async def serverbanner(self, ctx: StealContext, image:Optional[discord.Attachment]) -> None:
+	async def serverbanner(self, ctx: StealContext, image:Optional[discord.Attachment] = None) -> None:
 
-		if image:
+		if image is not None:
 			bytes_image = await image.read()
 
-		await ctx.guild.edit(banner=bytes_image if image else None, reason=f'Updated banner | Executed by {ctx.author}')
-		return await ctx.approve("Updated guild banner.")
+			await ctx.guild.edit(banner=bytes_image, reason=f'Updated banner | Executed by {ctx.author}')
+			return await ctx.approve("Updated guild banner.")
+
+		elif ctx.guild.banner:
+
+			avatarbytes = await ctx.guild.banner.read()
+			dominant_color = dom_color(avatarbytes)
+			from isHex import isHex
+			if isHex(dominant_color):
+				rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
+
+			return await ctx.send(embed=discord.Embed(
+				title=f"{ctx.guild}'s banner",
+				color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])
+			).set_image(
+				url=ctx.guild.banner
+				).set_author(
+					name=f"{ctx.author}",
+					url=ctx.guild.icon.url,
+					icon_url=ctx.author.display_avatar.url if ctx.author.display_avatar else None
+				)
+			)
+		else:
+			return await ctx.deny(f"Missing argument `image`")
 
 	@group(name='emoji', description='Manage emojis.')
 	async def emoji(self, ctx: StealContext):
