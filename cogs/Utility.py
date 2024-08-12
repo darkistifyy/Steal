@@ -224,7 +224,7 @@ class Utility(commands.Cog):
 		perms = channel.overwrites_for(ctx.guild.default_role)
 		if perms.send_messages is None or perms.send_messages is True:
 			await channel.set_permissions(ctx.guild.default_role, send_messages=False, reason=reason)
-			await ctx.approve(f"Locked {channel.mention} - **{reason.split(" |")[0]}**.")
+			await ctx.approve(f"Locked {channel.mention} - **{reason.split(' |')[0]}**.")
 		else:
 			await ctx.deny(f"{channel.mention} is already locked.")
 
@@ -239,7 +239,7 @@ class Utility(commands.Cog):
 		perms = channel.overwrites_for(ctx.guild.default_role)
 		if perms.send_messages is False:
 			await channel.set_permissions(ctx.guild.default_role, send_messages=None, reason=f'Executed by {ctx.author}')
-			await ctx.approve(f"Unlocked {channel.mention} - **{reason.split(" |")[0]}**.")
+			await ctx.approve(f"Unlocked {channel.mention} - **{reason.split(' |')[0]}**.")
 		else:
 			await ctx.deny(f"{channel.mention} is already unlocked.")			
 
@@ -257,7 +257,7 @@ class Utility(commands.Cog):
 				return time
 		seconds = time_conv(time.lower())
 		await channel.edit(slowmode_delay=seconds, reason=f'Executed by {ctx.author}')
-		await ctx.approve(f'{f"Set {channel}'s slowmode to `{time}`" if int(seconds) > 0 else f"Removed {channel}'s slowmode."}')
+		await ctx.approve(f'{f"Set {channel}s slowmode to `{time}`" if int(seconds) > 0 else f"Removed {channel}s slowmode."}')
 
 	@command(name="inviteinfo", description="Gives invite info.", aliases=["ii"])
 	@cooldown(1,15, BucketType.user)
@@ -423,7 +423,7 @@ class Utility(commands.Cog):
 				return any([user.display_avatar.is_animated(), has_emote_status, user.premium_since, user.guild_avatar, user.banner])
 
 		info = discord.Embed(
-			title=f"{member} {Emojis.NITRO if guns(member) else ""} {Emojis.BOOST if member in ctx.guild.premium_subscribers else ""}",
+			title=f"{member} {Emojis.NITRO if guns(member) else ''} {Emojis.BOOST if member in ctx.guild.premium_subscribers else ''}",
 			color=Colors.BASE_COLOR,
 		).add_field(
 			name=f'Created at:',
@@ -458,9 +458,9 @@ class Utility(commands.Cog):
 		commands = [command for command in set(self.bot.walk_commands()) if command.cog_name not in ['BotManagement', 'Auth', 'Profile', 'Bs']]
 
 		embed = discord.Embed(
-			title = f"{self.bot.user.name.split("#")[0]}",
+			title = f"{self.bot.user.name.split('#')[0]}",
 			color = Colors.BASE_COLOR,
-			description=f"I am {self.bot.user}, I have `{len(commands)}` commands. I'm in `{len(self.bot.guilds):,}` guilds serving `{len(self.bot.users):,}` users. I'm using `{psutil.cpu_percent()}%` of my CPU, `{psutil.virtual_memory().percent}%` of my RAM, running on `Dpy version {discord.__version__}` and `Python Version {sys.version.split(" (")[0]}`"
+			description=f"I am {self.bot.user}, I have `{len(commands)}` commands. I'm in `{len(self.bot.guilds):,}` guilds serving `{len(self.bot.users):,}` users. I'm using `{psutil.cpu_percent()}%` of my CPU, `{psutil.virtual_memory().percent}%` of my RAM, running on `Dpy version {discord.__version__}` and `Python Version {sys.version.split(' (')[0]}`"
 		)
 		embed.set_thumbnail(url=self.bot.user.display_avatar.url)
 		embed.set_author(name=ctx.author.name, icon_url=ctx.author.display_avatar.url)
@@ -740,7 +740,7 @@ class Utility(commands.Cog):
 		boosters = []
 		
 		for sub in ctx.guild.premium_subscribers:
-			boosters.append(f"`{number}` {sub.mention} - {discord.utils.format_dt(sub.premium_since, style="R")}\n")
+			boosters.append(f"`{number}` {sub.mention} - {discord.utils.format_dt(sub.premium_since, style='R')}\n")
 			number += 1
 			
 

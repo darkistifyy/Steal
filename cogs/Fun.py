@@ -172,7 +172,7 @@ class Fun(commands.Cog):
 	@command(name="ping", description='Bot ping.')
 	async def ping(self, ctx: StealContext) -> None:
 		time_1 = time.perf_counter()
-		await ctx.typing(1)
+		await ctx.typing()
 		time_2 = time.perf_counter()
 		ping = round((time_2-time_1)*1000)
 		await ctx.neutral(f"Latency (ms): `{ping}`")

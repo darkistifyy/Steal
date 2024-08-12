@@ -104,7 +104,7 @@ class Mod(commands.Cog):
 		try:
 			if user not in ctx.guild.members:
 				await ctx.guild.ban(user, reason=reason)
-				return await ctx.approve(f"Successfully banned {user} - **{reason.split(" |")[0]}**")
+				return await ctx.approve(f"Successfully banned {user} - **{reason.split(' |')[0]}**")
 			
 			member = await ctx.guild.fetch_member(user)
 
@@ -116,7 +116,7 @@ class Mod(commands.Cog):
 				return await ctx.warn(f"You're unable to ban a user with a **higher role** than **yourself**.")
 			
 			await ctx.guild.ban(member, reason=reason)
-			return await ctx.approve(f'Successfully banned {user.mention} - **{reason.split(" |")[0]}**')
+			return await ctx.approve(f"Successfully banned {user.mention} - **{reason.split(' |')[0]}**")
 		except:
 			return await ctx.deny(f'Failed to ban {user.mention}.')
 
@@ -514,7 +514,7 @@ class Mod(commands.Cog):
 			)
 			await ctx.send(embed=embed, delete_after=5.0)
 		else:
-			return await ctx.deny(f"Number of messages to purge must be **less** than `{"100" if ctx.author != ctx.guild.owner else "200"}`.")
+			return await ctx.deny(f"Number of messages to purge must be **less** than `{'100' if ctx.author != ctx.guild.owner else '200'}`.")
 
 async def setup(bot):
 	await bot.add_cog(Mod(bot))

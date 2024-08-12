@@ -128,13 +128,13 @@ class BotManagement(commands.Cog):
 			if self.bot.user.display_avatar:
 				await ctx.reply(
 					embed=discord.Embed(
-						title=f"{self.bot.user.name.split("#")[0]}'s pfp.",
+						title=f"{self.bot.user.name.split('#')[0]}'s pfp.",
 						url=ctx.me.display_avatar.url,
 						color=Colors.BASE_COLOR
 					).set_image(url=ctx.me.display_avatar)
 				)
 			else:
-				return await ctx.deny(f"{self.bot.user.name.split("#")[0]} does not have an avatar.")
+				return await ctx.deny(f"{self.bot.user.name.split('#')[0]} does not have an avatar.")
 		else:
 			return await ctx.deny("Fuck off.")
 
@@ -145,13 +145,13 @@ class BotManagement(commands.Cog):
 			if user.banner:
 				await ctx.reply(
 					embed=discord.Embed(
-						title=f"{self.bot.user.name.split("#")[0]}'s banner.",
+						title=f"{self.bot.user.name.split('#')[0]}'s banner.",
 						url=user.banner.url,
 						color=Colors.BASE_COLOR
 					).set_image(url=user.banner)
 				)
 			else:
-				return await ctx.deny(f"{self.bot.user.name.split("#")[0]} does not have a custom banner.")
+				return await ctx.deny(f"{self.bot.user.name.split('#')[0]} does not have a custom banner.")
 		else:
 			return await ctx.deny("Fuck off.")
 
