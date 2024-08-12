@@ -7,5 +7,5 @@ class Steal(commands.Bot):
     super().__init__(
         description="Steal is a cool Discord bot made by none other than... me.",
         owner_ids=[1182755690071212092, 1039379534409117717]
-)
+    )
 ```
