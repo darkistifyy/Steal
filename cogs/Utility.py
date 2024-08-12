@@ -408,7 +408,14 @@ class Utility(commands.Cog):
 		else:
 			rolelist = "?"
 
+		def guns(user:discord.Member):
+			if isinstance(user, discord.Member):
+				has_emote_status = any([a.emoji.is_custom_emoji() for a in user.activities if getattr(a, 'emoji', None)])
+ 
+				return any([user.display_avatar.is_animated(), has_emote_status, user.premium_since, user.guild_avatar, user.banner])
+
 		info = discord.Embed(
+			title=f"{member} {Emojis.NITRO if guns(member) else ""} {Emojis.BOOST if member in ctx.guild.premium_subscribers else ""}",
 			color=Colors.BASE_COLOR,
 		).add_field(
 			name=f'Created at:',
@@ -424,8 +431,12 @@ class Utility(commands.Cog):
 			inline=False
 		)
 		
+
 		await ctx.send(
-			embed=info.set_author(name=member, icon_url=member.display_avatar.url if member.display_avatar else None)
+			embed=info.set_author(
+				name=f"{member.name}",
+				icon_url=member.display_avatar.url if member.display_avatar else None
+			)
 			)
 
 
