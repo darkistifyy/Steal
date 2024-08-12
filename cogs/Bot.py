@@ -24,13 +24,20 @@ class BotManagement(commands.Cog):
 		self.bot = bot
 		self.startTime = time.time()
 
-	@group(name='profile', description='Manages Profile.')
+	@group(
+			name='profile',
+			description='Manages Profile.'
+	)
 	async def profile(self, ctx: StealContext):
 		if ctx.invoked_subcommand is None:
 			await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `profile`.')
 			return
 
-	@profile.command(name='pfp', description='Changes bot pfp.', aliases=['pic', 'avatar'])
+	@profile.command(
+			name='pfp', 
+			description='Changes bot pfp.', 
+			aliases=['pic', 'avatar']
+	)
 	async def profilepfp(self, ctx: StealContext, image:Optional[discord.Attachment] = None) -> None: 
 		if image is None:
 			try:
@@ -64,7 +71,11 @@ class BotManagement(commands.Cog):
 		else:
 			return await ctx.deny("Fuck off.")
 
-	@profile.command(name='banner', description='Changes bot banner.', aliases=['ban'])
+	@profile.command(
+			name='banner',
+			description='Changes bot banner.', 
+			aliases=['ban']
+	)
 	async def profilebanner(self, ctx: StealContext, image:Optional[discord.Attachment]) -> None:
 		if image is None:
 			try:
@@ -98,7 +109,10 @@ class BotManagement(commands.Cog):
 		else:
 			return await ctx.deny("Fuck off.")
 
-	@profile.command(name='name', description='Changes bot name.')
+	@profile.command(
+			name='name', 
+			description='Changes bot name.'
+	)
 	async def profilename(self, ctx: StealContext, username:str) -> None:
 		if ctx.author.id in self.bot.owner_ids:
 			try:
@@ -122,7 +136,11 @@ class BotManagement(commands.Cog):
 		else:
 			return await ctx.deny("Fuck off.")
 
-	@profile.command(name='fetchpfp', description='Fetches bot pfp.', alises=['getpfp'])
+	@profile.command(
+			name='fetchpfp',
+			description='Fetches bot pfp.',
+			alises=['getpfp']
+	)
 	async def fetchpfp(self, ctx: StealContext) -> None:
 		if ctx.author.id in self.bot.owner_ids:
 			if self.bot.user.display_avatar:
@@ -138,7 +156,11 @@ class BotManagement(commands.Cog):
 		else:
 			return await ctx.deny("Fuck off.")
 
-	@profile.command(name='fetchbanner', description='Fetches bot banner.', alises=['getbanner'])
+	@profile.command(
+			name='fetchbanner', 
+			description='Fetches bot banner.', 
+			alises=['getbanner']
+	)
 	async def fetchbanner(self, ctx: StealContext) -> None:
 		if ctx.author.id in self.bot.owner_ids:
 			user = await self.bot.fetch_user(ctx.me.id)
@@ -155,7 +177,9 @@ class BotManagement(commands.Cog):
 		else:
 			return await ctx.deny("Fuck off.")
 
-	@command(name='reload')
+	@command(
+			name='reload'
+	)
 	async def reload(self, ctx: StealContext, cog) -> None:
 		if ctx.author.id in self.bot.owner_ids:
 			cog=cog + ".py"
@@ -169,7 +193,9 @@ class BotManagement(commands.Cog):
 		else:
 			return await ctx.deny("Fuck off.")
 	
-	@command(name='load')
+	@command(
+			name='load'
+	)
 	async def load(self, ctx: StealContext, cog) -> None:
 		if ctx.author.id in self.bot.owner_ids:
 			cog=cog + ".py"
@@ -183,7 +209,9 @@ class BotManagement(commands.Cog):
 		else:
 			return await ctx.deny("Fuck off.")
 	
-	@command(name='sync')
+	@command(
+			name='sync'
+	)
 	async def sync(self, ctx: StealContext) -> None:
 		if ctx.author.id in self.bot.owner_ids:
 			await self.bot.tree.sync()

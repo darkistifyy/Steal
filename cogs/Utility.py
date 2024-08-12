@@ -66,11 +66,7 @@ class Utility(commands.Cog):
 			description='Sends an embed.',
 			aliases=['em'],
 			usage='embed {title:fart}{description:this is a description}')
-	async def embedsend(
-			self,
-			ctx: StealContext,
-			*,
-			message:str) -> None:
+	async def embedsend(self, ctx: StealContext, *, message:str) -> None:
 		
 		processed_message = EmbedBuilder.embed_replacement(ctx.author, message)
 		content, embed, view = await EmbedBuilder.to_object(processed_message)
@@ -82,10 +78,7 @@ class Utility(commands.Cog):
 			aliases=["ec"],
 			usage='ec <reply to a message>'
 	)
-	async def embedcode(
-			self,
-			ctx: StealContext,
-	) -> None:
+	async def embedcode(self, ctx: StealContext) -> None:
 		
 		if not ctx.message.reference:
 			return await ctx.warn(f"Respond to a message to fetch the embed code.")
@@ -98,11 +91,7 @@ class Utility(commands.Cog):
 			name='dominant',
 			aliases=["hex", "imagehex"]
 	)
-	async def dominant(
-			self,
-			ctx: StealContext,
-			image: discord.Attachment
-	):
+	async def dominant(self, ctx: StealContext, image: discord.Attachment):
 
 		color = hex(await self.bot.dominant_color(image.url))[2:]
 		hex_info = await self.bot.session.get_json(
@@ -119,7 +108,12 @@ class Utility(commands.Cog):
 
 		await ctx.send(embed=embed)
 
-	@command(name="avatar", description='Gets someones avatar.', aliases=['av', 'pfp'], usage='avatar [@user]')
+	@command(
+			name="avatar",
+			description='Gets someones avatar.',
+			aliases=['av', 'pfp'],
+			usage='avatar [@user]'
+	)
 	async def avatar(self, ctx: StealContext, member:Optional[discord.User]) -> None:
 		if not member:member=ctx.author
 		if not member.display_avatar:
@@ -135,7 +129,11 @@ class Utility(commands.Cog):
 			await ctx.reply(embed=discord.Embed(title=f"{member.display_name}'s avatar", url=member.display_avatar.url, color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])).set_image(url=member.display_avatar.url))
 		
 
-	@command(name="banner", description='Gets someones avatar.', usage='avatar [@user]')
+	@command(
+			name="banner",
+			description='Gets someones avatar.',
+			usage='avatar [@user]'
+	)
 	async def banner(self, ctx: StealContext, member:Optional[discord.User]) -> None:
 		if not member:member=ctx.author
 		user = await self.bot.fetch_user(member.id)
@@ -154,7 +152,10 @@ class Utility(commands.Cog):
 				title=f"{member.display_name}'s banner color: {user.accent_color}", color=user.accent_color
 				))
 
-	@command(name="members", description='Server members.')
+	@command(
+			name="members",
+			description='Server members.'
+	)
 	@guild_only()
 	async def members(self, ctx: StealContext) -> None:
 		await ctx.reply(embed=discord.Embed(description=f'There are `{len(ctx.guild.members)-len([i for i in ctx.guild.members if i.bot])}` members excluding bots.', color=Colors.BASE_COLOR).add_field(
@@ -165,12 +166,19 @@ class Utility(commands.Cog):
 			value=f'`{len([i for i in ctx.guild.members if i.bot])}`'
 		))
 
-	@group(name="channel", description="Manage channels.")
+	@group(
+			name="channel",
+			description="Manage channels."
+	)
 	async def managechannels(self, ctx: StealContext) -> None:
 		if ctx.invoked_subcommand is None:
 			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `channel`.')
 
-	@managechannels.command(name='delete', description='Deletes a channel.', usage='channel delete <channel>')
+	@managechannels.command(
+			name='delete',
+			description='Deletes a channel.',
+			usage='channel delete <channel>'
+	)
 	@cooldown(2,5, commands.BucketType.guild)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
@@ -187,7 +195,11 @@ class Utility(commands.Cog):
 			
 		await ctx.warn(f'{channel} is not a valid channel.')
 
-	@managechannels.command(name='create', description='Creates a channel.', usage='channel create <name>')
+	@managechannels.command(
+			name='create',
+			description='Creates a channel.',
+			usage='channel create <name>'
+	)
 	@cooldown(2, 5, commands.BucketType.guild)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
@@ -196,7 +208,11 @@ class Utility(commands.Cog):
 		channel = await ctx.guild.create_text_channel(name=name if name else "channel", reason=f'Executed by {ctx.author}')
 		await ctx.approve(f'Created {channel.mention}.')
 
-	@managechannels.command(name="remove", description="Removes a member from a channel.", usage=f'channel remove <user> <channel')
+	@managechannels.command(
+			name="remove",
+			description="Removes a member from a channel.",
+			usage=f'channel remove <user> <channel'
+	)
 	@cooldown(2,5, commands.BucketType.guild)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
@@ -209,7 +225,11 @@ class Utility(commands.Cog):
 		else:	
 			await ctx.deny(f"{member.mention} is not a member of {channel.mention}")
 
-	@managechannels.command(name="add", description="Adds a member to a channel.", usage=f'channel add <user> <channel')
+	@managechannels.command(
+			name="add",
+			description="Adds a member to a channel.",
+			usage=f'channel add <user> <channel'
+	)
 	@cooldown(2,5, commands.BucketType.guild)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
@@ -222,7 +242,11 @@ class Utility(commands.Cog):
 		else:	
 			await ctx.deny(f"{member.mention} is already a member of {channel.mention}.")
 
-	@managechannels.command(name='hide', description='Hides a channel from @everyone.', usage='channel hide <channel>')
+	@managechannels.command(
+			name='hide',
+			description='Hides a channel from @everyone.',
+			usage='channel hide <channel>'
+	)
 	@cooldown(2,5, BucketType.guild)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
@@ -236,7 +260,11 @@ class Utility(commands.Cog):
 		else:
 			await ctx.deny(f"{channel.mention} is already hidden.")
 
-	@managechannels.command(name='reveal', description='Reveals a channel to @everyone.', usage='channel reveal <channel>')
+	@managechannels.command(
+			name='reveal',
+			description='Reveals a channel to @everyone.',
+			usage='channel reveal <channel>'
+	)
 	@cooldown(2,5, BucketType.guild)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
@@ -250,7 +278,10 @@ class Utility(commands.Cog):
 		else:
 			await ctx.deny(f"{channel.mention} is already visible.")
 
-	@managechannels.command(name='rename', description='Renames a channel.', usage='channel rename <channel> <name>')
+	@managechannels.command(name='rename',
+			description='Renames a channel.',
+			usage='channel rename <channel> <name>'
+	)
 	@cooldown(2,5, commands.BucketType.guild)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
@@ -267,7 +298,10 @@ class Utility(commands.Cog):
 		except Exception as e:
 			return await ctx.deny(f'Error:\n```{e}```')
 
-	@command(name='lock', description='Locks a channel.', usage='channel lock <channel>')
+	@command(name='lock',
+			description='Locks a channel.',
+			usage='channel lock <channel>'
+	)
 	@cooldown(2,5, BucketType.guild)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
@@ -282,7 +316,10 @@ class Utility(commands.Cog):
 		else:
 			await ctx.deny(f"{channel.mention} is already locked.")
 
-	@command(name='unlock', description='Unlocks a channel.', usage='channel unlock <channel>')
+	@command(name='unlock',
+		  description='Unlocks a channel.',
+		  usage='channel unlock <channel>'
+	)
 	@cooldown(2,5, BucketType.guild)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
@@ -297,7 +334,11 @@ class Utility(commands.Cog):
 		else:
 			await ctx.deny(f"{channel.mention} is already unlocked.")			
 
-	@command(name="slowmode", description="Set a channel slowmode", usage='slowmode 10s [channel]')
+	@command(name="slowmode",
+		  description="Set a channel slowmode",
+		  usage='slowmode 10s [channel]',
+		  aliases=['sm']
+	)
 	@cooldown(2,5, commands.BucketType.guild)
 	@has_permissions(manage_channels=True)
 	@bot_has_permissions(manage_channels=True)
@@ -313,7 +354,12 @@ class Utility(commands.Cog):
 		await channel.edit(slowmode_delay=seconds, reason=f'Executed by {ctx.author}')
 		await ctx.approve(f'{f"Set {channel}s slowmode to `{time}`" if int(seconds) > 0 else f"Removed {channel}s slowmode."}')
 
-	@command(name="inviteinfo", description="Gives invite info.", aliases=["ii"])
+	@command(
+			name="inviteinfo",
+			description="Gives invite info.",
+			aliases=["ii"],
+			usage="inviteinfo"
+	)
 	@cooldown(1,15, BucketType.user)
 	async def inviteinfo(self, ctx: StealContext, invite: discord.Invite) -> None:
 
@@ -360,7 +406,11 @@ class Utility(commands.Cog):
 		)
 		await ctx.send(embed=embed)
 
-	@command(name="serverinfo", description="Gives server info.", aliases=["si"])
+	@command(
+			name="serverinfo",
+			description="Gives server info.",
+			aliases=["si"]
+	)
 	@cooldown(1,15, BucketType.user)
 	@guild_only()
 	async def serverinfo(self, ctx: StealContext) -> None:
@@ -429,7 +479,12 @@ class Utility(commands.Cog):
 		)
 		await ctx.send(embed=embed)
 
-	@command(name="userinfo", description="Gives userinfo.", aliases=["ui", "uinfo"], usage='userinfo [user]')
+	@command(
+			name="userinfo",
+			description="Gives userinfo.",
+			aliases=["ui", "uinfo"],
+			usage='userinfo [user]'
+	)
 	@cooldown(1,15, commands.BucketType.user)
 	@guild_only()
 	async def userinfo(self, ctx:StealContext, member: Optional[discord.Member]) -> None:
@@ -504,6 +559,7 @@ class Utility(commands.Cog):
 
 	@command(
 		name = "botinfo",
+		usage = "botinfo",
 		aliases = ["bi", "bot"],
 		description = "Get information about the bot."
 	)
@@ -522,12 +578,21 @@ class Utility(commands.Cog):
 		await ctx.send(embed=embed)
 
 
-	@group(name='server', description='Manages server.', aliases=['guild'])
+	@group(
+			name='server',
+			description='Manages server.',
+			aliases=['guild']
+	)
 	async def server(self, ctx: StealContext):
 		if ctx.invoked_subcommand is None:
 			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `server`.')
 
-	@server.command(name='icon', description='Changes or gets server icon without args.', aliases=['pfp', 'logo'], usage="server icon <image/attatchment>")
+	@server.command(
+			name='icon',
+			description='Changes or gets server icon without args.',
+			aliases=['pfp', 'logo'],
+			usage="server icon <image/attatchment>"
+	)
 	@has_permissions(manage_guild=True)
 	@bot_has_guild_permissions(manage_guild=True)
 	@guild_only()
@@ -560,7 +625,10 @@ class Utility(commands.Cog):
 		else:
 			return await ctx.deny(f"Missing argument `image`")
 
-	@server.command(name='splash', description='Changes or gets server splash without args.')
+	@server.command(
+			name='splash',
+			description='Changes or gets server splash without args.'
+	)
 	@has_permissions(manage_guild=True)
 	@bot_has_guild_permissions(manage_guild=True)
 	@guild_only()
@@ -593,7 +661,10 @@ class Utility(commands.Cog):
 		else:
 			return await ctx.deny(f"Missing argument `image`")
 
-	@server.command(name='banner', description='Changes or gets server banner without args.')
+	@server.command(
+			name='banner',
+			description='Changes or gets server banner without args.'
+	)
 	@has_permissions(manage_guild=True)
 	@bot_has_guild_permissions(manage_guild=True)
 	@guild_only()
@@ -627,12 +698,19 @@ class Utility(commands.Cog):
 		else:
 			return await ctx.deny(f"Missing argument `image`")
 
-	@group(name='emoji', description='Manage emojis.')
+	@group(
+			name='emoji',
+			description='Manage emojis.'
+	)
 	async def emoji(self, ctx: StealContext):
 		if ctx.invoked_subcommand is None:
 			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `emoji`.')
 	
-	@emoji.command(name="add", description="Adds an emoji.", aliases=['create'])
+	@emoji.command(
+			name="add",
+			description="Adds an emoji.",
+			usage="emoji add <attachment> <name>",
+			aliases=['create'])
 	@has_permissions(manage_emojis=True)
 	@bot_has_guild_permissions(manage_emojis=True)
 	@guild_only()
@@ -647,7 +725,11 @@ class Utility(commands.Cog):
 		except:
 			return await ctx.deny(f"Could not create emoji {emoji_name}")
 
-	@emoji.command(name="steal", description="Steals an emoji.")
+	@emoji.command(
+			name="steal",
+			usage="emoji steal <emoji> <name>",
+			description="Steals an emoji."
+	)
 	@has_permissions(manage_emojis=True)
 	@bot_has_guild_permissions(manage_emojis=True)
 	@guild_only()
@@ -662,7 +744,11 @@ class Utility(commands.Cog):
 		except:
 			return await ctx.deny(f"Could not Steal emoji {emoji_name}")
 
-	@emoji.command(name="delete", description="Deletes an emoji.")
+	@emoji.command(
+			name="delete",
+			usage="emoji delete <emoji>",
+			description="Deletes an emoji."
+	)
 	@has_permissions(manage_emojis=True)
 	@bot_has_guild_permissions(manage_emojis=True)
 	@guild_only()
@@ -677,7 +763,11 @@ class Utility(commands.Cog):
 		except:
 			return await ctx.deny(f"Could not delete emoji {emoji}")
 	
-	@emoji.command(name='rename', description="Renames an emoji.")
+	@emoji.command(
+			name='rename',
+			usage="emoji rename <emoji> <name>",
+			description="Renames an emoji."
+	)
 	@has_permissions(manage_emojis=True)
 	@bot_has_guild_permissions(manage_emojis=True)
 	@guild_only()
@@ -693,7 +783,12 @@ class Utility(commands.Cog):
 		except:
 			return await ctx.deny(f"Could not rename emoji {emoji}")				
 
-	@command(name='nitrohavers', description='Users with nitro.', aliases=['nhavers', 'nhs', 'premiumusers'], usage="nitrohavers")
+	@command(
+			name='nitrohavers',
+			description='Users with nitro.',
+			aliases=['nhavers', 'nhs', 'premiumusers'],
+			usage="nitrohavers"
+	)
 	@guild_only()
 	async def nhavers(self, ctx: StealContext) -> None:
 		nhavers_ = []
@@ -717,7 +812,11 @@ class Utility(commands.Cog):
 			return
 		await ctx.send(embed=discord.Embed(title='__Premium users__', description="".join(i for i in nhavers_), color=Colors.BASE_COLOR))
 
-	@command(name="boosters", description='Users server boosting.', usage='boosters')
+	@command(
+			name="boosters",
+			description='Users server boosting.',
+			usage='boosters'
+	)
 	@guild_only()
 	async def boosters(self, ctx: StealContext) -> None:
 		number = 1

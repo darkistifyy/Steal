@@ -156,7 +156,12 @@ class Tickets(commands.Cog):
 		if ctx.invoked_subcommand is None:
 			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `ticket`.')
 
-	@ticket.command(name='panel', description='Creates a ticket panel.', aliases=['p', 'createpanel', 'panelcreate'], usage='ticket panel')
+	@ticket.command(
+			name='panel',
+			description='Creates a ticket panel.', 
+			aliases=['p', 'createpanel', 'panelcreate'],
+			usage='ticket panel'
+	)
 	@guild_only()
 	@has_permissions(administrator=True)
 	@bot_has_guild_permissions(manage_channels=True)
@@ -180,7 +185,12 @@ class Tickets(commands.Cog):
 		await tc.send(embed=panelembed, view=TicketCreate())
 		return await ctx.approve(f'Panel created successfully! {tc.mention}')
 
-	@ticket.command(name='delete', description='Deletes a ticket.', aliases=['d', 'dt'], usage="ticket delete")
+	@ticket.command(
+			name='delete', 
+			description='Deletes a ticket.', 
+			aliases=['d', 'dt'], 
+			usage="ticket delete"
+	)
 	@guild_only()
 	@cooldown(1,5, commands.BucketType.channel)
 	async def delete_ticket(self, ctx: StealContext) -> None:
@@ -195,7 +205,12 @@ class Tickets(commands.Cog):
 		
 		await ctx.deny('This channel is not a ticket.')
 
-	@ticket.command(name='close', description='Closes a ticket.', aliases=['lock', 'tc', 'tl'], usage='ticket close')
+	@ticket.command(
+			name='close', 
+			description='Closes a ticket.', 
+			aliases=['lock', 'tc', 'tl'], 
+			usage='ticket close'
+	)
 	@guild_only()
 	@cooldown(1,5, commands.BucketType.channel)
 	async def close_ticket(self, ctx: StealContext) -> None:
@@ -232,7 +247,12 @@ class Tickets(commands.Cog):
 		else:	
 			return await ctx.deny('This channel is not a ticket.')		
 
-	@ticket.command(name='open', description='Opens a ticket.', aliases=['unlock', 'to', 'tu'], usage="ticket open")
+	@ticket.command(
+			name='open', 
+			description='Opens a ticket.', 
+			aliases=['unlock', 'to', 'tu'], 
+			usage="ticket open"
+	)
 	@guild_only()
 	@cooldown(1,5, commands.BucketType.channel)
 	async def open_ticket(self, ctx: StealContext) -> None:

@@ -14,6 +14,7 @@ import aiohttp
 import time
 import orjson
 
+
 from tools.Steal import Steal
 from managers.context import StealContext
 
@@ -173,11 +174,9 @@ class Fun(commands.Cog):
 	@command(
 			name="ping",
 			description="Bot ping.",
-			usage="ping")
-	async def ping(
-			self,
-			ctx: StealContext) -> None:
-
+			usage="ping"
+	)
+	async def ping(self,ctx: StealContext) -> None:
 		time_1 = time.perf_counter()
 		await ctx.typing()
 		time_2 = time.perf_counter()
@@ -187,12 +186,10 @@ class Fun(commands.Cog):
 	@command(
 			name="tic",
 			description="TTT battle with an opp.",
-			usage="tic <user>")
+			usage="tic <user>"
+	)
 	@guild_only()
-	async def tic(
-			self,
-			ctx: StealContext,
-			opp: discord.Member) -> None:
+	async def tic(self, ctx: StealContext, opp: discord.Member) -> None:
 
 		await ctx.neutral(f"Tic Tac Toe, {ctx.author.mention} goes first.",view=TicTacToe())
 
@@ -205,30 +202,21 @@ class Fun(commands.Cog):
 	@command(
 			name="explode",
 			description="Explodes a user.",
-			usage="explode <user>")
+			usage="explode <user>"
+	)
 	@guild_only()
-	async def explode(
-		self,
-		ctx: StealContext,
-		opp: discord.Member) -> None:
-		
+	async def explode(self, ctx: StealContext, opp: discord.Member) -> None:		
 		await ctx.warn(f"Are you sure you would like to explode {opp.mention}", view=Explosion())
 		global explosionuser
 		explosionuser = opp	
 
 	@command(
-			name="weather",
+		name="weather",
 			description="Gets the forecast in the selected area.",
-			usage="weather <country>")
-	@cooldown(
-			1,
-			15,
-			BucketType.guild)
-	async def weather(
-			self,
-			ctx: StealContext,
-			*,
-			location: str) -> None:
+			usage="weather <country>"
+	)
+	@cooldown(1,15, BucketType.guild)
+	async def weather(self, ctx: StealContext, *, location: str) -> None:
 
 		msg = await ctx.send(embed=discord.Embed(description=f'{Emojis.WARN} Gathering Data...', color=Colors.WARN_COLOR))
 
@@ -255,15 +243,11 @@ class Fun(commands.Cog):
 
 	@command(
 			name = "blacktea",
-			description = "Play a game of blacktea.")
-	@cooldown(
-			1,
-			5,
-			BucketType.user)
+			description = "Play a game of blacktea."
+	)
+	@cooldown(1,5, BucketType.user)
 	@guild_only()
-	async def blacktea(
-			self,
-			ctx: StealContext) -> None: 
+	async def blacktea(self, ctx: StealContext) -> None: 
 
 		try:
 			if self.MatchStart[ctx.guild.id] is True: 
@@ -415,6 +399,81 @@ class Fun(commands.Cog):
 			file=File(
 				fp=await self.bot.getbyte(data["data"]["url"]),
 				filename="capybara.png"
+			)
+		)
+
+	@command(
+			name="lizard",
+			description="Sends a random lizard image.",
+			usage="lizard"
+	)
+	async def lizard(self, ctx: StealContext):
+
+		data = await self.bot.session.get_json(
+			"https://nekos.life/api/v2/img/lizard",
+		)
+
+		await ctx.reply(
+			file=File(
+				fp=await self.bot.getbyte(data["url"]),
+				filename="lizard.png"
+			)
+		)
+
+
+	@command(
+			name="panda",
+			description="Sends a random panda image.",
+			usage="panda"
+	)
+	async def panda(self, ctx: StealContext):
+
+		data = await self.bot.session.get_json(
+			"https://some-random-api.ml/img/panda",
+		)
+
+		await ctx.reply(
+			file=File(
+				fp=await self.bot.getbyte(data["link"]),
+				filename="panda.png"
+			)
+		)
+
+	@command(
+			name="fox",
+			description="Sends a random fox image.",
+			usage="fox",
+			aliases=['floof']
+	)
+	async def fox(self, ctx: StealContext):
+
+		data = await self.bot.session.get_json(
+			"https://randomfox.ca/floof/",
+		)
+
+		await ctx.reply(
+			file=File(
+				fp=await self.bot.getbyte(data["image"]),
+				filename="fox.png"
+			)
+		)
+
+	@command(
+			name="duck",
+			description="Sends a random duckie image.",
+			usage="duck",
+			aliases=['quack', 'duckie']
+	)
+	async def duck(self, ctx: StealContext):
+
+		data = await self.bot.session.get_json(
+			"https://random-d.uk/api/v1/random?type=png",
+		)
+
+		await ctx.reply(
+			file=File(
+				fp=await self.bot.getbyte(data["url"]),
+				filename="duck.png"
 			)
 		)
 

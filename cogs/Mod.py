@@ -38,12 +38,20 @@ class Mod(commands.Cog):
 	def __init__(self, Steal):
 		self.bot = Steal
 
-	@group(name='nickname', description='Nicknames.', aliases=['nick'])
+	@group(
+			name='nickname',
+			description='Nicknames.',
+			aliases=['nick']
+	)
 	async def nick(self, ctx: StealContext):
 		if ctx.invoked_subcommand is None:
 			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `nick`.')
 		
-	@nick.command(name='force', description='Forces a nickname onto a user.', usage='nick force @oxy.dev')
+	@nick.command(
+			name='force',
+			description='Forces a nickname onto a user.',
+			usage='nick force @oxy.dev'
+		)
 	@has_permissions(manage_nicknames=True)
 	@bot_has_guild_permissions(manage_nicknames=True)
 	@cooldown(1,10, BucketType.user)
@@ -58,7 +66,11 @@ class Mod(commands.Cog):
 		except:
 			return await ctx.deny(f'Failed to force a nick on {member.mention}.')
 
-	@nick.command(name='set', description='Sets your nickname.', usage='nick set fart')
+	@nick.command(
+			name='set', 
+			description='Sets your nickname.', 
+			usage='nick set fart'
+	)
 	@has_permissions(manage_nicknames=True)
 	@bot_has_guild_permissions(manage_nicknames=True)
 	@cooldown(1,10, BucketType.user)
@@ -73,7 +85,11 @@ class Mod(commands.Cog):
 		except:
 			return await ctx.deny(f'Failed to set your nick.')
 		
-	@nick.command(name='remove', description="Removes a user's nickname.", usage='nick remove @oxy.dev')
+	@nick.command(
+			name='remove', 
+			description="Removes a user's nickname.", 
+			usage='nick remove @oxy.dev'
+	)
 	@has_permissions(manage_nicknames=True)
 	@bot_has_guild_permissions(manage_nicknames=True)
 	@cooldown(1,10, BucketType.user)
@@ -93,9 +109,9 @@ class Mod(commands.Cog):
 			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `ban`.')
 		
 	@ban.command(
-		name = "add",
-		description='Bans a user.',
-		usage = "ban add @jpeg.dev raider"
+			name = "add",
+			description='Bans a user.',
+			usage = "ban add @jpeg.dev raider"
 	)
 	@cooldown(1, 10, BucketType.user)
 	@has_permissions(ban_members=True)
@@ -122,7 +138,12 @@ class Mod(commands.Cog):
 		except:
 			return await ctx.deny(f'Failed to ban {user.mention}.')
 
-	@ban.command(name='remove', description='Removes a ban.', aliases=['revoke'], usage='ban remove @jpeg.dev false ban')
+	@ban.command(
+			name='remove',
+			description='Removes a ban.', 
+			aliases=['revoke'], 
+			usage='ban remove @jpeg.dev false ban'
+	)
 	@has_permissions(ban_members=True)
 	@bot_has_guild_permissions(ban_members=True)
 	@cooldown(1, 10, BucketType.user)
@@ -141,9 +162,9 @@ class Mod(commands.Cog):
 			return await ctx.deny(f'Failed to unban **{user}**')
 
 	@command(
-		name = "kick",
-		aliases = ["getout", "bye"],
-		usage = "kick @jpeg.dev rule breaker"
+			name = "kick",
+			aliases = ["getout", "bye"],
+			usage = "kick @jpeg.dev rule breaker"
 	)
 	@cooldown(1, 10, BucketType.user)
 	@has_permissions(kick_members=True)
@@ -167,12 +188,19 @@ class Mod(commands.Cog):
 		except:
 			return await ctx.deny(f'Failed to kick **{user.mention}**.')
 		
-	@group(name='mute', description='Mutes a member.')
+	@group(
+			name='mute',
+			description='Mutes a member.'
+	)
 	async def mute(self, ctx: StealContext):
 		if ctx.invoked_subcommand is None:
 			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `mute`.')
 
-	@mute.command(name='add', description='Mutes a user.', brief='mute add @jpeg.dev raider', usage='mute add @jpeg.dev raider')
+	@mute.command(
+			name='add', 
+		    description='Mutes a user.', 
+			usage='mute add @jpeg.dev raider'
+	)
 	@has_permissions(manage_messages=True)
 	@bot_has_guild_permissions(mute_members=True)
 	@cooldown(1, 10, BucketType.user)
@@ -207,7 +235,11 @@ class Mod(commands.Cog):
 		except:
 			await ctx.deny(f"Failed to mute **{user}**")
 		
-	@mute.command(name='remove', description='Unmutes a member.', usage='mute remove @jpeg.dev false mute')
+	@mute.command(
+			name='remove', 
+			description='Unmutes a member.', 
+			usage='mute remove @jpeg.dev false mute'
+	)
 	@has_permissions(moderate_members=True)
 	@bot_has_guild_permissions(mute_members=True)
 	@cooldown(1, 10, BucketType.user)
@@ -228,7 +260,11 @@ class Mod(commands.Cog):
 		if ctx.invoked_subcommand is None:
 			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `role`.')
 
-	@userrole.command(name='add', description='Adds a role', usage='role add @jpeg.dev @moderator new mod')
+	@userrole.command(
+			name='add', 
+			description='Adds a role', 
+			usage='role add @jpeg.dev @moderator new mod'
+	)
 	@has_permissions(manage_roles=True)
 	@bot_has_guild_permissions(manage_roles=True)
 	@cooldown(1, 10, BucketType.user)
@@ -246,7 +282,11 @@ class Mod(commands.Cog):
 			)
 			return await ctx.approve(f"Added {role.mention} to {member.mention} - {reason.split(' |')[0]}")
 
-	@userrole.command(name='remove', description='Removes a role', usage='role remove @jpeg.dev @moderator mod abuse')
+	@userrole.command(
+			name='remove', 
+			description='Removes a role',
+			usage='role remove @jpeg.dev @moderator mod abuse'
+	)
 	@has_permissions(manage_roles=True)
 	@bot_has_guild_permissions(manage_roles=True)
 	@cooldown(1, 10, BucketType.user)
@@ -264,7 +304,11 @@ class Mod(commands.Cog):
 			)
 			return await ctx.approve(f"Removed {role.mention} from {member.mention} - {reason.split(' |')[0]}")
 
-	@userrole.command(name='rename', description='Renames a role.', usage='role renmae @newrole admin')
+	@userrole.command(
+			name='rename',
+			description='Renames a role.',
+			usage='role renmae @newrole admin'
+	)
 	@has_permissions(manage_roles=True)
 	@bot_has_guild_permissions(manage_roles=True)
 	@cooldown(1, 10, BucketType.user)
@@ -282,7 +326,11 @@ class Mod(commands.Cog):
 		except asyncio.TimeoutError:
 			return await ctx.warn(f'Could not rename {role.mention}, bot is ratelimited.')
 
-	@userrole.command(name='addall', description='Adds role to all.', usage="role addall @member")
+	@userrole.command(
+			name='addall',
+			description='Adds role to all.',
+			usage="role addall @member"
+	)
 	@cooldown(1,120, commands.BucketType.guild)
 	@has_permissions(manage_roles=True)
 	@bot_has_guild_permissions(manage_roles=True)
@@ -326,7 +374,11 @@ class Mod(commands.Cog):
 		
 		await ctx.reply(embed=embed)
 
-	@userrole.command(name='removeall', description='Removes role from all', usage='role removeall @member')
+	@userrole.command(
+			name='removeall',
+			description='Removes role from all',
+			usage='role removeall @member'
+	)
 	@cooldown(1,120, commands.BucketType.guild)
 	@has_permissions(manage_roles=True)
 	@bot_has_guild_permissions(manage_roles=True)
@@ -366,7 +418,11 @@ class Mod(commands.Cog):
 				)
 		await ctx.reply(embed=embed)        
 
-	@userrole.command(name='hoist', description='Hoists or unhoists a role.', usage='role hoist @moderator')
+	@userrole.command(
+			name='hoist',
+			description='Hoists or unhoists a role.',
+			usage='role hoist @moderator'
+	)
 	@has_permissions(manage_roles=True)
 	@bot_has_guild_permissions(manage_roles=True)
 	@cooldown(1, 10, BucketType.user)
@@ -379,7 +435,11 @@ class Mod(commands.Cog):
 			await role.edit(hoist=True, reason=f'Executed by {ctx.author}')
 			await ctx.approve(f"Hoisted {role.mention}.")		
 
-	@userrole.command(name='color', description='Sets a role color.', usage='role color @moderator #hexcode')
+	@userrole.command(
+			name='color',
+			description='Sets a role color.',
+			usage='role color @moderator #hexcode'
+	)
 	@has_permissions(manage_roles=True)
 	@bot_has_guild_permissions(manage_roles=True)
 	@cooldown(1, 10, BucketType.user)
@@ -402,7 +462,11 @@ class Mod(commands.Cog):
 		else:
 			return await ctx.deny(f"`{hex}` is not a valid hex code.")
 
-	@userrole.command(name='icon', description='Sets a role icon.', usage='role icon @moderator <attachment>')
+	@userrole.command(
+			name='icon',
+			description='Sets a role icon.',
+			usage='role icon @moderator <attachment>'
+	)
 	@has_permissions(manage_roles=True)
 	@bot_has_guild_permissions(manage_roles=True)
 	@cooldown(1, 10, BucketType.user)
@@ -436,7 +500,11 @@ class Mod(commands.Cog):
 			await role.edit(display_icon=icon, reason=f'Executed by {ctx.author}')
 			return await ctx.approve(f"Set {role.mention}'s display icon")
 	
-	@userrole.command(name='emoji', description='Sets a role emoji.', usage='role emoji @moderator <emoji>')
+	@userrole.command(
+			name='emoji',
+			description='Sets a role emoji.',
+			usage='role emoji @moderator <emoji>'
+	)
 	@has_permissions(manage_roles=True)
 	@bot_has_guild_permissions(manage_roles=True)
 	@cooldown(1, 10, BucketType.user)
@@ -473,7 +541,11 @@ class Mod(commands.Cog):
 			await role.edit(display_icon=emoji, reason=f'Executed by {ctx.author}')
 			return await ctx.approve(f"Set {role.mention}'s display emoji to {emoji}")
 
-	@userrole.command(name='delete', description='Deletes a role.', usage='role delete @newrole')
+	@userrole.command(
+			name='delete',
+			description='Deletes a role.',
+			usage='role delete @newrole'
+	)
 	@has_permissions(manage_roles=True)
 	@bot_has_guild_permissions(manage_roles=True)
 	@cooldown(1, 10, BucketType.user)
@@ -485,7 +557,11 @@ class Mod(commands.Cog):
 		await role.delete(reason=f'Executed by {ctx.author}')
 		return await ctx.approve(f"Deleted  {role.name}")	
 
-	@userrole.command(name='create', description='Creates a role.', usage='role create fart True #hexcode')
+	@userrole.command(
+			name='create',
+			description='Creates a role.',
+			usage='role create fart True #hexcode'
+	)
 	@has_permissions(manage_roles=True)
 	@bot_has_guild_permissions(manage_roles=True)
 	@cooldown(1, 10, BucketType.user)
@@ -505,7 +581,11 @@ class Mod(commands.Cog):
 		role = await ctx.guild.create_role(name=name if name else "new role", hoist=hoist, color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2]) if rgb else None, reason = f"Executed by {ctx.author}")
 		await ctx.approve(f"Created role {role.mention}.")
 
-	@command(name='purge', description='Purges messages.', usage='purge 100')
+	@command(
+			name='purge',
+			description='Purges messages.',
+			usage='purge 100'
+	)
 	@has_permissions(manage_messages=True)
 	@bot_has_guild_permissions(manage_messages=True)
 	@cooldown(1, 30, BucketType.user)
