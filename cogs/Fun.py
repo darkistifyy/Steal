@@ -172,7 +172,7 @@ class Fun(commands.Cog):
 	@command(name="ping", description='Bot ping.')
 	async def ping(self, ctx: StealContext) -> None:
 		time_1 = time.perf_counter()
-		await ctx.typing()
+		await ctx.typing(1)
 		time_2 = time.perf_counter()
 		ping = round((time_2-time_1)*1000)
 		await ctx.neutral(f"Latency (ms): `{ping}`")
@@ -227,6 +227,7 @@ class Fun(commands.Cog):
 		description = "Play a game of blacktea."
 	)
 	@cooldown(1, 5, commands.BucketType.user)
+	@guild_only()
 	async def blacktea(self, ctx: StealContext) -> None: 
 		try:
 			if self.MatchStart[ctx.guild.id] is True: 
@@ -288,13 +289,6 @@ class Fun(commands.Cog):
 		await ctx.neutral(f"👑 <@{players[0]}> won the game!", allowed_mentions=discord.AllowedMentions(users=True))
 		self.lifes[players[0]] = 0
 		self.MatchStart[ctx.guild.id] = False   
-
-	"""
-	@weather.error
-	async def on_weather_error(self, ctx, error):
-		await ctx.send(embed=discord.Embed(title='Unknown Error.', description=f'Unknown Error:```{error}```',color=Color.red()).set_footer(icon_url=ctx.author.avatar.url, text=f'Command run by {ctx.author} || {ctx.author.id}'))
-	"""
-
 
 async def setup(bot):
 	await bot.add_cog(Fun(bot))

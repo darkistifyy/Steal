@@ -556,8 +556,8 @@ class Utility(commands.Cog):
 		except:
 			return await ctx.deny(f"Could not rename emoji {emoji}")				
 
+	
 	"""
-
 	@group(name='sticker', description='Manage emojis.')
 	async def sticker(self, ctx: StealContext):
 		if ctx.invoked_subcommand is None:
@@ -567,16 +567,17 @@ class Utility(commands.Cog):
 	@has_permissions(manage_emojis=True)
 	@bot_has_guild_permissions(manage_emojis=True)
 	@guild_only()
-	async def stickeradd(self, ctx: StealContext, sticker:discord.Attachment, emoji:str, *, sticker_name:Optional[str]=None):
-		await ctx.typing()
-		try:
+	async def stickeradd(self, ctx: StealContext, image:discord.Attachment, *, sticker_name:Optional[str]=None):
+#		try:
 			if not sticker_name: sticker_name = sticker.filename.split(".")[0]
 
+			sticky = await image.save(BytesIO())
+			file = discord.File(BytesIO(sticky.encode()), filename='sticker.png')
 
-			sticker = await ctx.guild.create_sticker(name=f"{sticker_name}", image=await emoji.read(), emoji=f"{emoji}", reason=f'Executed by {ctx.author}')
+			sticker = await ctx.guild.create_sticker(name=f"{sticker_name}", file=file, emoji="🧈", description=f'Sticker created by {ctx.author}', reason=f'Executed by {ctx.author}')
 
 			return await ctx.approve(f"Created sticker {sticker}")
-		except:
+#		except:
 			return await ctx.deny(f"Could not create sticker {sticker_name}")
 
 	@sticker.command(name="steal", description="Steals a sticker.")
@@ -584,7 +585,6 @@ class Utility(commands.Cog):
 	@bot_has_guild_permissions(manage_emojis=True)
 	@guild_only()
 	async def stickersteal(self, ctx: StealContext, sticker:discord.Sticker, sticker_name:Optional[str]=None):
-		await ctx.typing()
 		try:
 			if not sticker_name: sticker_name = sticker.name
 
@@ -600,7 +600,6 @@ class Utility(commands.Cog):
 	@bot_has_guild_permissions(manage_emojis=True)
 	@guild_only()
 	async def stickerdelete(self, ctx: StealContext, sticker:discord.Sticker):
-		await ctx.typing()
 		try:
 			if sticker in ctx.guild.stickers:
 				await ctx.guild.delete_sticker(sticker)
@@ -616,7 +615,6 @@ class Utility(commands.Cog):
 	@bot_has_guild_permissions(manage_emojis=True)
 	@guild_only()
 	async def emojirename(self, ctx:StealContext, sticker:discord.Sticker, name:str):
-		await ctx.typing()
 		try:
 			if sticker in ctx.guild.stickers:
 				sticker = await ctx.guild.fetch_sticker(sticker.id)
@@ -626,9 +624,9 @@ class Utility(commands.Cog):
 			else:
 				return await ctx.warn(f"That emoji is not from this server.")
 		except:
-			return await ctx.deny(f"Could not rename sticker {sticker}") """
+			return await ctx.deny(f"Could not rename sticker {sticker}")"""
 
-	@command(name='nitrohavers', description='Users with nitro.', aliases=['nhavers', 'nhs'], usage="nitrohavers")
+	@command(name='nitrohavers', description='Users with nitro.', aliases=['nhavers', 'nhs', 'premiumusers'], usage="nitrohavers")
 	@guild_only()
 	async def nhavers(self, ctx: StealContext) -> None:
 		nhavers_ = []
@@ -639,27 +637,34 @@ class Utility(commands.Cog):
  
 				return any([user.display_avatar.is_animated(), has_emote_status, user.premium_since, user.guild_avatar, user.banner])
 		def get_nhavers():
+			number = 1
 			for i in ctx.guild.members:
 				if not i.bot:
 					if guns(i):
-						nhavers_.append(f"{i.mention} | `{i.id}`\n")
+						nhavers_.append(f"`{number}` {i.mention}\n")
+						number += 1
 
 		get_nhavers()
 		if not nhavers_:
-			await ctx.warn(f"No premium users in `{ctx.guild}`")
+			await ctx.warn(f"There are no premium users in this server.")
 			return
-		await ctx.neutral("".join(i for i in nhavers_))
+		await ctx.send(embed=discord.Embed(title='__Premium users__', description="".join(i for i in nhavers_), color=Colors.BASE_COLOR))
 
 	@command(name="boosters", description='Users server boosting.', usage='boosters')
 	@guild_only()
 	async def boosters(self, ctx: StealContext) -> None:
-		boosters = [f"> {i_.mention} | {i_.id}\n" for i_ in ctx.guild.premium_subscribers]
+		number = 1
+		boosters = []
 		
-		if not boosters:
-			await ctx.reply(embed=discord.Embed(description=f"No boosters in `{ctx.guild}`", color=Color.red()))
-			return        
+		for sub in ctx.guild.premium_subscribers:
+			boosters.append(f"`{number}` {sub.mention} - {discord.utils.format_dt(sub.premium_since, style="R")}\n")
+			number += 1
+			
 
-		embed1 = discord.Embed(title='__Boosters__', description=f''.join(i for i in boosters), color=Color.pink()).set_author(icon_url=ctx.author.display_avatar.url if ctx.author.display_avatar else None, name=ctx.author)
+		if not boosters:
+			return await ctx.warn(f"There are no boosters in this server.")        
+
+		embed1 = discord.Embed(title='__Boosters__', description=f''.join(i for i in boosters), color=Colors.BASE_COLOR).set_author(icon_url=ctx.author.display_avatar.url if ctx.author.display_avatar else None, name=ctx.author)
 		await ctx.reply(embed=embed1)        
 
 async def setup(bot):
