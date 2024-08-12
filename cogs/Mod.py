@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import discord
 from discord import Color
 from discord import ui
@@ -490,12 +492,15 @@ class Mod(commands.Cog):
 	@guild_only()
 	async def createrole(self, ctx: StealContext, name:Optional[str], hoist:Optional[bool] = False, hex:Optional[str] = None) -> None:
 		from isHex import isHex
-		if hex:
-			if isHex(hex):
-				rgb = tuple(int(hex[i:i+2], 16) for i in (0, 2, 4)) if [isHex(hex) if hex else False] else False
-			else: rgb = False
-		else: rgb = False
 
+		rgb = None
+
+		if hex:
+			hex = hex.lstrip("#")
+			if isHex(hex):
+				rgb = tuple(int(hex[i:i+2], 16) for i in (0, 2, 4))
+			else:
+				rgb = None
 
 		role = await ctx.guild.create_role(name=name if name else "new role", hoist=hoist, color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2]) if rgb else None, reason = f"Executed by {ctx.author}")
 		await ctx.approve(f"Created role {role.mention}.")

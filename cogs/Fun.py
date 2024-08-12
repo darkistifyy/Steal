@@ -12,11 +12,12 @@ import sys
 import random
 import aiohttp
 import time
+import orjson
 
 from tools.Steal import Steal
 from managers.context import StealContext
 
-from typing import List, Optional
+from typing import List, Optional, Union
 from tools.Config import Colors, Emojis
 from discord.ext import commands
 import discord
@@ -169,17 +170,30 @@ class Fun(commands.Cog):
 		self.MatchStart = {}
 		self.lifes = {}
 
-	@command(name="ping", description='Bot ping.')
-	async def ping(self, ctx: StealContext) -> None:
+	@command(
+			name="ping",
+			description="Bot ping.",
+			usage="ping")
+	async def ping(
+			self,
+			ctx: StealContext) -> None:
+
 		time_1 = time.perf_counter()
 		await ctx.typing()
 		time_2 = time.perf_counter()
 		ping = round((time_2-time_1)*1000)
 		await ctx.neutral(f"Latency (ms): `{ping}`")
 
-	@command(name="tic", description="TTT battle with an opp.")
+	@command(
+			name="tic",
+			description="TTT battle with an opp.",
+			usage="tic <user>")
 	@guild_only()
-	async def tic(self, ctx: StealContext, opp: discord.Member) -> None:
+	async def tic(
+			self,
+			ctx: StealContext,
+			opp: discord.Member) -> None:
+
 		await ctx.neutral(f"Tic Tac Toe, {ctx.author.mention} goes first.",view=TicTacToe())
 
 		global player1
@@ -188,16 +202,33 @@ class Fun(commands.Cog):
 		player1 = ctx.author
 		player2 = opp
 
-	@command(name='explode', description='Explodes a user.')
+	@command(
+			name="explode",
+			description="Explodes a user.",
+			usage="explode <user>")
 	@guild_only()
-	async def explode(self, ctx: StealContext, opp: discord.Member) -> None:
-		await ctx.warn(f'Are you sure you would like to explode {opp.mention}', view=Explosion())
+	async def explode(
+		self,
+		ctx: StealContext,
+		opp: discord.Member) -> None:
+		
+		await ctx.warn(f"Are you sure you would like to explode {opp.mention}", view=Explosion())
 		global explosionuser
 		explosionuser = opp	
 
-	@command(name='weather', description='Gets the forecast in the selected area.')
-	@cooldown(1,15, commands.BucketType.guild)
-	async def weather(self, ctx: StealContext, *, location: str) -> None:
+	@command(
+			name="weather",
+			description="Gets the forecast in the selected area.",
+			usage="weather <country>")
+	@cooldown(
+			1,
+			15,
+			BucketType.guild)
+	async def weather(
+			self,
+			ctx: StealContext,
+			*,
+			location: str) -> None:
 
 		msg = await ctx.send(embed=discord.Embed(description=f'{Emojis.WARN} Gathering Data...', color=Colors.WARN_COLOR))
 
@@ -223,12 +254,17 @@ class Fun(commands.Cog):
 				return data.splitlines()
 
 	@command(
-		name = "blacktea",
-		description = "Play a game of blacktea."
-	)
-	@cooldown(1, 5, commands.BucketType.user)
+			name = "blacktea",
+			description = "Play a game of blacktea.")
+	@cooldown(
+			1,
+			5,
+			BucketType.user)
 	@guild_only()
-	async def blacktea(self, ctx: StealContext) -> None: 
+	async def blacktea(
+			self,
+			ctx: StealContext) -> None: 
+
 		try:
 			if self.MatchStart[ctx.guild.id] is True: 
 				return await ctx.deny("Somebody in this server is already playing blacktea.", mention_author=False)
@@ -289,6 +325,307 @@ class Fun(commands.Cog):
 		await ctx.neutral(f"👑 <@{players[0]}> won the game!", allowed_mentions=discord.AllowedMentions(users=True))
 		self.lifes[players[0]] = 0
 		self.MatchStart[ctx.guild.id] = False   
+
+	@command(
+			name="eightball",
+			description="Ask the eightball a question.",
+			usage="eightball <question>",
+			aliases=["8ball"]
+	)
+	async def eightball(self, ctx: StealContext, *, question: str):
+		
+		await ctx.reply(
+			embed=discord.Embed(
+				title="__Magical eightball__",
+				color=Colors.BASE_COLOR
+			).add_field(
+				name="Question:",
+				value=f"{question.capitalize()}",
+				inline=False
+			).add_field(
+				name="Answer:",
+				value=f"{random.choice(['yes', 'no', 'never', 'most likely', 'absolutely', 'absolutely not', 'of course not']).capitalize()}",
+				inline=False
+			).set_author(
+				name=ctx.author,
+				icon_url=ctx.author.display_avatar.url if ctx.author.display_avatar else None
+			)
+		)
+
+	@command(
+			name="bird",
+			description="Sends a random bird pic.",
+			usage="bird",
+			aliases=["birb"]
+	)
+	async def bird(self, ctx: StealContext):
+
+		data = await self.bot.session.get_json("https://api.alexflipnote.dev/birb")
+		await ctx.reply(
+			file=File(fp=await self.bot.getbyte(data["file"]), filename="bird.png")
+		)
+
+	@command(
+			name="dog",
+			description="Sends a random dog pic.",
+			usage="dog",
+	)
+	@cooldown(3,5, BucketType.user)
+	async def dog(self, ctx: StealContext):
+
+		data = await self.bot.session.get_json("https://random.dog/woof.json")
+		await ctx.reply(
+			file=File(
+				fp=await self.bot.getbyte(data["url"]),
+				filename=f"dog{data['url'][-4:]}",
+			)
+		)
+
+	@command(
+			name="cat",
+			description="Sends a random cat pic.",
+			usage="cat"
+	)
+	@cooldown(3,5, BucketType.user)
+	async def cat(self, ctx: StealContext):
+
+		data = (
+			await self.bot.session.get_json(
+				"https://api.thecatapi.com/v1/images/search"
+			)
+		)[0]
+		await ctx.reply(
+			file=File(
+				fp=await self.bot.getbyte(data["url"]),
+				filename="cat.png"
+			)
+		)
+
+	@command(
+			name="capybara",
+			description="Sends a random capybara image.",
+			usage="capybara"
+	)
+	async def capybara(self, ctx: StealContext):
+
+		data = await self.bot.session.get_json(
+			"https://api.capy.lol/v1/capybara?json=true"
+		)
+		await ctx.reply(
+			file=File(
+				fp=await self.bot.getbyte(data["data"]["url"]),
+				filename="capybara.png"
+			)
+		)
+
+	@command(
+			name='uselessfact',
+			description='Sends a useless fact.',
+			aliases=["fact", "uf"]
+	)
+	async def uselessfact(self, ctx: StealContext):
+
+		data = (
+			await self.bot.session.get_json(
+				"https://uselessfacts.jsph.pl/random.json?language=en"
+			)
+		)["text"]
+		await ctx.neutral(data)
+
+
+	@command(
+			name="choose",
+			description="Picks between two choices.",
+			usage="choice <choice1>, <choice2>..."
+	)
+	async def choose_cmd(self, ctx: StealContext, *, choices: str):
+		choices1 = choices.split(", ")
+		if len(choices1) == 1:
+			return await ctx.warn("please put a `,` between your choices")
+
+		final = random.choice(choices1)
+		await ctx.neutral(f"I choose **{final}**")
+
+	@command(
+			name="ship",
+			description="The ship \% between you and a member",
+			usage="ship <@user>"
+	)
+	async def ship(self, ctx: StealContext, member: discord.Member):
+
+		return await ctx.neutral(
+			f"**{ctx.author.name}** 💞 **{member.name}** = **{random.randrange(101)}%**"
+		)
+
+	@command(
+			name="advice",
+			description="Sends random advice.",
+			usage="advice"
+	)
+	async def advice(self, ctx: StealContext):
+
+		data = orjson.loads(
+			await self.bot.session.get_text("https://api.adviceslip.com/advice")
+		)
+		return await ctx.neutral(data["slip"]["advice"])
+
+
+	@command(
+			name="pack",
+			description="Packs a member.",
+			usage="pack <@user>",
+			aliases=["flame"]
+	)
+	async def pack(self, ctx: StealContext, member: discord.Member):
+
+		if member == ctx.author:
+			return await ctx.warn("Why?")
+
+		result = await self.bot.session.get_json(
+			"https://evilinsult.com/generate_insult.php?lang=en&type=json"
+		)
+		await ctx.neutral(
+			f"{member.mention} {result['insult']}",
+		)
+
+
+	@command(
+		name="bitches",
+		description="Shows the bitches of a member.",
+		aliases=["bitchrate"],
+		usage="bitchrate <@user>",
+	)
+	async def bitches(self, ctx: StealContext, *, user: Optional[discord.Member] = Author):
+		choices = ["regular", "still regular", "lol", "xd", "id", "zero", "infinite"]
+		if random.choice(choices) == "infinite":
+			result = "∞"
+		elif random.choice(choices) == "zero":
+			result = "0"
+		else:
+			result = random.randint(0, 100)
+		await ctx.neutral(f"{user.mention} has **{result}** bitches")
+
+	@command(
+			name="gayrate",
+			description="Shows the gay \% of a member.",
+			usage="gayrate <@user>",
+			aliases=["gay"]
+	)
+	async def gay(self, ctx: StealContext, *, member: Optional[discord.Member] = Author):
+
+		return await ctx.neutral(f"{member.mention} is **{random.randint(0, 100)}%** gay 🏳️‍🌈")
+
+	@command(
+			name="ppsize",
+			description="Shows the pp size of a member.",
+			usage="ppsize <@user>",
+			aliases=["pp"]
+	)
+	async def pp(self, ctx: StealContext, *, member: Optional[discord.Member] = Author):
+	
+		length = "================================"
+		return await ctx.neutral(f"{member.mention}'s penis\n\n8{length[random.randint(1, 20):]}D")
+
+	@command(
+			name="kiss",
+			description="Kisses a member.",
+			usage="kiss <@user>",
+			aliases=["smooch"]
+	)
+	async def kiss(self, ctx: StealContext, member: discord.Member):
+
+		if member == ctx.author:
+			return await ctx.deny("Get help.")
+
+		gif = await self.bot.session.get_json(
+			"https://api.otakugifs.xyz/gif?reaction=kiss"
+		)
+		embed = Embed(
+			color=Colors.BASE_COLOR,
+			description=f"**{ctx.author.name}** kissed **{member.name}**",
+		)
+		embed.set_image(url=gif["url"])
+		return await ctx.reply(embed=embed)
+
+	@command(
+			name="cuddle",
+			description="Cuddles a member.",
+			usage="cuddle <@user>",
+			aliases=["snuggle"]
+	)
+	async def cuddle(self, ctx: StealContext, member: discord.Member):
+
+		if member == ctx.author:
+			return await ctx.deny("Get help.")
+
+		gif = await self.bot.session.get_json(
+			"https://api.otakugifs.xyz/gif?reaction=cuddle"
+		)
+		embed = Embed(
+			color=Colors.BASE_COLOR,
+			description=f"**{ctx.author.name}** cuddles **{member.name}**",
+		).set_image(url=gif["url"])
+		return await ctx.reply(embed=embed)
+
+	@command(
+			name="hug",
+			description="Hugs a member.",
+			usage="hug <@user>",
+	)
+	async def hug(self, ctx: StealContext, member: discord.Member):
+
+		if member == ctx.author:
+			return await ctx.deny("Get help.")
+
+		gif = await self.bot.session.get_json(
+			f"https://api.otakugifs.xyz/gif?reaction=hug"
+		)
+		embed = Embed(
+			color=Colors.BASE_COLOR,
+			description=f"**{ctx.author.name}** hugged **{member.name}**",
+		).set_image(url=gif["url"])
+		return await ctx.reply(embed=embed)
+
+	@command(
+			name="pat",
+			description="Pats a member.",
+			usage="pat <@user>",
+			aliases=["pet"]
+	)
+	async def pat(self, ctx: StealContext, member: discord.Member):
+
+		if member == ctx.author:
+			return await ctx.deny("Get help.")
+
+		gif = await self.bot.session.get_json(
+			f"https://api.otakugifs.xyz/gif?reaction=pat"
+		)
+		embed = Embed(
+			color=Colors.BASE_COLOR,
+			description=f"**{ctx.author.name}** pats **{member.name}**",
+		).set_image(url=gif["url"])
+		return await ctx.reply(embed=embed)
+
+	@command(
+			name="slap",
+			description="Slaps a member.",
+			usage="slap <@user>",
+			aliases=["smack"]
+	)
+	async def slap(self, ctx: StealContext, member: discord.Member):
+	
+		if member == ctx.author:
+			return await ctx.deny("Get help.")
+
+		gif = await self.bot.session.get_json(
+			f"https://api.otakugifs.xyz/gif?reaction=slap"
+		)
+		embed = Embed(
+			color=Colors.BASE_COLOR,
+			description=f"**{ctx.author.name}** slaps **{member.name}***",
+		).set_image(url=gif["url"])
+		return await ctx.reply(embed=embed)
+
 
 async def setup(bot):
 	await bot.add_cog(Fun(bot))

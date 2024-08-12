@@ -31,6 +31,8 @@ from io import BytesIO
 from sklearn.cluster import KMeans
 from skimage.transform import rescale
 
+from tools.EmbedBuilder import EmbedBuilder, EmbedScript
+
 import binascii
 import struct
 
@@ -59,11 +61,63 @@ class Utility(commands.Cog):
 	def __init__(self, bot: Steal):
 		self.bot = bot
 
-	@command(name='embed', description='Sends an embed.', aliases=['em'], usage='embed {title:fart}{description:this is a description}')
-	async def embedsend(self, ctx: StealContext, *, message:str):
+	@command(
+			name='embed',
+			description='Sends an embed.',
+			aliases=['em'],
+			usage='embed {title:fart}{description:this is a description}')
+	async def embedsend(
+			self,
+			ctx: StealContext,
+			*,
+			message:str) -> None:
+		
 		processed_message = EmbedBuilder.embed_replacement(ctx.author, message)
 		content, embed, view = await EmbedBuilder.to_object(processed_message)
 		await ctx.send(content=content, embed=embed, view=view)
+
+	@command(
+			name="embedcode",
+			descrtiption="Sends code for an embed.",
+			aliases=["ec"],
+			usage='ec <reply to a message>'
+	)
+	async def embedcode(
+			self,
+			ctx: StealContext,
+	) -> None:
+		
+		if not ctx.message.reference:
+			return await ctx.warn(f"Respond to a message to fetch the embed code.")
+		ref = await ctx.channel.fetch_message(ctx.message.reference.message_id)
+		embed_code = EmbedBuilder.copy_embed(self, ref)
+		await ctx.send(f"```{embed_code}```")
+
+
+	@command(
+			name='dominant',
+			aliases=["hex", "imagehex"]
+	)
+	async def dominant(
+			self,
+			ctx: StealContext,
+			image: discord.Attachment
+	):
+
+		color = hex(await self.bot.dominant_color(image.url))[2:]
+		hex_info = await self.bot.session.get_json(
+			"https://www.thecolorapi.com/id", params={"hex": color}
+		)
+		hex_image = f"https://singlecolorimage.com/get/{color}/200x200"
+		embed = (
+			discord.Embed(color=int(color, 16))
+			.set_author(icon_url=hex_image, name=hex_info["name"]["value"])
+			.set_thumbnail(url=hex_image)
+			.add_field(name="RGB", value=hex_info["rgb"]["value"])
+			.add_field(name="HEX", value=hex_info["hex"]["value"])
+		)
+
+		await ctx.send(embed=embed)
 
 	@command(name="avatar", description='Gets someones avatar.', aliases=['av', 'pfp'], usage='avatar [@user]')
 	async def avatar(self, ctx: StealContext, member:Optional[discord.User]) -> None:
@@ -633,81 +687,11 @@ class Utility(commands.Cog):
 				emoji = await ctx.guild.fetch_emoji(emoji.id)
 				await emoji.edit(name=f"{name}")
 				
-				return await ctx.approve(f"Renamed {emoji} to '{name}'")
+				return await ctx.approve(f"Renamed {emoji} to **{name}**")
 			else:
 				return await ctx.warn(f"That emoji is not from this server.")
 		except:
 			return await ctx.deny(f"Could not rename emoji {emoji}")				
-
-	
-	"""
-	@group(name='sticker', description='Manage emojis.')
-	async def sticker(self, ctx: StealContext):
-		if ctx.invoked_subcommand is None:
-			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `sticker`.')
-	
-	@sticker.command(name="add", description="Adds a sticker.", aliases=['create'])
-	@has_permissions(manage_emojis=True)
-	@bot_has_guild_permissions(manage_emojis=True)
-	@guild_only()
-	async def stickeradd(self, ctx: StealContext, image:discord.Attachment, *, sticker_name:Optional[str]=None):
-#		try:
-			if not sticker_name: sticker_name = sticker.filename.split(".")[0]
-
-			sticky = await image.save(BytesIO())
-			file = discord.File(BytesIO(sticky.encode()), filename='sticker.png')
-
-			sticker = await ctx.guild.create_sticker(name=f"{sticker_name}", file=file, emoji="🧈", description=f'Sticker created by {ctx.author}', reason=f'Executed by {ctx.author}')
-
-			return await ctx.approve(f"Created sticker {sticker}")
-#		except:
-			return await ctx.deny(f"Could not create sticker {sticker_name}")
-
-	@sticker.command(name="steal", description="Steals a sticker.")
-	@has_permissions(manage_emojis=True)
-	@bot_has_guild_permissions(manage_emojis=True)
-	@guild_only()
-	async def stickersteal(self, ctx: StealContext, sticker:discord.Sticker, sticker_name:Optional[str]=None):
-		try:
-			if not sticker_name: sticker_name = sticker.name
-
-
-			emoji = await ctx.guild.create_sticker(name=f"{sticker}", image=await emoji.read(), reason=f'Executed by {ctx.author}')
-
-			return await ctx.approve(f"Stole sticker {sticker}")
-		except:
-			return await ctx.deny(f"Could not steal sticker {sticker}")
-
-	@sticker.command(name="delete", description="Deletes an sticker.")
-	@has_permissions(manage_emojis=True)
-	@bot_has_guild_permissions(manage_emojis=True)
-	@guild_only()
-	async def stickerdelete(self, ctx: StealContext, sticker:discord.Sticker):
-		try:
-			if sticker in ctx.guild.stickers:
-				await ctx.guild.delete_sticker(sticker)
-
-				return await ctx.approve(f"Deleted sticker {sticker}")
-			else:
-				return await ctx.warn(f"That sticker is not from this server.")
-		except:
-			return await ctx.deny(f"Could not delete sticker {sticker}")
-	
-	@sticker.command(name='rename', description="Renames an sticker.")
-	@has_permissions(manage_emojis=True)
-	@bot_has_guild_permissions(manage_emojis=True)
-	@guild_only()
-	async def emojirename(self, ctx:StealContext, sticker:discord.Sticker, name:str):
-		try:
-			if sticker in ctx.guild.stickers:
-				sticker = await ctx.guild.fetch_sticker(sticker.id)
-				await sticker.edit(name=f"{name}")
-				
-				return await ctx.approve(f"Renamed {sticker} to '{name}'")
-			else:
-				return await ctx.warn(f"That emoji is not from this server.")
-		except:
-			return await ctx.deny(f"Could not rename sticker {sticker}")"""
 
 	@command(name='nitrohavers', description='Users with nitro.', aliases=['nhavers', 'nhs', 'premiumusers'], usage="nitrohavers")
 	@guild_only()
