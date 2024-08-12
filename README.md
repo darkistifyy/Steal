@@ -14,7 +14,7 @@ class Steal(commands.Bot):
                 roles=False,
                 replied_user=False
         ),
-			  case_insensitive=True,
-			  owner_ids=[1182755690071212092, 1039379534409117717]
+	case_insensitive=True,
+	owner_ids=[1182755690071212092, 1039379534409117717]
     )
 ```
