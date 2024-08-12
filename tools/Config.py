@@ -9,6 +9,8 @@ class Colors:
     WARN_COLOR = Color.yellow()
 
 class Emojis:
+    NITRO = "<:nitro:1272410157724209152>"
+    BOOST = "<:boost:1272410199516385304>"
     APPROVE = "✅"
     WARN = "⚠️"
     DENY = "❌"
