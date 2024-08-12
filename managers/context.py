@@ -56,4 +56,3 @@ class StealContext(Context):
             view  = Paginator(self, embeds),
             **kwargs
         )
-
