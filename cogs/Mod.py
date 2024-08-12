@@ -317,8 +317,12 @@ class Mod(commands.Cog):
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
 	async def hoistrole(self, ctx: StealContext, role:discord.Role) -> None:
-		await role.edit(hoist=False if role.hoist else True, reason=f'Executed by {ctx.author}')
-		await ctx.approve(f"{'Hoisted' if not role.hoist else 'Dehoisted'} {role.mention}")
+		if role.hoist:
+			await role.edit(hoist=False, reason=f'Executed by {ctx.author}')
+			await ctx.approve(f"Dehoisted {role.mention}.")
+		else:
+			await role.edit(hoist=True, reason=f'Executed by {ctx.author}')
+			await ctx.approve(f"Dehoisted {role.mention}.")		
 
 	@userrole.command(name='color', description='Sets a role color.', usage='role color @moderator #hexcode')
 	@has_permissions(manage_roles=True)

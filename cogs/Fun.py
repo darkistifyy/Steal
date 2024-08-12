@@ -177,28 +177,6 @@ class Fun(commands.Cog):
 		ping = round((time_2-time_1)*1000)
 		await ctx.neutral(f"Latency (ms): `{ping}`")
 
-	@command(
-		name = "botinfo",
-		aliases = ["bi", "bot"],
-		description = "Get information about the bot."
-	)
-	@cooldown(1, 5, commands.BucketType.user)
-	async def botinfo(self, ctx: Context) -> None:
-		commands = [command for command in set(self.bot.walk_commands()) if command.cog_name not in ['BotManagement', 'Auth', 'Profile', 'Bs']]
-
-		embed = discord.Embed(
-			title = f"{self.bot.user.name.split("#")[0]}",
-			color = Colors.BASE_COLOR,
-			description=f"I am {self.bot.user}, I have `{len(commands)}` commands. I'm in `{len(self.bot.guilds):,}` guilds serving `{len(self.bot.users):,}` users. I'm using `{psutil.cpu_percent()}%` of my CPU, `{psutil.virtual_memory().percent}%` of my RAM, running on `Dpy version {discord.__version__}` and `Python Version {sys.version.split(" (")[0]}`"
-		)
-
-#		embed.add_field(name="Statistics:", value=f"> guilds: `{len(self.bot.guilds):,}`\n> users: `{len(self.bot.users):,}`\n> commands: `{len(commands):,}`", inline=False)
-#		embed.add_field(name="System", value=f"> cpu usage: `{psutil.cpu_percent()}%`\n> ram usage: `{psutil.virtual_memory().percent}%`\n> python version: `{sys.version.split(" (")[0]}`", inline=False)
-		embed.set_thumbnail(url=self.bot.user.display_avatar.url)
-		embed.set_author(name=ctx.author.name, icon_url=ctx.author.display_avatar.url)
-
-		await ctx.send(embed=embed)
-
 	@command(name="tic", description="TTT battle with an opp.")
 	@guild_only()
 	async def tic(self, ctx: StealContext, opp: discord.Member) -> None:

@@ -8,10 +8,13 @@ import asyncio
 from discord.ui import *
 import base64
 import requests
+import psutil
 from sklearn import *
 import scipy.cluster
+import mimetypes
 
 from tools.Steal import Steal
+from tools.EmbedBuilder import EmbedBuilder, EmbedScript
 from managers.context import StealContext
 
 from typing import List, Optional
@@ -21,47 +24,14 @@ from typing import Optional
 
 time_convert = {"s": 1, "m": 60, "h": 3600, "d": 86400}
 
+from tools.bytesio import dom_color, caption_image
+
 from io import BytesIO
 from sklearn.cluster import KMeans
 from skimage.transform import rescale
 
 import binascii
 import struct
-from PIL import Image
-import numpy as np
-from PIL import Image
-from io import BytesIO
-import scipy.cluster
-import scipy.cluster.vq
-import binascii
-
-NUM_CLUSTERS = 5
-
-def dom_color(img):
-	my_bytes = BytesIO(img)
-	my_bytes.seek(0)
-	im = Image.open(my_bytes)
-	
-	im = im.convert('RGBA')
-	im = im.resize((150, 150))
-	
-	ar = np.asarray(im)
-	shape = ar.shape
-	
-	mask = ar[:, :, 3] > 0
-	ar = ar[mask]
-	
-	ar = ar[:, :3].astype(float)
-	
-	codes, dist = scipy.cluster.vq.kmeans(ar, NUM_CLUSTERS)
-
-	vecs, dist = scipy.cluster.vq.vq(ar, codes)
-	counts, bins = np.histogram(vecs, len(codes))
-
-	index_max = np.argmax(counts)
-	peak = codes[index_max]
-	colour = binascii.hexlify(bytearray(int(c) for c in peak)).decode('ascii')
-	return colour
 
 class ChannelDeleteConfirm(discord.ui.View):
 	def __init__(self):
@@ -87,6 +57,12 @@ class ChannelDeleteConfirm(discord.ui.View):
 class Utility(commands.Cog):
 	def __init__(self, bot: Steal):
 		self.bot = bot
+
+	@command(name='embed', description='Sends an embed.', aliases=['em'], usage='embed {title:fart}{description:this is a description}')
+	async def embedsend(self, ctx: StealContext, *, message:str):
+		processed_message = EmbedBuilder.embed_replacement(ctx.author, message)
+		content, embed, view = await EmbedBuilder.to_object(processed_message)
+		await ctx.send(content=content, embed=embed, view=view)
 
 	@command(name="avatar", description='Gets someones avatar.', aliases=['av', 'pfp'], usage='avatar [@user]')
 	async def avatar(self, ctx: StealContext, member:Optional[discord.User]) -> None:
@@ -224,19 +200,47 @@ class Utility(commands.Cog):
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
-	async def renamechannel(self, ctx: StealContext, channel:discord.abc.GuildChannel,name:Optional[str]) -> None:
-		#if not isinstance(channel, discord.GuildChannel):
-		#    await ctx.reply(embed=discord.Embed(description=f'{channel} is not a valid channel.', color=Color.red()))
-		#    return
-
+	async def renamechannel(self, ctx: StealContext, name:str, channel:Optional[discord.abc.GuildChannel]) -> None:
+		if not channel:channel=ctx.channel
 		try:
-			await asyncio.wait_for(channel.edit(name=name if name else "channel", reason=f'Executed by {ctx.author}'), timeout=2)
-			return await ctx.approve(f'Renamed {channel.mention} to `{name if name else "channel"}`.')
+			await asyncio.wait_for(channel.edit(name=name, reason=f'Executed by {ctx.author}'), timeout=2)
+			channel = await ctx.guild.fetch_channel(channel.id)
+			return await ctx.approve(f'Renamed {channel.mention} to `{channel.name}`.')
 		except asyncio.TimeoutError:
 			return await ctx.warn(f'Could not rename {channel.mention}, bot is ratelimited.')
 
 		except Exception as e:
-			return await ctx.deny(description=f'Error:\n```{e}```')
+			return await ctx.deny(f'Error:\n```{e}```')
+
+	@command(name='lock', description='Locks a channel.', usage='channel lock <channel>')
+	@cooldown(2,5, BucketType.guild)
+	@has_permissions(manage_channels=True)
+	@bot_has_guild_permissions(manage_channels=True)
+	@guild_only()
+	async def lockchannel(self, ctx: StealContext, reason:Optional[str] = "No reason.", channel:Optional[discord.abc.GuildChannel] = None):
+		reason += ' | Executed by {}'.format(ctx.author)
+		if channel is None: channel = ctx.channel	
+		perms = channel.overwrites_for(ctx.guild.default_role)
+		if perms.send_messages is None or perms.send_messages is True:
+			await channel.set_permissions(ctx.guild.default_role, send_messages=False, reason=reason)
+			await ctx.approve(f"Locked {channel.mention} - **{reason.split(" |")[0]}**.")
+		else:
+			await ctx.deny(f"{channel.mention} is already locked.")
+
+	@command(name='unlock', description='Unlocks a channel.', usage='channel unlock <channel>')
+	@cooldown(2,5, BucketType.guild)
+	@has_permissions(manage_channels=True)
+	@bot_has_guild_permissions(manage_channels=True)
+	@guild_only()
+	async def unlockchannel(self, ctx: StealContext, reason:Optional[str] = "No reason.", channel:Optional[discord.abc.GuildChannel] = None):
+		reason += ' | Executed by {}'.format(ctx.author)
+		if channel is None: channel = ctx.channel	
+		perms = channel.overwrites_for(ctx.guild.default_role)
+		if perms.send_messages is False:
+			await channel.set_permissions(ctx.guild.default_role, send_messages=None, reason=f'Executed by {ctx.author}')
+			await ctx.approve(f"Unlocked {channel.mention} - **{reason.split(" |")[0]}**.")
+		else:
+			await ctx.deny(f"{channel.mention} is already unlocked.")			
 
 	@command(name="slowmode", description="Set a channel slowmode", usage='slowmode 10s [channel]')
 	@cooldown(2,5, commands.BucketType.guild)
@@ -335,6 +339,7 @@ class Utility(commands.Cog):
 					else:
 						remaining_roles += 1
 				role_chunks = role_chunks[::-1]
+				role_chunks = role_chunks[::-1]
 				role_chunks.append(continuation_string.format(numeric_number=remaining_roles))
 				role_list = "".join(role_chunks)
 		else:
@@ -356,8 +361,9 @@ class Utility(commands.Cog):
 			value=f'>>> {role_list}',
 			inline=False
 		).set_author(
-			name=ctx.author,
-			icon_url=ctx.author.display_avatar.url if ctx.author.display_avatar else None
+			name=ctx.guild.name,
+			url=f"https://discord.com/channels/{ctx.guild.id}/",
+			icon_url=ctx.guild.icon.url if ctx.guild.icon else None
 		)
 		await ctx.send(embed=embed)
 
@@ -370,7 +376,7 @@ class Utility(commands.Cog):
 
 		timestamp1 = discord.utils.format_dt(member.created_at, style="F")
 		
-		timestamp2 = [[discord.utils.format_dt(member.joined_at, style="F") if member.joined_at else "?"] if not isinstance(ctx.channel, discord.DMChannel) else "?"]
+		timestamp2 = [discord.utils.format_dt(member.joined_at, style="F") if member.joined_at else "?"] if not isinstance(ctx.channel, discord.DMChannel) else "?"
 
 		if ctx.guild:
 			roles = member.roles[-1:0:-1]
@@ -393,6 +399,8 @@ class Utility(commands.Cog):
 							role_chunks.append(chunk)
 						else:
 							remaining_roles += 1
+					role_chunks = role_chunks[::-1]
+					role_chunks = role_chunks[::-1]
 					role_chunks.append(continuation_string.format(numeric_number=remaining_roles))
 					rolelist = "".join(role_chunks)
 			else:
@@ -419,6 +427,27 @@ class Utility(commands.Cog):
 		await ctx.send(
 			embed=info.set_author(name=member, icon_url=member.display_avatar.url if member.display_avatar else None)
 			)
+
+
+	@command(
+		name = "botinfo",
+		aliases = ["bi", "bot"],
+		description = "Get information about the bot."
+	)
+	@cooldown(1, 5, commands.BucketType.user)
+	async def botinfo(self, ctx: Context) -> None:
+		commands = [command for command in set(self.bot.walk_commands()) if command.cog_name not in ['BotManagement', 'Auth', 'Profile', 'Bs']]
+
+		embed = discord.Embed(
+			title = f"{self.bot.user.name.split("#")[0]}",
+			color = Colors.BASE_COLOR,
+			description=f"I am {self.bot.user}, I have `{len(commands)}` commands. I'm in `{len(self.bot.guilds):,}` guilds serving `{len(self.bot.users):,}` users. I'm using `{psutil.cpu_percent()}%` of my CPU, `{psutil.virtual_memory().percent}%` of my RAM, running on `Dpy version {discord.__version__}` and `Python Version {sys.version.split(" (")[0]}`"
+		)
+		embed.set_thumbnail(url=self.bot.user.display_avatar.url)
+		embed.set_author(name=ctx.author.name, icon_url=ctx.author.display_avatar.url)
+
+		await ctx.send(embed=embed)
+
 
 	@group(name='server', description='Manages server.', aliases=['guild'])
 	async def server(self, ctx: StealContext):

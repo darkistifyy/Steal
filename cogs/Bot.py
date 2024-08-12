@@ -197,23 +197,23 @@ class BotManagement(commands.Cog):
 		if isinstance(message.channel, discord.DMChannel):
 			if message.author.id not in self.bot.owner_ids:
 				return
-			else:
-				if message.author.bot:
-					return
-				if message.content == f"{self.bot.user.mention}":
-					return await message.reply(embed=discord.Embed(description=f" Hi {message.author}. I am `{self.bot.user}` running on `Dpy Version {discord.__version__}`.\n Use `{self.bot.command_prefix[0]}help` to get started.", color=Colors.BASE_COLOR).add_field(
-						   name="Prefix:",
-					   	value=f"{self.bot.command_prefix[0]}"
-					).add_field(
-								 name="Uptime:",
-								 value=f"{datetime.timedelta(seconds=int(round(time.time()-self.startTime)))}"
-					).add_field(
-						name=f'Owner:',
-						value=f'<@{self.bot.owner_ids[0]}>'
-					).set_author(
-						name=f'{message.author}',
-						icon_url=f'{message.author.display_avatar.url if message.author.display_avatar else None}'
-					))
+		else:
+			if message.author.bot:
+				return
+			if message.content == f"{self.bot.user.mention}":
+				return await message.reply(embed=discord.Embed(description=f" Hi {message.author}. I am `{self.bot.user}` running on `Dpy Version {discord.__version__}`.\n Use `{self.bot.command_prefix[0]}help` to get started.", color=Colors.BASE_COLOR).add_field(
+					   name="Prefix:",
+				   	value=f"{self.bot.command_prefix[0]}"
+				).add_field(
+							 name="Uptime:",
+							 value=f"{datetime.timedelta(seconds=int(round(time.time()-self.startTime)))}"
+				).add_field(
+					name=f'Owner:',
+					value=f'<@{self.bot.owner_ids[0]}>'
+				).set_author(
+					name=f'{message.author}',
+					icon_url=f'{message.author.display_avatar.url if message.author.display_avatar else None}'
+				))
 
 	@group(
 		name='system',
