@@ -13,6 +13,8 @@ import datetime
 from discord.ui import Button, View, button
 import sqlite3
 
+from tools.bytesio import dom_color
+
 from tools.Steal import Steal
 from managers.context import StealContext
 
@@ -34,6 +36,55 @@ class Mod(commands.Cog):
 	def __init__(self, Steal):
 		self.bot = Steal
 
+	@group(name='nickname', description='Nicknames.', aliases=['nick'])
+	async def nick(self, ctx: StealContext):
+		if ctx.invoked_subcommand is None:
+			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `nick`.')
+		
+	@nick.command(name='force', description='Forces a nickname onto a user.', usage='nick force @oxy.dev')
+	@has_permissions(manage_nicknames=True)
+	@bot_has_guild_permissions(manage_nicknames=True)
+	@cooldown(1,10, BucketType.user)
+	async def nickforce(self, ctx: StealContext, member:discord.Member, *, nick:Optional[str] = None):
+		try:
+			if nick is not None:
+				await member.edit(nick=nick, reason=f'Executed by {ctx.author}')
+				return await ctx.approve(f"Forced {member.mention}'s nick - **{nick}**.")
+			else:
+				await member.edit(nick=nick, reason=f'Executed by {ctx.author}')
+				return await ctx.approve(f"Removed {member.mention}'s nick.")
+		except:
+			return await ctx.deny(f'Failed to force a nick on {member.mention}.')
+
+	@nick.command(name='set', description='Sets your nickname.', usage='nick set fart')
+	@has_permissions(manage_nicknames=True)
+	@bot_has_guild_permissions(manage_nicknames=True)
+	@cooldown(1,10, BucketType.user)
+	async def nickset(self, ctx: StealContext, *, nick:Optional[str] = None):
+		try:
+			if nick is not None:
+				await ctx.author.edit(nick=nick, reason=f'Executed by {ctx.author}')
+				return await ctx.approve(f"Set your nick - **{nick}**.")
+			else:
+				await ctx.author.edit(nick=nick, reason=f'Executed by {ctx.author}')
+				return await ctx.approve(f"Removed your nick.")
+		except:
+			return await ctx.deny(f'Failed to set your nick.')
+		
+	@nick.command(name='remove', description="Removes a user's nickname.", usage='nick remove @oxy.dev')
+	@has_permissions(manage_nicknames=True)
+	@bot_has_guild_permissions(manage_nicknames=True)
+	@cooldown(1,10, BucketType.user)
+	async def nickremove(self, ctx: StealContext, member:discord.Member):
+		try:
+			if member.nick:
+				await member.edit(nick=None, reason=f'Executed by {ctx.author}')
+				return await ctx.approve(f"Removed {member.mention}'s nick.")
+			else:
+				return await ctx.deny(f'{member.mention} does not have a nick..')
+		except:
+			return await ctx.deny(f'Failed to force a nick on {member.mention}.')
+
 	@group(name='ban', description='Bans Members.')
 	async def ban(self, ctx: StealContext):
 		if ctx.invoked_subcommand is None:
@@ -45,7 +96,8 @@ class Mod(commands.Cog):
 		usage = "ban add @jpeg.dev raider"
 	)
 	@cooldown(1, 10, BucketType.user)
-	@has_permissions(moderate_members=True)
+	@has_permissions(ban_members=True)
+	@bot_has_guild_permissions(ban_members=True)
 	async def banadd(self, ctx: StealContext, user: discord.User, *, reason: Optional[str] = "no reason") -> None:
 		reason += ' | Executed by {}'.format(ctx.author)
 
@@ -92,7 +144,8 @@ class Mod(commands.Cog):
 		usage = "kick @jpeg.dev rule breaker"
 	)
 	@cooldown(1, 10, BucketType.user)
-	@has_permissions(moderate_members=True)
+	@has_permissions(kick_members=True)
+	@bot_has_permissions(kick_members=True)
 	async def kick(self, ctx: StealContext, user: discord.Member, *, reason: Optional[str] = "No reason.") -> None:
 		reason += ' | Executed by {}'.format(ctx.author)
 
@@ -154,7 +207,7 @@ class Mod(commands.Cog):
 		
 	@mute.command(name='remove', description='Unmutes a member.', usage='mute remove @jpeg.dev false mute')
 	@has_permissions(moderate_members=True)
-	@bot_has_guild_permissions(moderate_members=True)
+	@bot_has_guild_permissions(mute_members=True)
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
 	async def muteremove(self, ctx: StealContext, member:discord.Member, *, reason: Optional[str] = 'No reason.') -> None:
@@ -317,12 +370,12 @@ class Mod(commands.Cog):
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
 	async def hoistrole(self, ctx: StealContext, role:discord.Role) -> None:
-		if role.hoist:
+		if role.hoist is True:
 			await role.edit(hoist=False, reason=f'Executed by {ctx.author}')
 			await ctx.approve(f"Dehoisted {role.mention}.")
 		else:
 			await role.edit(hoist=True, reason=f'Executed by {ctx.author}')
-			await ctx.approve(f"Dehoisted {role.mention}.")		
+			await ctx.approve(f"Hoisted {role.mention}.")		
 
 	@userrole.command(name='color', description='Sets a role color.', usage='role color @moderator #hexcode')
 	@has_permissions(manage_roles=True)
@@ -346,6 +399,77 @@ class Mod(commands.Cog):
 			return await ctx.approve(f"Set {role.mention}'s color to `{hex}`")
 		else:
 			return await ctx.deny(f"`{hex}` is not a valid hex code.")
+
+	@userrole.command(name='icon', description='Sets a role icon.', usage='role icon @moderator <attachment>')
+	@has_permissions(manage_roles=True)
+	@bot_has_guild_permissions(manage_roles=True)
+	@cooldown(1, 10, BucketType.user)
+	@guild_only()
+	async def roleicon(self, ctx: StealContext, role:discord.Role, image:Optional[discord.Attachment] = None) -> None:
+		if image is None:
+			if role.display_icon:
+				if not isinstance(role.display_icon, str):
+					avatarbytes = await role.display_icon.read()
+					dominant_color = dom_color(avatarbytes)
+
+					from isHex import isHex
+
+					if isHex(dominant_color):
+						rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
+
+						return await ctx.reply(embed=discord.Embed(title=f"{role.name}'s icon", url=role.display_icon.url, color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])).set_image(url=role.display_icon.url))
+				return await ctx.reply(embed=discord.Embed(title=f"{role.name}'s icon: {role.display_icon}", color=Colors.BASE_COLOR))
+			else: 
+				return await ctx.deny(f"Missing argument `image`")
+		else:
+
+			import regex as re
+			from isHex import isHex, isHexLower, isHexUpper
+
+			if role.position >= ctx.author.top_role.position and ctx.author != ctx.guild.owner:
+				return await ctx.deny(f'You do not have permission to manage {role.mention}.')
+
+			icon = await image.read()
+
+			await role.edit(display_icon=icon, reason=f'Executed by {ctx.author}')
+			return await ctx.approve(f"Set {role.mention}'s display icon")
+	
+	@userrole.command(name='emoji', description='Sets a role emoji.', usage='role emoji @moderator <emoji>')
+	@has_permissions(manage_roles=True)
+	@bot_has_guild_permissions(manage_roles=True)
+	@cooldown(1, 10, BucketType.user)
+	@guild_only()
+	async def roleemoji(self, ctx: StealContext, role:discord.Role, emoji:Optional[str] = None) -> None:
+		if emoji is None:
+			if role.display_icon:
+				if not isinstance(role.display_icon, str):
+					avatarbytes = await role.display_icon.read()
+					dominant_color = dom_color(avatarbytes)
+
+					from isHex import isHex
+
+					if isHex(dominant_color):
+						rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
+
+						return await ctx.reply(embed=discord.Embed(title=f"{role.name}'s icon", url=role.display_icon.url, color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])).set_image(url=role.display_icon.url))
+				return await ctx.reply(embed=discord.Embed(title=f"{role.name}'s icon: {role.display_icon}", color=Colors.BASE_COLOR))
+			else: 
+				return await ctx.deny(f"Missing argument `emoji`")
+		else:
+			import regex as re
+			from isHex import isHex, isHexLower, isHexUpper
+
+			if role.position >= ctx.author.top_role.position and ctx.author != ctx.guild.owner:
+				return await ctx.deny(f'You do not have permission to manage {role.mention}.')
+
+			if emoji.id:
+				icon = await emoji.read()
+
+				await role.edit(display_icon=icon, reason=f'Executed by {ctx.author}')
+				return await ctx.approve(f"Set {role.mention}'s display icon")
+
+			await role.edit(display_icon=emoji, reason=f'Executed by {ctx.author}')
+			return await ctx.approve(f"Set {role.mention}'s display emoji to {emoji}")
 
 	@userrole.command(name='delete', description='Deletes a role.', usage='role delete @newrole')
 	@has_permissions(manage_roles=True)
