@@ -6,13 +6,15 @@ class Steal(commands.Bot):
   def __init__(self):
     super().__init__(
         command_prefix=[";"],
+        intents=intents,
         description="Steal is a cool Discord bot made by none other than... me.",
-        owner_ids=[1182755690071212092, 1039379534409117717]
         allowed_mentions=discord.AllowedMentions(
                 everyone=False,
                 users=True,
                 roles=False,
                 replied_user=False
         ),
+			  case_insensitive=True,
+			  owner_ids=[1182755690071212092, 1039379534409117717]
     )
 ```
