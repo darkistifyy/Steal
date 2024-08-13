@@ -314,7 +314,7 @@ class Fun(commands.Cog):
 			name="eightball",
 			description="Ask the eightball a question.",
 			usage="eightball <question>",
-			aliases=["8ball"]
+			aliases=["8ball", "eb"]
 	)
 	async def eightball(self, ctx: StealContext, *, question: str):
 		
@@ -582,7 +582,7 @@ class Fun(commands.Cog):
 	)
 	async def pp(self, ctx: StealContext, *, member: Optional[discord.Member] = Author):
 	
-		length = "================================"
+		length = "===================="
 		return await ctx.neutral(f"{member.mention}'s penis\n\n8{length[random.randint(1, 20):]}D")
 
 	@command(
@@ -681,7 +681,7 @@ class Fun(commands.Cog):
 		)
 		embed = Embed(
 			color=Colors.BASE_COLOR,
-			description=f"**{ctx.author.name}** slaps **{member.name}***",
+			description=f"**{ctx.author.name}** slaps **{member.name}**",
 		).set_image(url=gif["url"])
 		return await ctx.reply(embed=embed)
 

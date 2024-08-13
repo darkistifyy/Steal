@@ -12,13 +12,20 @@ import psutil
 from sklearn import *
 import scipy.cluster
 import sys
+import unicodedata
+import aiohttp
 import mimetypes
+import functools
+import io
+import zipfile
+
 
 from tools.Steal import Steal
 from tools.EmbedBuilder import EmbedBuilder, EmbedScript
 from managers.context import StealContext
+from tools.View import DownloadAsset
 
-from typing import List, Optional
+from typing import List, Optional, Union
 from tools.Config import Colors, Emojis
 
 from typing import Optional
@@ -102,8 +109,8 @@ class Utility(commands.Cog):
 			discord.Embed(color=int(color, 16))
 			.set_author(icon_url=hex_image, name=hex_info["name"]["value"])
 			.set_thumbnail(url=hex_image)
-			.add_field(name="RGB", value=hex_info["rgb"]["value"])
-			.add_field(name="HEX", value=hex_info["hex"]["value"])
+			.add_field(name="RGB", value=f'`{hex_info["rgb"]["value"]}`')
+			.add_field(name="HEX", value=f'`{hex_info["hex"]["value"]}`')
 		)
 
 		await ctx.send(embed=embed)
@@ -743,6 +750,112 @@ class Utility(commands.Cog):
 			return await ctx.approve(f"Stole emoji {emoji}")
 		except:
 			return await ctx.deny(f"Could not Steal emoji {emoji_name}")
+
+	@command(
+		name="emojis",
+		aliases=["emojilist"],
+		desciption="Lists server emojis."
+	)
+	async def emojis(self, ctx: StealContext):
+	
+		emojis = ctx.guild.emojis
+
+		count = 0
+		embeds = []
+
+		if not emojis:
+			return await ctx.deny("There are no emojis in this guild.")
+		
+		entries = [
+			f"`{i}` {b} (`{b.name}`)"
+			for i, b in enumerate(emojis, start=1)
+		]
+
+		embed = discord.Embed(
+			color=Colors.BASE_COLOR,
+			title=f"Emojis ({len(entries)})",
+			description=""
+		)
+
+		for entry in entries:
+			embed.description += f'{entry}\n'
+			count += 1
+			
+			if count == 5:
+				embeds.append(embed)
+				embed = discord.Embed(
+					color=Colors.BASE_COLOR,
+					title=f"Emojis ({len(entries)})",
+					description=""
+				)
+				count = 0
+		
+		if count > 0:
+			embeds.append(embed)
+		
+		await ctx.paginate(embeds)
+
+	@command(
+			name="info",
+			aliases=["ei"],
+			description="Gives emoji info."
+	)
+	async def emojiinfo(self, ctx: StealContext, *, emoji: Union[discord.Emoji, discord.PartialEmoji]):
+
+		embed = discord.Embed(
+			color=Colors.BASE_COLOR, title=emoji.name, timestamp=emoji.created_at
+		)
+
+		embed.set_thumbnail(url=emoji.url)
+
+		embed.add_field(name="Animated", value=emoji.animated)
+		embed.add_field(name="Link", value=f"[emoji]({emoji.url})")
+		embed.set_footer(text=f"id: {emoji.id}")
+		view = DownloadAsset(emoji.url)
+		view.message = await ctx.reply(embed=embed, view=view)
+
+	@emoji.command(
+			name="zip",
+			description="Zips all server emojis and sends it.",
+			usage="emoji zip"
+	)
+	async def emojis_zip(self, ctx: StealContext):
+
+		async with ctx.typing():
+			if ctx.guild.emojis:
+				buff = BytesIO()
+				with zipfile.ZipFile(buff, "w") as zip:
+					for emoji in ctx.guild.emojis:
+						zip.writestr(
+							f"{emoji.name}.{'gif' if emoji.animated else 'png'}",
+							data=await emoji.read(),
+						)
+			else:
+				return await ctx.warn("This guild has no emojis.")
+
+		buff.seek(0)
+		await ctx.send(file=discord.File(buff, filename=f"emojis-{ctx.guild.name}.zip"))
+
+	@emoji.command(
+			name="enlarge", 
+			aliases=["download", "e", "jumbo"]
+	)
+	async def emojienlarge(self, ctx: StealContext, *, emoji: Union[discord.PartialEmoji, str]):
+
+		if isinstance(emoji, discord.PartialEmoji):
+			await ctx.send(embed=
+				discord.Embed(
+					color=Colors.BASE_COLOR
+				).set_image(
+					url=emoji.url
+				).set_author(
+					name=ctx.author,
+					icon_url=ctx.author.display_avatar.url if ctx.author.display_avatar else None
+				)
+			)
+		else:
+			await ctx.warn("That is not a valid emoji.")
+
 
 	@emoji.command(
 			name="delete",
