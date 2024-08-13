@@ -161,6 +161,7 @@ class Utility(commands.Cog):
 
 	@command(
 			name="members",
+			usage="members",
 			description='Server members.'
 	)
 	@guild_only()
@@ -285,7 +286,8 @@ class Utility(commands.Cog):
 		else:
 			await ctx.deny(f"{channel.mention} is already visible.")
 
-	@managechannels.command(name='rename',
+	@managechannels.command(
+			name='rename',
 			description='Renames a channel.',
 			usage='channel rename <channel> <name>'
 	)
@@ -305,7 +307,8 @@ class Utility(commands.Cog):
 		except Exception as e:
 			return await ctx.deny(f'Error:\n```{e}```')
 
-	@command(name='lock',
+	@command(
+			name='lock',
 			description='Locks a channel.',
 			usage='channel lock <channel>'
 	)
@@ -323,9 +326,10 @@ class Utility(commands.Cog):
 		else:
 			await ctx.deny(f"{channel.mention} is already locked.")
 
-	@command(name='unlock',
-		  description='Unlocks a channel.',
-		  usage='channel unlock <channel>'
+	@command(
+			name='unlock',
+			description='Unlocks a channel.',
+			usage='channel unlock <channel>'
 	)
 	@cooldown(2,5, BucketType.guild)
 	@has_permissions(manage_channels=True)
@@ -416,6 +420,7 @@ class Utility(commands.Cog):
 	@command(
 			name="serverinfo",
 			description="Gives server info.",
+			usage="serverinfo",
 			aliases=["si"]
 	)
 	@cooldown(1,15, BucketType.user)
@@ -484,6 +489,41 @@ class Utility(commands.Cog):
 			url=f"https://discord.com/channels/{ctx.guild.id}/",
 			icon_url=ctx.guild.icon.url if ctx.guild.icon else None
 		)
+		await ctx.send(embed=embed)
+
+	@command(
+			name="channelinfo",
+			description="Gives channel info.",
+			usage="channelinfo",
+			aliases=["ci"]
+	)
+	async def channelinfo(self, ctx: StealContext, channel: Optional[discord.abc.GuildChannel] = None):
+
+		channel = channel or ctx.channel
+
+		embed = (
+			discord.Embed(color=Colors.BASE_COLOR, title=channel.name)
+			.set_author(name=ctx.author.name, icon_url=ctx.author.display_avatar)
+			.add_field(name="Channel ID", value=f"`{channel.id}`", inline=True)
+			.add_field(name="Type", value=str(channel.type), inline=True)
+			.add_field(
+				name="Guild",
+				value=f"{channel.guild.name} (`{channel.guild.id}`)",
+				inline=True,
+			)
+			.add_field(
+				name="Category",
+				value=f"{channel.category.name} (`{channel.category.id}`)",
+				inline=False,
+			)
+			.add_field(name="Topic", value=f"`{channel.topic}`" or "N/A", inline=True)
+			.add_field(
+				name="Created At",
+				value=f"{discord.utils.format_dt(channel.created_at, style='F')} ({discord.utils.format_dt(channel.created_at, style='R')})",
+				inline=False,
+			)
+		)
+
 		await ctx.send(embed=embed)
 
 	@command(
@@ -750,6 +790,50 @@ class Utility(commands.Cog):
 			return await ctx.approve(f"Stole emoji {emoji}")
 		except:
 			return await ctx.deny(f"Could not Steal emoji {emoji_name}")
+
+	@command(
+		name="roles",
+		aliases=["rolelist"],
+		desciption="Lists server roles."
+	)
+	async def roles(self, ctx: StealContext):
+	
+		roles = ctx.guild.roles[::-1]
+
+		count = 0
+		embeds = []
+
+		if not roles:
+			return await ctx.deny("There are no roles in this guild.")
+		
+		entries = [
+			f"`{i}` {b.mention} (`{b.name}`)"
+			for i, b in enumerate(roles, start=1) if i != ctx.guild.default_role
+		]
+
+		embed = discord.Embed(
+			color=Colors.BASE_COLOR,
+			title=f"Roles ({len(entries)})",
+			description=""
+		)
+
+		for entry in entries:
+			embed.description += f'{entry}\n'
+			count += 1
+			
+			if count == 10:
+				embeds.append(embed)
+				embed = discord.Embed(
+					color=Colors.BASE_COLOR,
+					title=f"Roles ({len(entries)})",
+					description=""
+				)
+				count = 0
+		
+		if count > 0:
+			embeds.append(embed)
+		
+		await ctx.paginate(embeds)
 
 	@command(
 		name="emojis",

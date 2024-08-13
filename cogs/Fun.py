@@ -23,6 +23,18 @@ from tools.Config import Colors, Emojis
 from discord.ext import commands
 import discord
 
+
+import datetime
+import io
+import json
+import random
+from datetime import datetime, timedelta, timezone
+
+import aiohttp
+import discord
+from discord.ext import commands
+
+
 class Explosion(discord.ui.View):
 	def __init__(self):
 		super().__init__()
@@ -684,6 +696,7 @@ class Fun(commands.Cog):
 			description=f"**{ctx.author.name}** slaps **{member.name}**",
 		).set_image(url=gif["url"])
 		return await ctx.reply(embed=embed)
+
 
 
 async def setup(bot):
