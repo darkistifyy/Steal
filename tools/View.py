@@ -1,0 +1,27 @@
+import discord
+from discord import app_commands
+from discord.ext import commands
+from discord.ext.commands import *
+from discord import Color
+from discord.ui import Button, View, button
+from typing import Optional, Literal
+import datetime
+import asyncio
+
+from tools.Steal import Steal
+from managers.context import StealContext
+from managers.interaction import PatchedInteraction
+
+from typing import List, Optional
+from tools.Config import Colors, Emojis
+
+class DownloadAsset(discord.ui.View):
+	def __init__(self, url: str):
+		super().__init__(timeout=30)
+		self.url = url
+		self.add_item(discord.ui.Button(label='📁', style=discord.ButtonStyle.blurple, url=self.url))
+	
+	async def on_timeout(self):
+		for child in self.children:
+			child.disabled = True
+		await self.message.edit(view=self)

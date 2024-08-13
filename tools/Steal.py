@@ -17,16 +17,19 @@ import os
 import re
 import datetime
 import time
+import colorgram
+
+from PIL import Image
 
 from asyncpg import Pool
-from typing import Dict
+from typing import Dict, Union
 from collections import defaultdict
 
 from discord.ext import commands
 from discord import Message, Embed
 
 from managers.help import StealHelp
-from tools.Session import Session, NekosApi
+from tools.Session import Session
 from managers.context import StealContext
 from tools.Config import Colors, Emojis
 from discord.ext import commands
@@ -42,7 +45,6 @@ class Steal(commands.Bot):
 		self.errors = Dict[str, commands.CommandError]
 		self._uptime = time.time()
 		self.session = Session()
-		self.nekos = NekosApi()
 
 		super().__init__(
 			command_prefix=[';'],
@@ -105,9 +107,6 @@ class Steal(commands.Bot):
 		)
 
 	async def getbyte(self, url: str) -> BytesIO:
-		"""
-		Get the BytesIO object of an url
-		"""
 
 		return BytesIO(await self.session.get_bytes(url))
 
@@ -120,10 +119,20 @@ class Steal(commands.Bot):
 
 		return ', '.join(result)
 	
+	async def dominant_color(self, url: Union[discord.Asset, str]) -> int:
+		if isinstance(url, discord.Asset):
+			url = url.url
+
+		img = Image.open(BytesIO(await self.session.get_bytes(url)))
+		img.thumbnail((32, 32))
+
+		colors = await asyncio.to_thread(lambda: colorgram.extract(img, 1))
+		return discord.Color.from_rgb(*list(colors[0].rgb)).value
+
 	@property
 	def uptime(self) -> str:
 		return self.humanize_time(self._uptime)
-	
+	"""
 	async def on_command_error(self, ctx: StealContext, exception: commands.CommandError) -> None:
 		if type(exception) in [commands.CommandNotFound, commands.NotOwner, commands.CheckFailure]: return
 		elif isinstance(exception, commands.BadColourArgument):
@@ -189,7 +198,7 @@ class Steal(commands.Bot):
 		if isinstance(exception, commands.MissingPermissions):
 			return await ctx.warn(f"I do not have permissions to do that.")
 		elif isinstance(exception.original, discord.HTTPException):
-			return await ctx.warn(f"**Invalid code**\n```{exception.original}```")
+			return await ctx.warn(f"**Invalid code**\n```{exception.original}```")"""
 
 	async def get_context(self, message, *, cls= StealContext):
 		return await super().get_context(message, cls=cls)

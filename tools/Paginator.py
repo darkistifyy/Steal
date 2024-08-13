@@ -1,70 +1,62 @@
 import discord
-from typing import Callable, Optional
 
+from tools.Config import Emojis
 
 class Paginator(discord.ui.View):
-    def __init__(self, interaction: discord.Interaction, get_page: Callable):
-        self.interaction = interaction
-        self.get_page = get_page
-        self.total_pages: Optional[int] = None
-        self.index = 1
-        super().__init__(timeout=100)
+    def __init__(self, ctx, pages: list[discord.Embed], current: int=0, timeout: float=None):
+        self.ctx = ctx
+        self.pages = pages
+        self.current = current
+        super().__init__(timeout=timeout)
 
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if self.interaction.user == self.interaction.user:
-            return True
-        else:
-            emb = discord.Embed(
-                description=f"Only the author of the command can perform this action.",
-                color=16711680
-            )
-            await interaction.response.send_message(embed=emb, ephemeral=True)
+        self.add_item(PaginatorButton(style=discord.ButtonStyle.blurple, custom_id='previous', emoji=Emojis.LEFT_PAGINATOR))
+        self.add_item(PaginatorButton(style=discord.ButtonStyle.blurple, custom_id='next', emoji=Emojis.RIGHT_PAGINATOR))
+        self.add_item(PaginatorButton(style=discord.ButtonStyle.grey, custom_id='pages', emoji=Emojis.NAVIGATE_PAGINATOR))
+        self.add_item(PaginatorButton(style=discord.ButtonStyle.grey, custom_id='cancel', emoji=Emojis.CANCEL_PAGINATOR))
+
+    async def interaction_check(self, interaction: discord.Interaction[discord.Client]) -> bool:
+        if interaction.user.id != self.ctx.author.id:
+            await interaction.warn("You're not the **author** of this embed!")
             return False
+        return True
 
-    async def navegate(self):
-        emb, self.total_pages = await self.get_page(self.index)
-        if self.total_pages == 1:
-            await self.interaction.response.send_message(embed=emb)
-        elif self.total_pages > 1:
-            self.update_buttons()
-            await self.interaction.response.send_message(embed=emb, view=self)
+class PaginatorButton(discord.ui.Button):
+    def __init__(self, style: discord.ButtonStyle, emoji: str, custom_id: str=None):
+        super().__init__(style=style, custom_id=custom_id, emoji=emoji)
 
-    async def edit_page(self, interaction: discord.Interaction):
-        emb, self.total_pages = await self.get_page(self.index)
-        self.update_buttons()
-        await interaction.response.edit_message(embed=emb, view=self)
+    async def callback(self, interaction: discord.Interaction):
+        if self.custom_id == 'previous': return await self.previous(interaction)
+        if self.custom_id == 'next': return await self.next(interaction)
+        if self.custom_id == 'pages': return await self.pages(interaction)
+        if self.custom_id == 'cancel': return await self.cancel(interaction)
 
-    def update_buttons(self):
-        if self.index > self.total_pages // 2:
-            self.children[2].emoji = "⏮️"
-        else:
-            self.children[2].emoji = "⏭️"
-        self.children[0].disabled = self.index == 1
-        self.children[1].disabled = self.index == self.total_pages
+    async def previous(self, interaction: discord.Interaction):
+        if self.view.current == 0: self.view.current = len(self.view.pages)-1
+        else: self.view.current -= 1
+        return await interaction.response.edit_message(embed=self.view.pages[self.view.current])
 
-    @discord.ui.button(emoji="◀️", style=discord.ButtonStyle.blurple)
-    async def previous(self, interaction: discord.Interaction, button: discord.Button):
-        self.index -= 1
-        await self.edit_page(interaction)
+    async def next(self, interaction: discord.Interaction):
+        if self.view.current == len(self.view.pages)-1: self.view.current = 0
+        else: self.view.current += 1
+        return await interaction.response.edit_message(embed=self.view.pages[self.view.current])
 
-    @discord.ui.button(emoji="▶️", style=discord.ButtonStyle.blurple)
-    async def next(self, interaction: discord.Interaction, button: discord.Button):
-        self.index += 1
-        await self.edit_page(interaction)
+    async def cancel(self, interaction: discord.Interaction):
+        self.view.stop()
+        return await interaction.message.delete()
 
-    @discord.ui.button(emoji="⏭️", style=discord.ButtonStyle.blurple)
-    async def end(self, interaction: discord.Interaction, button: discord.Button):
-        if self.index <= self.total_pages//2:
-            self.index = self.total_pages
-        else:
-            self.index = 1
-        await self.edit_page(interaction)
+    async def pages(self, interaction: discord.Interaction):
+        return await interaction.response.send_modal(PagesModal(self.view))
 
-    async def on_timeout(self):
-        # remove buttons on timeout
-        message = await self.interaction.original_response()
-        await message.edit(view=None)
+class PagesModal(discord.ui.Modal, title='Select Page'):
+    def __init__(self, view: Paginator):
+        super().__init__()
+        self.view = view
+        self.selector = discord.ui.TextInput(label='Page', placeholder='5', custom_id='PAGINATOR:PAGES', style=discord.TextStyle.short, min_length=1, max_length=3, required=True, row=0)
+        self.add_item(self.selector)
 
-    @staticmethod
-    def compute_total_pages(total_results: int, results_per_page: int) -> int:
-        return ((total_results - 1) // results_per_page) + 1
+    async def on_submit(self, interaction: discord.Interaction):
+        try: page = int(self.selector.value)
+        except ValueError:return await interaction.warn('Please provide a valid page number.')
+        if page < 1 or page > len(self.view.pages): return await interaction.warn('Please provide a valid page number.')
+        self.view.current = page-1
+        return await interaction.response.edit_message(embed=self.view.pages[self.view.current])

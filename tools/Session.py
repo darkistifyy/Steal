@@ -16,9 +16,6 @@ class Session:
         params: Optional[dict] = None,
         proxy: Optional[str] = None,
     ):
-        """
-        Use the post method to get the json response
-        """
 
         async with aiohttp.ClientSession(headers=headers or self.headers) as cs:
             async with cs.post(url, headers=headers, params=params, proxy=proxy) as r:
@@ -31,9 +28,7 @@ class Session:
         params: Optional[dict] = None,
         proxy: Optional[str] = None,
     ):
-        """
-        Use the get method to get the json response
-        """
+
 
         async with aiohttp.ClientSession(headers=headers or self.headers) as cs:
             async with cs.get(url, headers=headers, params=params, proxy=proxy) as r:
@@ -46,9 +41,6 @@ class Session:
         params: Optional[dict] = None,
         proxy: Optional[str] = None,
     ):
-        """
-        Use the get method to get the text response
-        """
 
         async with aiohttp.ClientSession(headers=headers or self.headers) as cs:
             async with cs.get(url, headers=headers, params=params, proxy=proxy) as r:
@@ -61,9 +53,6 @@ class Session:
         params: Optional[dict] = None,
         proxy: Optional[str] = None,
     ):
-        """
-        Use the get method to get the bytes response
-        """
 
         async with aiohttp.ClientSession(headers=headers or self.headers) as cs:
             async with cs.get(url, headers=headers, params=params, proxy=proxy) as r:

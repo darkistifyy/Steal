@@ -14,3 +14,8 @@ class Emojis:
     APPROVE = "✅"
     WARN = "⚠️"
     DENY = "❌"
+    LEFT_PAGINATOR = "◀️"
+    RIGHT_PAGINATOR = "▶️"
+    NAVIGATE_PAGINATOR = "📄"
+    CANCEL_PAGINATOR = "🗑️"
+
