@@ -1,12 +1,13 @@
 import discord
 
-from typing import List
+from typing import List, Union
 
 from discord import Message, Embed
 from discord.ext.commands import Context, Group
 
 from tools.Config import Colors, Emojis
 from tools.Paginator import Paginator
+from discord import utils
 
 class StealContext(Context):
     def __init__(self, **kwargs):
@@ -51,7 +52,7 @@ class StealContext(Context):
         )
 
     async def paginate(self, embeds: List[discord.Embed], **kwargs) -> Message:
-        return await self.reply(
+        return await self.send(
             embed = embeds[0],
             view  = Paginator(self, embeds),
             **kwargs

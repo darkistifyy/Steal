@@ -3,6 +3,8 @@ import discord
 from discord.ext.commands import HelpCommand
 from discord.ext.commands.cog import Cog
 from discord.ext.commands.core import Command, Group
+from discord.ext import commands
+from discord.ext.commands import *
 
 from typing import Any, Callable, Dict, List, Mapping
 
@@ -14,7 +16,7 @@ class StealHelp(HelpCommand):
     def __init__(self):
         super().__init__()
         self.command_attrs = {
-            'aliases': ['h', 'help' 'assist', 'commands']
+            'aliases': ['help', 'assist', 'commands']
         }
         self.verify_checks = True
         
@@ -23,7 +25,7 @@ class StealHelp(HelpCommand):
         embed = discord.Embed(
             color = Colors.BASE_COLOR,
             description=f"> **Navigate** throughout the help embed with the dropdown."
-        ).set_author(name = self.context.author.display_name, icon_url = self.context.author.display_avatar.url).set_thumbnail(url = self.context.bot.user.display_avatar.url)
+        ).set_author(name = self.context.author.display_name, icon_url = self.context.author.display_avatar.url if self.context.author.display_avatar else None).set_thumbnail(url = self.context.bot.user.display_avatar.url)
         
 
         
@@ -85,6 +87,36 @@ class StealHelp(HelpCommand):
             if isinstance(command, discord.ext.commands.Group): group_commands = [*group_commands, command, *command.commands]
         commands = [group, *[command for command in group.commands if not isinstance(command, discord.ext.commands.Group)], *group_commands]
                 
+        return await self.context.paginate([
+            discord.Embed(
+                color = Colors.BASE_COLOR,
+                title = f'Group Command: {command.qualified_name}',
+                description = f'>>> {command.description or "No Description Provided"}'
+            )
+                .set_author(name = self.context.author.display_name, icon_url = self.context.author.display_avatar.url)
+                .add_field(name = 'Aliases', value = ', '.join(command.aliases) or 'N/A', inline = True)
+                .add_field(name = 'Parameters', value = ', '.join([parameter for parameter in command.params] if not isinstance(command, Group) else [parameter.name for parameter in group.commands]) or 'N/A', inline = True)
+                .add_field(name = 'Usage', value = f'>>> **Syntax**: `{prefix}{command.qualified_name} {" ".join([f"[{parameter}]" for parameter in command.params] if not isinstance(command, Group) else [parameter.name for parameter in group.commands])}`', inline = False)
+                .set_footer(text = f'Page {i + 1}/{len(commands)} ({len(commands)} entries) ∙ Module: {command.cog_name}', icon_url = self.context.bot.user.display_avatar.url)
+            for i, command in enumerate(commands)
+        ])
+
+        """
+        return await self.context.paginate([
+            discord.Embed(
+                color = Colors.BASE_COLOR,
+                title = f'Group Command: {command.qualified_name}',
+                description = f'>>> {command.description or "No Description Provided"}'
+            )
+                .set_author(name = self.context.author.display_name, icon_url = self.context.author.display_avatar.url)
+                .add_field(name = 'Aliases', value = ', '.join(command.aliases) or 'N/A', inline = True)
+                .add_field(name = 'Subcommands', value = ', '.join([parameter.name for parameter in group.commands]) or 'N/A', inline = True)
+                .add_field(name = 'Usage', value = f'>>> Syntax: `{prefix}{command.parent} {"/".join(parameter.name for parameter in group.commands)}`', inline = False)
+                .set_footer(text = f'Page {i + 1}/{len(commands)} ({len(commands)} entries) ∙ Module: {command.cog_name}', icon_url = self.context.bot.user.display_avatar.url)
+            for i, command in enumerate(commands)
+        ])"""
+
+        """
         return await self.context.reply(
                 embed=discord.Embed(
                 color = Colors.BASE_COLOR,
@@ -95,7 +127,7 @@ class StealHelp(HelpCommand):
                 .add_field(name = 'Aliases', value = ', '.join(command.aliases) or 'N/A', inline = True)
                 .add_field(name = 'Subcommands', value = ', '.join([parameter.name for parameter in group.commands]) or 'N/A', inline = True)
                 .add_field(name = 'Usage', value = f'>>> Syntax: `{prefix}{command.parent} {"/".join(parameter.name for parameter in group.commands)}`', inline = False)
-        )
+        )"""
     
 class CategorySelector(discord.ui.Select):
     def __init__(self, categories: Dict[str, Cog], embed: discord.Embed) -> None:
