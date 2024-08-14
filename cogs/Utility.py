@@ -18,7 +18,7 @@ import mimetypes
 import functools
 import io
 import zipfile
-
+import math
 
 from tools.Steal import Steal
 from tools.EmbedBuilder import EmbedBuilder, EmbedScript
@@ -809,30 +809,41 @@ class Utility(commands.Cog):
 		
 		entries = [
 			f"`{i}` {b.mention} (`{b.name}`)"
-			for i, b in enumerate(roles, start=1) if i != ctx.guild.default_role
+			for i, b in enumerate(roles, start=1) if not i == ctx.guild.default_role
 		]
+
+		l = 10
 
 		embed = discord.Embed(
 			color=Colors.BASE_COLOR,
 			title=f"Roles ({len(entries)})",
 			description=""
-		)
+		).set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				)
 
 		for entry in entries:
 			embed.description += f'{entry}\n'
 			count += 1
 			
-			if count == 10:
+			if count == l:
 				embeds.append(embed)
 				embed = discord.Embed(
 					color=Colors.BASE_COLOR,
 					title=f"Roles ({len(entries)})",
 					description=""
+				).set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
 				)
 				count = 0
 		
 		if count > 0:
-			embeds.append(embed)
+			embeds.append(embed.set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				))
 		
 		await ctx.paginate(embeds)
 
@@ -857,27 +868,39 @@ class Utility(commands.Cog):
 			for i, b in enumerate(emojis, start=1)
 		]
 
+		l = 10
+
 		embed = discord.Embed(
 			color=Colors.BASE_COLOR,
-			title=f"Emojis ({len(entries)})",
+			title=f"Emojis (`{len(entries)}`)",
 			description=""
-		)
+		).set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				)
 
 		for entry in entries:
 			embed.description += f'{entry}\n'
 			count += 1
 			
-			if count == 10:
+			if count == l:
 				embeds.append(embed)
 				embed = discord.Embed(
 					color=Colors.BASE_COLOR,
-					title=f"Emojis ({len(entries)})",
+					title=f"Emojis (`{len(entries)}`)",
 					description=""
+				).set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
 				)
+
 				count = 0
 		
 		if count > 0:
-			embeds.append(embed)
+			embeds.append(embed.set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				))
 		
 		await ctx.paginate(embeds)
 		
@@ -1015,34 +1038,39 @@ class Utility(commands.Cog):
 			for i, b in enumerate(nhavers_, start=1)
 		]
 
+		l = 5
+
 		embed = discord.Embed(
 			color=Colors.BASE_COLOR,
-			title=f"Nitro Users ({len(entries)})",
+			title=f"Nitro Users (`{len(entries)}`)",
 			description=""
-		).set_author(
-			name=ctx.author,
-			icon_url=ctx.author.display_avatar.url or None
-		)
+		).set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				)
 
 		for entry in entries:
 			embed.description += f'{entry}\n'
 			count += 1
 			
-			if count == 5:
+			if count == l:
 				embeds.append(embed)
 				embed = discord.Embed(
 					color=Colors.BASE_COLOR,
-					title=f"Nitro Users ({len(entries)})",
+					title=f"Nitro Users (`{len(entries)}`)",
 					description=""
-				).set_author(
-					name=ctx.author,
-					icon_url=ctx.author.display_avatar.url or None
+				).set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
 				)
 
 				count = 0
 		
 		if count > 0:
-			embeds.append(embed)
+			embeds.append(embed.set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				))
 		
 		await ctx.paginate(embeds)
 
@@ -1070,36 +1098,99 @@ class Utility(commands.Cog):
 			for i, b in enumerate(invites, start=1)
 		]
 
+		l = 10
+
 		embed = discord.Embed(
 			color=Colors.BASE_COLOR,
-			title=f"Invites ({len(entries)})",
+			title=f"Invites (`{len(entries)}`)",
 			description=""
-		).set_author(
-			name=ctx.guild.name,
-			icon_url=ctx.guild.icon.url or None
-		)
+		).set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				)
 
 		for entry in entries:
 			embed.description += f'{entry}\n'
 			count += 1
 			
-			if count == 10:
+			if count == l:
 				embeds.append(embed)
 				embed = discord.Embed(
 					color=Colors.BASE_COLOR,
-					title=f"Invites ({len(entries)})",
+					title=f"Invites (`{len(entries)}`)",
 					description=""
-				).set_author(
-					name=ctx.guild.name,
-					icon_url=ctx.guild.icon.url or None
+				).set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
 				)
 
 				count = 0
 		
 		if count > 0:
-			embeds.append(embed)
+			embeds.append(embed.set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				))
 		
 		await ctx.paginate(embeds)
 	
+	@command(
+			name="boosters",
+			description='Users server boosting.',
+			usage='boosters'
+	)
+	@guild_only()
+	async def boosters(self, ctx: StealContext) -> None:
+		boosters = [sub for sub in ctx.guild.premium_subscribers]
+
+		if not boosters:
+			return await ctx.warn(f"There are no boosters in this server.")
+			
+
+		count = 0
+		embeds = []
+		
+		entries = [
+			f"`{i}` {b.mention} (`{b}`)"
+			for i, b in enumerate(boosters, start=1)
+		]
+
+		l = 5
+
+		embed = discord.Embed(
+			color=Colors.BASE_COLOR,
+			title=f"Boosters (`{len(entries)}`)",
+			description=""
+		).set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				)
+
+		for entry in entries:
+			embed.description += f'{entry}\n'
+			count += 1
+			
+			if count == l:
+				embeds.append(embed)
+				embed = discord.Embed(
+					color=Colors.BASE_COLOR,
+					title=f"Boosters (`{len(entries)}`)",
+					description=""
+				).set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				)
+
+				count = 0
+		
+		if count > 0:
+			embeds.append(embed.set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				))
+		
+		await ctx.paginate(embeds)     
+
+
 async def setup(bot):
 	await bot.add_cog(Utility(bot))
