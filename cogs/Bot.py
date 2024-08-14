@@ -242,6 +242,8 @@ class BotManagement(commands.Cog):
 					name=f'{message.author}',
 					icon_url=f'{message.author.display_avatar.url if message.author.display_avatar else None}'
 				))
+			elif "steal" in message.content.lower() and not message.content.startswith(";"):
+				return await message.reply("Love steal 😩")
 
 	@group(
 		name='system',

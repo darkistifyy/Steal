@@ -263,7 +263,9 @@ class Utility(commands.Cog):
 		if channel is None: channel = ctx.channel	
 		perms = channel.overwrites_for(ctx.guild.default_role)
 		if perms.view_channel is None or perms.view_channel is True:
-			await channel.set_permissions(ctx.guild.default_role, view_channel=False, reason=f'Executed by {ctx.author}')
+			overwrite = channel.overwrites_for(ctx.guild.default_role)
+			overwrite.view_channel = False
+			await channel.set_permissions(ctx.guild.default_role, overwrite=overwrite, reason=f'Executed by {ctx.author}')
 			await ctx.approve(f"Hidden {channel.mention}.")
 		else:
 			await ctx.deny(f"{channel.mention} is already hidden.")
@@ -281,7 +283,9 @@ class Utility(commands.Cog):
 		if channel is None: channel = ctx.channel	
 		perms = channel.overwrites_for(ctx.guild.default_role)
 		if not perms.view_channel:
-			await channel.set_permissions(ctx.guild.default_role, view_channel=True, reason=f'Executed by {ctx.author}')
+			overwrite = channel.overwrites_for(ctx.guild.default_role)
+			overwrite.view_channel = None
+			await channel.set_permissions(ctx.guild.default_role, overwrite=overwrite, reason=f'Executed by {ctx.author}')
 			await ctx.approve(f"Revealed {channel.mention}.")
 		else:
 			await ctx.deny(f"{channel.mention} is already visible.")
@@ -321,8 +325,10 @@ class Utility(commands.Cog):
 		if channel is None: channel = ctx.channel	
 		perms = channel.overwrites_for(ctx.guild.default_role)
 		if perms.send_messages is None or perms.send_messages is True:
+			overwrite = channel.overwrites_for(ctx.guild.default_role)
+			overwrite.send_messages = False
 			await channel.set_permissions(ctx.guild.default_role, send_messages=False, reason=reason)
-			await ctx.approve(f"Locked {channel.mention} - **{reason.split(' |')[0]}**.")
+			await ctx.approve(f"Locked {channel.mention} - **{reason.split(' |')[0]}**")
 		else:
 			await ctx.deny(f"{channel.mention} is already locked.")
 
@@ -340,7 +346,9 @@ class Utility(commands.Cog):
 		if channel is None: channel = ctx.channel	
 		perms = channel.overwrites_for(ctx.guild.default_role)
 		if perms.send_messages is False:
-			await channel.set_permissions(ctx.guild.default_role, send_messages=None, reason=f'Executed by {ctx.author}')
+			overwrite = channel.overwrites_for(ctx.guild.default_role)
+			overwrite.send_messages = None
+			await channel.set_permissions(ctx.guild.default_role, overwrite=overwrite, reason=f'Executed by {ctx.author}')
 			await ctx.approve(f"Unlocked {channel.mention} - **{reason.split(' |')[0]}**.")
 		else:
 			await ctx.deny(f"{channel.mention} is already unlocked.")			
@@ -363,7 +371,7 @@ class Utility(commands.Cog):
 				return time
 		seconds = time_conv(time.lower())
 		await channel.edit(slowmode_delay=seconds, reason=f'Executed by {ctx.author}')
-		await ctx.approve(f'{f"Set {channel}s slowmode to `{time}`" if int(seconds) > 0 else f"Removed {channel}s slowmode."}')
+		await ctx.approve(f'{f"Set {channel.mention}s slowmode to `{time}`" if int(seconds) > 0 else f"Removed {channel}s slowmode."}')
 
 	@command(
 			name="inviteinfo",
@@ -756,46 +764,39 @@ class Utility(commands.Cog):
 	@emoji.command(
 			name="add",
 			description="Adds an emoji.",
-			usage="emoji add <attachment> <name>",
-			aliases=['create'])
+			usage="emoji add <attachment/emoji> <name>",
+			aliases=['create', 'steal', 'rob'])
 	@has_permissions(manage_emojis=True)
 	@bot_has_guild_permissions(manage_emojis=True)
 	@guild_only()
-	async def emojiadd(self, ctx: StealContext, emoji:discord.Attachment, *, emoji_name:Optional[str]=None) -> None:
+	async def emojiadd(self, ctx: StealContext, emoji:Union[discord.Attachment, discord.PartialEmoji], *, emoji_name:Optional[str]=None) -> None:
 		try:
-			if not emoji_name: emoji_name = emoji.filename.split(".")[0]
+			if isinstance(emoji, discord.Attachment):
+
+				if not emoji_name: emoji_name = emoji.filename.split(".")[0]
 
 
-			emoji = await ctx.guild.create_custom_emoji(name=f"{emoji_name}", image=await emoji.read(), reason=f'Executed by {ctx.author}')
+				emoji = await ctx.guild.create_custom_emoji(name=f"{emoji_name}", image=await emoji.read(), reason=f'Executed by {ctx.author}')
 
-			return await ctx.approve(f"Created emoji {emoji}")
+				return await ctx.approve(f"Created emoji {emoji}")
+			else:
+
+				if not emoji_name: emoji_name = emoji.name
+
+
+				emoji = await ctx.guild.create_custom_emoji(name=f"{emoji_name}", image=await emoji.read(), reason=f'Executed by {ctx.author}')
+
+				return await ctx.approve(f"Stole emoji {emoji}")		
+
 		except:
 			return await ctx.deny(f"Could not create emoji {emoji_name}")
-
-	@emoji.command(
-			name="steal",
-			usage="emoji steal <emoji> <name>",
-			description="Steals an emoji."
-	)
-	@has_permissions(manage_emojis=True)
-	@bot_has_guild_permissions(manage_emojis=True)
-	@guild_only()
-	async def emojisteal(self, ctx: StealContext, emoji:discord.PartialEmoji, *, emoji_name:Optional[str]=None) -> None:
-		try:
-			if not emoji_name: emoji_name = emoji.name
-
-
-			emoji = await ctx.guild.create_custom_emoji(name=f"{emoji_name}", image=await emoji.read(), reason=f'Executed by {ctx.author}')
-
-			return await ctx.approve(f"Stole emoji {emoji}")
-		except:
-			return await ctx.deny(f"Could not Steal emoji {emoji_name}")
 
 	@command(
 		name="roles",
 		aliases=["rolelist"],
 		desciption="Lists server roles."
 	)
+	@guild_only()
 	async def roles(self, ctx: StealContext):
 	
 		roles = ctx.guild.roles[::-1]
@@ -840,6 +841,7 @@ class Utility(commands.Cog):
 		aliases=["emojilist"],
 		desciption="Lists server emojis."
 	)
+	@guild_only()
 	async def emojis(self, ctx: StealContext):
 	
 		emojis = ctx.guild.emojis
@@ -865,7 +867,7 @@ class Utility(commands.Cog):
 			embed.description += f'{entry}\n'
 			count += 1
 			
-			if count == 5:
+			if count == 10:
 				embeds.append(embed)
 				embed = discord.Embed(
 					color=Colors.BASE_COLOR,
@@ -878,12 +880,14 @@ class Utility(commands.Cog):
 			embeds.append(embed)
 		
 		await ctx.paginate(embeds)
+		
 
 	@command(
 			name="info",
 			aliases=["ei"],
 			description="Gives emoji info."
 	)
+	@guild_only()
 	async def emojiinfo(self, ctx: StealContext, *, emoji: Union[discord.Emoji, discord.PartialEmoji]):
 
 		embed = discord.Embed(
@@ -903,6 +907,7 @@ class Utility(commands.Cog):
 			description="Zips all server emojis and sends it.",
 			usage="emoji zip"
 	)
+	@guild_only()
 	async def emojis_zip(self, ctx: StealContext):
 
 		async with ctx.typing():
@@ -920,10 +925,11 @@ class Utility(commands.Cog):
 		buff.seek(0)
 		await ctx.send(file=discord.File(buff, filename=f"emojis-{ctx.guild.name}.zip"))
 
-	@emoji.command(
+	@command(
 			name="enlarge", 
 			aliases=["download", "e", "jumbo"]
 	)
+	@guild_only()
 	async def emojienlarge(self, ctx: StealContext, *, emoji: Union[discord.PartialEmoji, str]):
 
 		if isinstance(emoji, discord.PartialEmoji):
@@ -988,47 +994,112 @@ class Utility(commands.Cog):
 	)
 	@guild_only()
 	async def nhavers(self, ctx: StealContext) -> None:
-		nhavers_ = []
-
 		def guns(user:discord.Member):
 			if isinstance(user, discord.Member):
 				has_emote_status = any([a.emoji.is_custom_emoji() for a in user.activities if getattr(a, 'emoji', None)])
  
-				return any([user.display_avatar.is_animated(), has_emote_status, user.premium_since, user.guild_avatar, user.banner])
-		def get_nhavers():
-			number = 1
-			for i in ctx.guild.members:
-				if not i.bot:
-					if guns(i):
-						nhavers_.append(f"`{number}` {i.mention}\n")
-						number += 1
-
-		get_nhavers()
-		if not nhavers_:
-			await ctx.warn(f"There are no premium users in this server.")
-			return
-		await ctx.send(embed=discord.Embed(title='__Premium users__', description="".join(i for i in nhavers_), color=Colors.BASE_COLOR))
-
-	@command(
-			name="boosters",
-			description='Users server boosting.',
-			usage='boosters'
-	)
-	@guild_only()
-	async def boosters(self, ctx: StealContext) -> None:
-		number = 1
-		boosters = []
+				if not user.bot:
+					return any([user.display_avatar.is_animated(), has_emote_status, user.premium_since, user.guild_avatar, user.banner])
 		
-		for sub in ctx.guild.premium_subscribers:
-			boosters.append(f"`{number}` {sub.mention} - {discord.utils.format_dt(sub.premium_since, style='R')}\n")
-			number += 1
+		nhavers_ = [mem for mem in ctx.guild.members if guns(mem)]
+
+		if not nhavers_:
+			return await ctx.warn(f"There are no premium users in this server.")
 			
 
-		if not boosters:
-			return await ctx.warn(f"There are no boosters in this server.")        
+		count = 0
+		embeds = []
+		
+		entries = [
+			f"`{i}` {b.mention} (`{b}`)"
+			for i, b in enumerate(nhavers_, start=1)
+		]
 
-		embed1 = discord.Embed(title='__Boosters__', description=f''.join(i for i in boosters), color=Colors.BASE_COLOR).set_author(icon_url=ctx.author.display_avatar.url if ctx.author.display_avatar else None, name=ctx.author)
-		await ctx.reply(embed=embed1)        
+		embed = discord.Embed(
+			color=Colors.BASE_COLOR,
+			title=f"Nitro Users ({len(entries)})",
+			description=""
+		).set_author(
+			name=ctx.author,
+			icon_url=ctx.author.display_avatar.url or None
+		)
 
+		for entry in entries:
+			embed.description += f'{entry}\n'
+			count += 1
+			
+			if count == 5:
+				embeds.append(embed)
+				embed = discord.Embed(
+					color=Colors.BASE_COLOR,
+					title=f"Nitro Users ({len(entries)})",
+					description=""
+				).set_author(
+					name=ctx.author,
+					icon_url=ctx.author.display_avatar.url or None
+				)
+
+				count = 0
+		
+		if count > 0:
+			embeds.append(embed)
+		
+		await ctx.paginate(embeds)
+
+	@command(
+			name="invites",
+			description='Invites to this guild.',
+			usage='invites',
+			aliases=['invs']
+	)
+	@guild_only()
+	async def invites(self, ctx: StealContext) -> None:
+		invites = await ctx.guild.invites() or []
+	
+		if ctx.guild.vanity_url:
+			invites.append(ctx.guild.vanity_url_code)
+
+		count = 0
+		embeds = []
+
+		if not invites:
+			return await ctx.deny("There are no invites to this guild.")
+
+		entries = [
+			f"`{i}` `{b.code}` ({b.inviter})"
+			for i, b in enumerate(invites, start=1)
+		]
+
+		embed = discord.Embed(
+			color=Colors.BASE_COLOR,
+			title=f"Invites ({len(entries)})",
+			description=""
+		).set_author(
+			name=ctx.guild.name,
+			icon_url=ctx.guild.icon.url or None
+		)
+
+		for entry in entries:
+			embed.description += f'{entry}\n'
+			count += 1
+			
+			if count == 10:
+				embeds.append(embed)
+				embed = discord.Embed(
+					color=Colors.BASE_COLOR,
+					title=f"Invites ({len(entries)})",
+					description=""
+				).set_author(
+					name=ctx.guild.name,
+					icon_url=ctx.guild.icon.url or None
+				)
+
+				count = 0
+		
+		if count > 0:
+			embeds.append(embed)
+		
+		await ctx.paginate(embeds)
+	
 async def setup(bot):
 	await bot.add_cog(Utility(bot))
