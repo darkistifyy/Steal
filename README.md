@@ -17,4 +17,7 @@ class Steal(commands.Bot):
 	case_insensitive=True,
 	owner_ids=[1182755690071212092, 1039379534409117717]
     )
+
+installation = console$ git clone https://github.com/oxy-devv/Steal/edit/main/
+
 ```
