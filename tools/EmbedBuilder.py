@@ -62,7 +62,7 @@ class EmbedBuilder:
     if '{invisible}' in params: 
         params=params.replace('{invisible}', '2B2D31') 
     if '{botcolor}' in params: 
-        params=params.replace('{botcolor}', '7d7ead')       
+        params=params.replace('{botcolor}', f'{Colors.BASE_COLOR}')       
     if '{guild.icon}' in params:
       if user.guild.icon:
         params=params.replace('{guild.icon}', user.guild.icon.url)
@@ -112,8 +112,8 @@ class EmbedBuilder:
                 to_return += f" && icon: {footer.get('icon_url')}"
             to_return += "}"
     if message.content:
-        to_return += "{content: " + message.content + "}"
-    return to_return
+        to_return += "{content: " + "}"
+    return to_return.replace("```", "")
 
  async def to_object(params):
 
