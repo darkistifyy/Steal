@@ -52,8 +52,13 @@ class StealContext(Context):
         )
 
     async def paginate(self, embeds: List[discord.Embed], **kwargs) -> Message:
-        return await self.send(
+
+        view  = Paginator(self, embeds)
+
+        out = await self.send(
             embed = embeds[0],
-            view  = Paginator(self, embeds),
+            view  = view,
             **kwargs
         )
+        
+        view.response = out

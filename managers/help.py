@@ -16,7 +16,7 @@ class StealHelp(HelpCommand):
     def __init__(self):
         super().__init__()
         self.command_attrs = {
-            'aliases': ['help', 'assist', 'commands']
+            'aliases': ['assist', 'commands']
         }
         self.verify_checks = True
         
