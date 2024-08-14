@@ -58,7 +58,7 @@ class PagesModal(discord.ui.Modal, title='Select Page'):
 	def __init__(self, view: Paginator):
 		super().__init__()
 		self.view = view
-		self.selector = discord.ui.TextInput(label='Page', placeholder='5', custom_id='PAGINATOR:PAGES', style=discord.TextStyle.short, min_length=1, max_length=3, required=True, row=0)
+		self.selector = discord.ui.TextInput(label='Page', placeholder='2', custom_id='PAGINATOR:PAGES', style=discord.TextStyle.short, min_length=1, max_length=3, required=True, row=0)
 		self.add_item(self.selector)
 
 	async def on_submit(self, interaction: discord.Interaction):
