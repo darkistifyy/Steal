@@ -55,7 +55,7 @@ class StealContext(Context):
 
         view  = Paginator(self, embeds)
 
-        out = await self.send(
+        out = await self.reply(
             embed = embeds[0],
             view  = view,
             **kwargs

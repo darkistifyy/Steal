@@ -101,34 +101,6 @@ class StealHelp(HelpCommand):
             for i, command in enumerate(commands)
         ])
 
-        """
-        return await self.context.paginate([
-            discord.Embed(
-                color = Colors.BASE_COLOR,
-                title = f'Group Command: {command.qualified_name}',
-                description = f'>>> {command.description or "No Description Provided"}'
-            )
-                .set_author(name = self.context.author.display_name, icon_url = self.context.author.display_avatar.url)
-                .add_field(name = 'Aliases', value = ', '.join(command.aliases) or 'N/A', inline = True)
-                .add_field(name = 'Subcommands', value = ', '.join([parameter.name for parameter in group.commands]) or 'N/A', inline = True)
-                .add_field(name = 'Usage', value = f'>>> Syntax: `{prefix}{command.parent} {"/".join(parameter.name for parameter in group.commands)}`', inline = False)
-                .set_footer(text = f'Page {i + 1}/{len(commands)} ({len(commands)} entries) ∙ Module: {command.cog_name}', icon_url = self.context.bot.user.display_avatar.url)
-            for i, command in enumerate(commands)
-        ])"""
-
-        """
-        return await self.context.reply(
-                embed=discord.Embed(
-                color = Colors.BASE_COLOR,
-                title = f'Group Command: {command.parent}',
-                description = f'>>> {command.description or "No Description Provided"}',
-            )
-                .set_author(name = self.context.author.display_name, icon_url = self.context.author.display_avatar.url)
-                .add_field(name = 'Aliases', value = ', '.join(command.aliases) or 'N/A', inline = True)
-                .add_field(name = 'Subcommands', value = ', '.join([parameter.name for parameter in group.commands]) or 'N/A', inline = True)
-                .add_field(name = 'Usage', value = f'>>> Syntax: `{prefix}{command.parent} {"/".join(parameter.name for parameter in group.commands)}`', inline = False)
-        )"""
-    
 class CategorySelector(discord.ui.Select):
     def __init__(self, categories: Dict[str, Cog], embed: discord.Embed) -> None:
         self.embed = embed
