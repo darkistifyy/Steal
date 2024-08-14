@@ -584,7 +584,8 @@ class Mod(commands.Cog):
 	@command(
 			name='purge',
 			description='Purges messages.',
-			usage='purge 100'
+			usage='purge 100',
+			aliases=['p']
 	)
 	@has_permissions(manage_messages=True)
 	@bot_has_guild_permissions(manage_messages=True)
