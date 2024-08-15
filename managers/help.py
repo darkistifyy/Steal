@@ -16,7 +16,7 @@ class StealHelp(HelpCommand):
     def __init__(self):
         super().__init__()
         self.command_attrs = {
-            'aliases': ['assist', 'commands']
+            'aliases': ['help', 'assist', 'commands']
         }
         self.verify_checks = True
         
@@ -123,7 +123,7 @@ class CategorySelector(discord.ui.Select):
         
         embed = self.embed.copy()
         embed.title = f'Category: {category.__cog_name__}'
-        embed.description = f'```{", ".join([command.qualified_name for command in list(category.walk_commands()) if not command.hidden])}```'
+        embed.description = f'\nCommands:\n```{", ".join([command.qualified_name for command in list(category.walk_commands()) if not command.hidden])}```'
         
         return await interaction.response.edit_message(
             embed = embed
