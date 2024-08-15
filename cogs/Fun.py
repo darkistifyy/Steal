@@ -192,7 +192,15 @@ class Fun(commands.Cog):
 		await ctx.typing()
 		time_2 = time.perf_counter()
 		ping = round((time_2-time_1)*1000)
-		await ctx.neutral(f"Latency (ms): `{ping}`")
+
+		out = await ctx.send(f"Websocket: **{ping}ms**")
+
+		time_1 = time.perf_counter()
+		await out.edit(content=f"Websocket: **{ping}ms** (edit: ``...ms``)")
+		time_2 = time.perf_counter()
+		ping2= round((time_2-time_1)*1000)
+
+		await out.edit(content=f"Websocket: **{ping}ms** (edit: ``{ping2}ms``)")
 
 	@command(
 			name="tic",
