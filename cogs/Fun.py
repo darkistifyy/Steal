@@ -14,7 +14,6 @@ import aiohttp
 import time
 import orjson
 
-
 from tools.Steal import Steal
 from managers.context import StealContext
 
@@ -696,8 +695,6 @@ class Fun(commands.Cog):
 			description=f"**{ctx.author.name}** slaps **{member.name}**",
 		).set_image(url=gif["url"])
 		return await ctx.reply(embed=embed)
-
-
 
 async def setup(bot):
 	await bot.add_cog(Fun(bot))

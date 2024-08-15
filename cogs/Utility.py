@@ -19,6 +19,7 @@ import functools
 import io
 import zipfile
 import math
+from aiofiles import open as aio_open
 
 from tools.Steal import Steal
 from tools.EmbedBuilder import EmbedBuilder, EmbedScript
@@ -166,13 +167,58 @@ class Utility(commands.Cog):
 	)
 	@guild_only()
 	async def members(self, ctx: StealContext) -> None:
-		await ctx.reply(embed=discord.Embed(description=f'There are `{len(ctx.guild.members)-len([i for i in ctx.guild.members if i.bot])}` members excluding bots.', color=Colors.BASE_COLOR).add_field(
-			name='Members:',
-			value=f'`{len(ctx.guild.members)}`'
-		).add_field(
-			name='Bots:',
-			value=f'`{len([i for i in ctx.guild.members if i.bot])}`'
-		))
+
+		members = [mem for mem in ctx.guild.members if not mem.bot]
+		bots = [mem for mem in ctx.guild.members if mem.bot]
+
+
+		if not members:
+			return await ctx.warn(f"There are no members in this server.")
+			
+
+		count = 0
+		embeds = []
+		
+		entries = [
+			f"`{i}` {b.mention} (`{b}`)"
+			for i, b in enumerate(members, start=1)
+		]
+
+		l = 5
+
+		embed = discord.Embed(
+			color=Colors.BASE_COLOR,
+			title=f"Members (`{len(entries)}`)",
+			description=f"There are `{len(bots)}` bots, `{len(members)}` users and `{len(members)-len(bots)}` total members.\n\n"
+		).set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				)
+
+		for entry in entries:
+			embed.description += f'{entry}\n'
+			count += 1
+			
+			if count == l:
+				embeds.append(embed)
+				embed = discord.Embed(
+					color=Colors.BASE_COLOR,
+					title=f"Members (`{len(entries)}`)",
+					description=f"There are `{len(bots)}` bots, `{len(members)}` users and `{len(members)-len(bots)}` total members.\n\n"
+				).set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				)
+
+				count = 0
+		
+		if count > 0:
+			embeds.append(embed.set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				))
+		
+		await ctx.paginate(embeds)
 
 	@group(
 			name="channel",
@@ -217,78 +263,90 @@ class Utility(commands.Cog):
 		await ctx.approve(f'Created {channel.mention}.')
 
 	@managechannels.command(
-			name="remove",
-			description="Removes a member from a channel.",
-			usage=f'channel remove <user> <channel'
-	)
-	@cooldown(2,5, commands.BucketType.guild)
-	@has_permissions(manage_channels=True)
-	@bot_has_guild_permissions(manage_channels=True)
-	@guild_only()
-	async def removechannel(self, ctx: StealContext, member:discord.Member, channel: Optional[discord.abc.GuildChannel]):
-		if channel is None: channel = ctx.channel	
-		if member in channel.members:
-			await channel.set_permissions(target=member, view_channel=False, reason=f'Executed by {ctx.author}')
-			await ctx.approve(f"Removed {member.mention} from {channel.mention}.")
-		else:	
-			await ctx.deny(f"{member.mention} is not a member of {channel.mention}")
-
-	@managechannels.command(
-			name="add",
-			description="Adds a member to a channel.",
-			usage=f'channel add <user> <channel'
-	)
-	@cooldown(2,5, commands.BucketType.guild)
-	@has_permissions(manage_channels=True)
-	@bot_has_guild_permissions(manage_channels=True)
-	@guild_only()
-	async def addchannel(self, ctx: StealContext, member:discord.Member, channel: Optional[discord.abc.GuildChannel]):
-		if channel is None: channel = ctx.channel	
-		if member not in channel.members:
-			await channel.set_permissions(target=member, view_channel=True, reason=f'Executed by {ctx.author}')
-			await ctx.approve(f"Added {member.mention} to {channel.mention}.")
-		else:	
-			await ctx.deny(f"{member.mention} is already a member of {channel.mention}.")
-
-	@managechannels.command(
 			name='hide',
-			description='Hides a channel from @everyone.',
-			usage='channel hide <channel>'
+			description='Hides a channel from a user/role.',
+			usage='channel hide <channel> <user/role>',
+			aliases=["remove"]
 	)
 	@cooldown(2,5, BucketType.guild)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
-	async def hidechannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = None):
+	async def hidechannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = None, target:Optional[Union[discord.Role, discord.Member]] = None):
 		if channel is None: channel = ctx.channel	
-		perms = channel.overwrites_for(ctx.guild.default_role)
+		if target is None: target = ctx.guild.default_role
+		perms = channel.overwrites_for(target)
 		if perms.view_channel is None or perms.view_channel is True:
-			overwrite = channel.overwrites_for(ctx.guild.default_role)
+			perms = target.guild_permissions
+			if isinstance(target, discord.Role):
+				if target.position > ctx.guild.me.top_role.position:
+					return await ctx.warn(f"I cannot manage {target.mention}.")
+				if perms.manage_channels:
+					return await ctx.warn(f"I cannot manage {target.mention}.")			
+				if not ctx.author == ctx.guild.owner:
+					if target.position > ctx.author.top_role.position:
+							return await ctx.warn(f"You cannot manage {target.mention}")								
+
+			if isinstance(target, discord.Member):
+				if target == ctx.guild.owner:
+					return await ctx.warn("You cannot manage the server owner.")
+				if target.top_role.position > ctx.guild.me.top_role.position:
+					return await ctx.warn(f"I cannot manage {target.mention}")
+				if perms.manage_channels:
+					return await ctx.warn(f"I cannot manage {target.mention}")	
+				if not ctx.author == ctx.guild.owner:
+					if target.top_role.position > ctx.author.top_role.position:
+						return await ctx.warn(f"You cannot manage {target.mention}")	
+
+			overwrite = channel.overwrites_for(target)
 			overwrite.view_channel = False
-			await channel.set_permissions(ctx.guild.default_role, overwrite=overwrite, reason=f'Executed by {ctx.author}')
-			await ctx.approve(f"Hidden {channel.mention}.")
+			await channel.set_permissions(target=target, overwrite=overwrite, reason=f'Executed by {ctx.author}')
+			await ctx.approve(f"Hidden {channel.mention} from {target.mention}.")
 		else:
-			await ctx.deny(f"{channel.mention} is already hidden.")
+			await ctx.deny(f"{channel.mention} is already hidden for {target.mention}.")
 
 	@managechannels.command(
 			name='reveal',
-			description='Reveals a channel to @everyone.',
-			usage='channel reveal <channel>'
+			description='Reveals a channel to a user/role.',
+			usage='channel reveal <channel> <user/role>',
+			aliases=["add", "show"]
 	)
 	@cooldown(2,5, BucketType.guild)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
-	async def revealchannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = None):
+	async def revealchannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = None, target: Optional[Union[discord.Member, discord.Role]] = None):
 		if channel is None: channel = ctx.channel	
-		perms = channel.overwrites_for(ctx.guild.default_role)
-		if not perms.view_channel:
-			overwrite = channel.overwrites_for(ctx.guild.default_role)
+		if target is None: target = ctx.guild.default_role
+		perms = channel.overwrites_for(target)
+		if perms.view_channel is False:
+			perms = target.guild_permissions
+			if isinstance(target, discord.Role):
+				if target.position > ctx.guild.me.top_role.position:
+					return await ctx.warn(f"I cannot manage {target.mention}.")
+				if perms.manage_channels:
+					return await ctx.warn(f"I cannot manage {target.mention}.")			
+				if not ctx.author == ctx.guild.owner:
+					if target.position > ctx.author.top_role.position:
+							return await ctx.warn(f"You cannot manage {target.mention}")								
+
+			if isinstance(target, discord.Member):
+				if target == ctx.guild.owner:
+					return await ctx.warn("You cannot manage the server owner.")
+				if target.top_role.position > ctx.guild.me.top_role.position:
+					return await ctx.warn(f"I cannot manage {target.mention}")
+				if perms.manage_channels:
+					return await ctx.warn(f"I cannot manage {target.mention}")	
+				if not ctx.author == ctx.guild.owner:
+					if target.top_role.position > ctx.author.top_role.position:
+						return await ctx.warn(f"You cannot manage {target.mention}")	
+		
+			overwrite = channel.overwrites_for(target)
 			overwrite.view_channel = None
-			await channel.set_permissions(ctx.guild.default_role, overwrite=overwrite, reason=f'Executed by {ctx.author}')
-			await ctx.approve(f"Revealed {channel.mention}.")
+			await channel.set_permissions(target=target, overwrite=overwrite, reason=f'Executed by {ctx.author}')
+			await ctx.approve(f"Revealed {channel.mention} to {target.mention}.")
 		else:
-			await ctx.deny(f"{channel.mention} is already visible.")
+			await ctx.deny(f"{channel.mention} is already visible to {target.mention}.")
 
 	@managechannels.command(
 			name='rename',
@@ -314,28 +372,51 @@ class Utility(commands.Cog):
 	@command(
 			name='lock',
 			description='Locks a channel.',
-			usage='channel lock <channel>'
+			usage='channel lock <channel> <user/role>'
 	)
 	@cooldown(2,5, BucketType.guild)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
-	async def lockchannel(self, ctx: StealContext, reason:Optional[str] = "No reason.", channel:Optional[discord.abc.GuildChannel] = None):
+	async def lockchannel(self, ctx: StealContext, reason:Optional[str] = "No reason.", channel:Optional[discord.abc.GuildChannel] = None, target:Optional[Union[discord.Member, discord.Role]] = None):
 		reason += ' | Executed by {}'.format(ctx.author)
-		if channel is None: channel = ctx.channel	
-		perms = channel.overwrites_for(ctx.guild.default_role)
+		if channel is None: channel = ctx.channel
+		if target is None: target = ctx.guild.default_role
+		perms = channel.overwrites_for(target)
 		if perms.send_messages is None or perms.send_messages is True:
-			overwrite = channel.overwrites_for(ctx.guild.default_role)
+			perms = target.guild_permissions
+			if isinstance(target, discord.Role):
+				if target.position > ctx.guild.me.top_role.position:
+					return await ctx.warn(f"I cannot manage {target.mention}.")
+				if perms.manage_channels:
+					return await ctx.warn(f"I cannot manage {target.mention}.")			
+				if not ctx.author == ctx.guild.owner:
+					if target.position > ctx.author.top_role.position:
+							return await ctx.warn(f"You cannot manage {target.mention}")								
+
+			if isinstance(target, discord.Member):
+				if target == ctx.guild.owner:
+					return await ctx.warn("You cannot manage the server owner.")
+				if target.top_role.position > ctx.guild.me.top_role.position:
+					return await ctx.warn(f"I cannot manage {target.mention}")
+				if perms.manage_channels:
+					return await ctx.warn(f"I cannot manage {target.mention}")	
+				if not ctx.author == ctx.guild.owner:
+					if target.top_role.position > ctx.author.top_role.position:
+						return await ctx.warn(f"You cannot manage {target.mention}")	
+
+
+			overwrite = channel.overwrites_for(target)
 			overwrite.send_messages = False
-			await channel.set_permissions(ctx.guild.default_role, send_messages=False, reason=reason)
-			await ctx.approve(f"Locked {channel.mention} - **{reason.split(' |')[0]}**")
+			await channel.set_permissions(target=target, send_messages=False, reason=reason)
+			await ctx.approve(f"Locked {channel.mention} for {target.mention} - **{reason.split(' |')[0]}**")
 		else:
-			await ctx.deny(f"{channel.mention} is already locked.")
+			await ctx.deny(f"{channel.mention} is already locked for {target.mention}.")
 
 	@command(
 			name='unlock',
 			description='Unlocks a channel.',
-			usage='channel unlock <channel>'
+			usage='channel unlock <channel> <user/role>'
 	)
 	@cooldown(2,5, BucketType.guild)
 	@has_permissions(manage_channels=True)
@@ -344,14 +425,36 @@ class Utility(commands.Cog):
 	async def unlockchannel(self, ctx: StealContext, reason:Optional[str] = "No reason.", channel:Optional[discord.abc.GuildChannel] = None):
 		reason += ' | Executed by {}'.format(ctx.author)
 		if channel is None: channel = ctx.channel	
-		perms = channel.overwrites_for(ctx.guild.default_role)
+		if target is None: target = ctx.guild.default_role
+		perms = channel.overwrites_for(target)
 		if perms.send_messages is False:
-			overwrite = channel.overwrites_for(ctx.guild.default_role)
+			perms = target.guild_permissions
+			if isinstance(target, discord.Role):
+				if target.position > ctx.guild.me.top_role.position:
+					return await ctx.warn(f"I cannot manage {target.mention}.")
+				if perms.manage_channels:
+					return await ctx.warn(f"I cannot manage {target.mention}.")			
+				if not ctx.author == ctx.guild.owner:
+					if target.position > ctx.author.top_role.position:
+							return await ctx.warn(f"You cannot manage {target.mention}")								
+
+			if isinstance(target, discord.Member):
+				if target == ctx.guild.owner:
+					return await ctx.warn("You cannot manage the server owner.")
+				if target.top_role.position > ctx.guild.me.top_role.position:
+					return await ctx.warn(f"I cannot manage {target.mention}")
+				if perms.manage_channels:
+					return await ctx.warn(f"I cannot manage {target.mention}")	
+				if not ctx.author == ctx.guild.owner:
+					if target.top_role.position > ctx.author.top_role.position:
+						return await ctx.warn(f"You cannot manage {target.mention}")	
+
+			overwrite = channel.overwrites_for(target)
 			overwrite.send_messages = None
-			await channel.set_permissions(ctx.guild.default_role, overwrite=overwrite, reason=f'Executed by {ctx.author}')
+			await channel.set_permissions(target=target, overwrite=overwrite, reason=reason)
 			await ctx.approve(f"Unlocked {channel.mention} - **{reason.split(' |')[0]}**.")
 		else:
-			await ctx.deny(f"{channel.mention} is already unlocked.")			
+			await ctx.deny(f"{channel.mention} is already unlocked for {target.mention}.")			
 
 	@command(name="slowmode",
 		  description="Set a channel slowmode",
@@ -372,266 +475,6 @@ class Utility(commands.Cog):
 		seconds = time_conv(time.lower())
 		await channel.edit(slowmode_delay=seconds, reason=f'Executed by {ctx.author}')
 		await ctx.approve(f'{f"Set {channel.mention}s slowmode to `{time}`" if int(seconds) > 0 else f"Removed {channel}s slowmode."}')
-
-	@command(
-			name="inviteinfo",
-			description="Gives invite info.",
-			aliases=["ii"],
-			usage="inviteinfo"
-	)
-	@cooldown(1,15, BucketType.user)
-	async def inviteinfo(self, ctx: StealContext, invite: discord.Invite) -> None:
-
-		invite_inviter = invite.inviter if invite.inviter else "Vanity URL."
-		invite_channel = invite.channel.name
-		invite_server_creation = discord.utils.format_dt(invite.guild.created_at)
-		invite_server_creation_relative = discord.utils.format_dt(invite.guild.created_at, style="R")
-		invite_creation_relative = discord.utils.format_dt(invite.created_at, style="R") if invite.created_at else "?"
-		invite_server_verification = invite.guild.verification_level
-		invite_server_boosts = invite.guild.premium_subscription_count
-		invite_server_name = invite.guild.name
-
-		if invite_server_boosts >= 3:
-			level = 1
-		if invite_server_boosts >= 7:
-			level = 2
-		if invite_server_boosts >= 14:
-			level = 3
-		if invite_server_boosts < 3:
-			level = 0
-
-		avatarbytes = await invite.guild.icon.read() if invite.guild.icon else None
-		if avatarbytes is not None:
-			dominant_color = dom_color(avatarbytes)
-			from isHex import isHex
-			if isHex(dominant_color):
-				rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
-
-		embed = discord.Embed(
-			description=f'{invite_server_creation} ({invite_server_creation_relative})',
-			color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2]) if avatarbytes else Colors.BASE_COLOR
-		).add_field(
-			name='Information',
-			value=f'>>> Inviter: {invite_inviter}\nChannel: {invite_channel}\nCreated: {invite_creation_relative}',
-			inline=True
-		).add_field(
-			name='Guild',
-			value=f'>>> Name: {invite_server_name}\nNitro Boosts: {invite_server_boosts} (`Level {level}`)\nVerification Level: {invite_server_verification}',
-			inline=True
-		).set_author(
-			name=f"{invite.id} ({invite.guild.id})",
-			url=invite.url,
-			icon_url=invite.guild.icon.url if invite.guild.icon else None
-		)
-		await ctx.send(embed=embed)
-
-	@command(
-			name="serverinfo",
-			description="Gives server info.",
-			usage="serverinfo",
-			aliases=["si"]
-	)
-	@cooldown(1,15, BucketType.user)
-	@guild_only()
-	async def serverinfo(self, ctx: StealContext) -> None:
-
-		server_owner = ctx.guild.owner
-		server_verification = ctx.guild.verification_level
-		server_boosts = ctx.guild.premium_subscription_count
-		server_boost_level = ctx.guild.premium_tier
-		server_members = round(len([i for i in ctx.guild.members]))
-		server_members_formatted = (f"{server_members:,}")
-		server_text_channels = len([channel for channel in ctx.guild.channels if isinstance(channel, discord.TextChannel)])
-		server_voice_channels = len([channel for channel in ctx.guild.channels if isinstance(channel, discord.VoiceChannel)])
-		server_roles = ctx.guild.roles[-1:0:-1]
-		server_creation = discord.utils.format_dt(ctx.guild.created_at)
-		server_creation_relative = discord.utils.format_dt(ctx.guild.created_at, style="R")
-		if server_roles:
-			role_list = f", ".join([r.mention for r in ctx.guild.roles if r != ctx.guild.default_role])
-			if len(role_list) > 200:
-				continuation_string = ("(+{numeric_number})")
-
-				available_length = 150 - len(continuation_string)
-
-				role_chunks = []
-				remaining_roles = 0
-				for r in server_roles:
-					chunk = f"{r.mention},"
-					chunk_size = len(chunk)
-					if chunk_size < available_length:
-						available_length -= chunk_size
-						role_chunks.append(chunk)
-					else:
-						remaining_roles += 1
-				role_chunks = role_chunks[::-1]
-				role_chunks = role_chunks[::-1]
-				role_chunks.append(continuation_string.format(numeric_number=remaining_roles))
-				role_list = "".join(role_chunks)
-		else:
-			role_list = None
-		
-		avatarbytes = await ctx.guild.icon.read() if ctx.guild.icon else None
-		if avatarbytes is not None:
-			dominant_color = dom_color(avatarbytes)
-			from isHex import isHex
-			if isHex(dominant_color):
-				rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
-
-		embed = discord.Embed(
-			description=f'{server_creation} ({server_creation_relative})',
-			color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2]) if avatarbytes else Colors.BASE_COLOR
-		).add_field(
-			name='Information',
-			value=f'>>> Owner: {server_owner}\nVerification level: {str(server_verification)}\nNitro boosts: {str(server_boosts)} (`Level {str(server_boost_level)}`)',
-			inline=True
-		).add_field(
-			name='Statistics',
-			value=f'>>> Members: {server_members_formatted}\nText channels: {str(server_text_channels)}\nVoice channels: {str(server_voice_channels)}',
-			inline=True
-		).add_field(
-			name='Roles',
-			value=f'>>> {role_list}',
-			inline=False
-		).set_author(
-			name=ctx.guild.name,
-			url=f"https://discord.com/channels/{ctx.guild.id}/",
-			icon_url=ctx.guild.icon.url if ctx.guild.icon else None
-		)
-		await ctx.send(embed=embed)
-
-	@command(
-			name="channelinfo",
-			description="Gives channel info.",
-			usage="channelinfo",
-			aliases=["ci"]
-	)
-	async def channelinfo(self, ctx: StealContext, channel: Optional[discord.abc.GuildChannel] = None):
-
-		channel = channel or ctx.channel
-
-		embed = (
-			discord.Embed(color=Colors.BASE_COLOR, title=channel.name)
-			.set_author(name=ctx.author.name, icon_url=ctx.author.display_avatar)
-			.add_field(name="Channel ID", value=f"`{channel.id}`", inline=True)
-			.add_field(name="Type", value=str(channel.type), inline=True)
-			.add_field(
-				name="Guild",
-				value=f"{channel.guild.name} (`{channel.guild.id}`)",
-				inline=True,
-			)
-			.add_field(
-				name="Category",
-				value=f"{channel.category.name} (`{channel.category.id}`)",
-				inline=False,
-			)
-			.add_field(name="Topic", value=f"`{channel.topic}`" or "N/A", inline=True)
-			.add_field(
-				name="Created At",
-				value=f"{discord.utils.format_dt(channel.created_at, style='F')} ({discord.utils.format_dt(channel.created_at, style='R')})",
-				inline=False,
-			)
-		)
-
-		await ctx.send(embed=embed)
-
-	@command(
-			name="userinfo",
-			description="Gives userinfo.",
-			aliases=["ui", "uinfo"],
-			usage='userinfo [user]'
-	)
-	@cooldown(1,15, commands.BucketType.user)
-	@guild_only()
-	async def userinfo(self, ctx:StealContext, member: Optional[discord.Member]) -> None:
-
-		if not member:member = ctx.author
-
-		timestamp1 = discord.utils.format_dt(member.created_at, style="F")
-		
-		timestamp2 = [discord.utils.format_dt(member.joined_at, style="F") if member.joined_at else "?"] if not isinstance(ctx.channel, discord.DMChannel) else "?"
-
-		if ctx.guild:
-			roles = member.roles[-1:0:-1]
-
-			if roles:
-
-				rolelist = f", ".join([r.mention for r in member.roles if r != ctx.guild.default_role])
-				if len(rolelist) > 200:
-					continuation_string = ("(+{numeric_number})")
-
-					available_length = 150 - len(continuation_string)
-
-					role_chunks = []
-					remaining_roles = 0
-					for r in roles:
-						chunk = f"{r.mention},"
-						chunk_size = len(chunk)
-						if chunk_size < available_length:
-							available_length -= chunk_size
-							role_chunks.append(chunk)
-						else:
-							remaining_roles += 1
-					role_chunks = role_chunks[::-1]
-					role_chunks = role_chunks[::-1]
-					role_chunks.append(continuation_string.format(numeric_number=remaining_roles))
-					rolelist = "".join(role_chunks)
-			else:
-				rolelist = None
-		else:
-			rolelist = "?"
-
-		def guns(user:discord.Member):
-			if isinstance(user, discord.Member):
-				has_emote_status = any([a.emoji.is_custom_emoji() for a in user.activities if getattr(a, 'emoji', None)])
- 
-				return any([user.display_avatar.is_animated(), has_emote_status, user.premium_since, user.guild_avatar, user.banner])
-
-		info = discord.Embed(
-			title=f"{member} {Emojis.NITRO if guns(member) else ''} {Emojis.BOOST if member in ctx.guild.premium_subscribers else ''}",
-			color=Colors.BASE_COLOR,
-		).add_field(
-			name=f'Created at:',
-			value=f'{timestamp1}',
-			inline=True
-		).add_field(
-			name='Joined at:',
-			value=f'{timestamp2[0]}',
-			inline=True
-		).add_field(
-			name='Roles:',
-			value=f'{rolelist}',
-			inline=False
-		)
-		
-
-		await ctx.send(
-			embed=info.set_author(
-				name=f"{member.name}",
-				icon_url=member.display_avatar.url if member.display_avatar else None
-			)
-			)
-
-
-	@command(
-		name = "botinfo",
-		usage = "botinfo",
-		aliases = ["bi", "bot"],
-		description = "Get information about the bot."
-	)
-	@cooldown(1, 5, commands.BucketType.user)
-	async def botinfo(self, ctx: Context) -> None:
-		commands = [command for command in set(self.bot.walk_commands()) if command.cog_name not in ['BotManagement', 'Auth', 'Profile', 'Bs']]
-
-		embed = discord.Embed(
-			title = f"{self.bot.user.name.split('#')[0]}",
-			color = Colors.BASE_COLOR,
-			description=f"I am {self.bot.user}, I have `{len(commands)}` commands. I'm in `{len(self.bot.guilds):,}` guilds serving `{len(self.bot.users):,}` users. I'm using `{psutil.cpu_percent()}%` of my CPU, `{psutil.virtual_memory().percent}%` of my RAM, running on `Dpy version {discord.__version__}` and `Python Version {sys.version.split(' (')[0]}`"
-		)
-		embed.set_thumbnail(url=self.bot.user.display_avatar.url)
-		embed.set_author(name=ctx.author.name, icon_url=ctx.author.display_avatar.url)
-
-		await ctx.send(embed=embed)
-
 
 	@group(
 			name='server',
