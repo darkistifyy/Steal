@@ -18,4 +18,8 @@ class Emojis:
     RIGHT_PAGINATOR = "<:next:1273146501757014098>"
     NAVIGATE_PAGINATOR = "<:index:1273146499248951307> "
     CANCEL_PAGINATOR = "<:pause:1273146497848049664>"
+    INFO = "<:info:1273230766255509627>"
+
+class Guild:
+    INVITE = "https://discord.gg/GwDf8mB5"
 

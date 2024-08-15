@@ -5,6 +5,7 @@ from io import BytesIO
 import jishaku
 import logging
 import asyncpg
+import pathlib
 import asyncio
 import aiohttp
 import discord
@@ -15,6 +16,7 @@ import json
 import sys
 import os
 import re
+import glob
 import datetime
 import time
 import colorgram
