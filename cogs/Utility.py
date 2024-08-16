@@ -465,6 +465,8 @@ class Utility(commands.Cog):
 			description="Sends embed builder Ui",
 			aliases=["uembed", "uem"]
 	)
+	@has_permissions(administrator=True)
+	@bot_has_guild_permissions(send_messages=True)
 	@cooldown(2, 15, BucketType.user)
 	async def embedui(
 		self,
@@ -521,6 +523,9 @@ class Utility(commands.Cog):
 			description='Sends an embed.',
 			aliases=['em'],
 			usage='embed {title:fart}{description:this is a description}')
+	@has_permissions(administrator=True)
+	@bot_has_guild_permissions(send_messages=True)
+	@guild_only()
 	async def embedsend(self, ctx: StealContext, *, message:str) -> None:
 		
 		processed_message = EmbedBuilder.embed_replacement(ctx.author, message)
