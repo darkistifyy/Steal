@@ -35,3 +35,15 @@ class Invite(discord.ui.View):
 		for child in self.children:
 			child.disabled = True
 		await self.message.edit(view=self)
+
+class UrlView(discord.ui.View):
+	def __init__(self, url, label:Optional[str] = "URL"):
+		self.url = url
+		self.label = label
+		super().__init__(timeout=60)
+		self.add_item(discord.ui.Button(label=label, emoji=f'{Emojis.INFO}', style=discord.ButtonStyle.blurple, url=self.url))
+	
+	async def on_timeout(self):
+		for child in self.children:
+			child.disabled = True
+		await self.message.edit(view=self)

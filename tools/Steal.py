@@ -40,7 +40,6 @@ log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 intents = discord.Intents.all()
-intents.presences = False
 
 class Steal(commands.Bot):
 	def __init__(self):
@@ -49,7 +48,7 @@ class Steal(commands.Bot):
 		self.session = Session()
 
 		super().__init__(
-			command_prefix=[';'],
+			command_prefix=[';', 'sudo '],
 			help_command=StealHelp(),
 			intents=intents,
 			allowed_mentions=discord.AllowedMentions(
