@@ -269,7 +269,7 @@ class Mod(commands.Cog):
 	@bot_has_guild_permissions(manage_roles=True)
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
-	async def roleadd(self, ctx: StealContext, member:discord.Member, role:discord.Role, reason: str = "No reason.") -> None:
+	async def roleadd(self, ctx: StealContext, member:discord.Member, role:discord.Role, *, reason: Optional[str] = "No reason.") -> None:
 			reason += ' | Executed by {}'.format(ctx.author)
 			if member.top_role.position > ctx.author.top_role.position and ctx.author != ctx.guild.owner:
 				return await ctx.deny("You do not have permission to manage this users roles.")
