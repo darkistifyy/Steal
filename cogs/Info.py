@@ -17,6 +17,8 @@ import psutil
 from discord.ui import Button, View, button
 import sqlite3
 import os
+from discord import Spotify
+import requests
 
 from tools.bytesio import dom_color
 
@@ -24,7 +26,7 @@ from tools.Steal import Steal
 from managers.context import StealContext
 
 from typing import List, Optional
-from tools.Config import Colors, Emojis
+from tools.Config import Colors, Emojis, Flags
 from tools.View import Invite
 
 class Info(commands.Cog):
@@ -123,14 +125,36 @@ class Info(commands.Cog):
 		else:
 			rolelist = "?"
 
+		flag_to_emoji = {
+			discord.UserFlags.verified_bot_developer : Flags.VERIFIED_DEV,
+			discord.UserFlags.active_developer : Flags.ACTIVE_DEV,
+			discord.UserFlags.bug_hunter : Flags.BUG_HUNTER,
+			discord.UserFlags.bug_hunter_level_2 : Flags.BUG_HUNTER2,
+			discord.UserFlags.discord_certified_moderator : Flags.MODERATOR,
+			discord.UserFlags.hypesquad_balance : Flags.BALANCE,
+			discord.UserFlags.hypesquad_brilliance : Flags.BRILLIANCE,
+			discord.UserFlags.hypesquad_bravery : Flags.BRAVERY,
+			discord.UserFlags.partner : Flags.PARTNER
+		}
+		
 		def guns(user:discord.Member):
 			if isinstance(user, discord.Member):
 				has_emote_status = any([a.emoji.is_custom_emoji() for a in user.activities if getattr(a, 'emoji', None)])
  
 				return any([user.display_avatar.is_animated(), has_emote_status, user.premium_since, user.guild_avatar, user.banner])
 
+		badges = [
+			flag_to_emoji.get(flag, "❓")
+			for flag in member.public_flags.all()
+		]
+
+		if guns(member): badges.append(Flags.NITRO)
+		if member in ctx.guild.premium_subscribers: badges.append(Flags.BOOST)
+
+
 		info = discord.Embed(
-			title=f"{member} {Emojis.NITRO if guns(member) else ''} {Emojis.BOOST if member in ctx.guild.premium_subscribers else ''}",
+			title=f"{member} {' '.join(badges)}",
+			description="",
 			color=Colors.BASE_COLOR,
 		).add_field(
 			name=f'Created at:',
@@ -145,12 +169,19 @@ class Info(commands.Cog):
 			value=f'{rolelist}',
 			inline=False
 		)
+
+		if member.activities:
+			for activity in member.activities:
+				if isinstance(activity, Spotify):
+					info.description = f"🎵 {member} is listening to [{activity.title}]({activity.track_url}) by {activity.artist}."
 		
 
 		await ctx.send(
 			embed=info.set_author(
-				name=f"{member.name}",
-				icon_url=member.display_avatar.url if member.display_avatar else None
+				name=f"{ctx.author.name}",
+				icon_url=ctx.author.display_avatar.url or None
+			).set_thumbnail(
+				url=member.display_avatar.url or None
 			)
 			)
 
@@ -344,6 +375,49 @@ class Info(commands.Cog):
 						lines += len(open(f"{d}/{file}", "r").read().splitlines())
 
 			return lines
+
+	@command(
+		name="spotify",
+		description="Shows a users currently listening info.",
+		usage="spotify <user>",
+		aliases=["song"]
+	)
+	@cooldown(1,15, BucketType.user)
+	@guild_only()
+	async def spotify(self, ctx: StealContext, member:Optional[discord.Member] = Author):
+		if member.activities:
+
+			for activity in member.activities:
+
+				if isinstance(activity, Spotify):
+
+					response = requests.get(activity.album_cover_url)
+					bytes = response.content
+					if bytes is not None:
+						dominant_color = dom_color(bytes)
+						from isHex import isHex
+						if isHex(dominant_color):
+							rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
+
+					info = discord.Embed(
+						title=f"{activity.title}",
+						url=f"{activity.track_url}",
+						description=f"🎵 {member} is listening to [{activity.title}]({activity.track_url})",
+						color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])
+					).add_field(
+						name="Lyricist/Artist",
+						value=f"{activity.artist}"
+					).add_field(
+						name="Album",
+						value=f"{activity.album}"
+					).set_footer(
+						text=f"Started listening at {activity.created_at.strftime("%H:%M")}"
+					).set_thumbnail(
+						url=activity.album_cover_url
+					)
+					return await ctx.reply(embed=info)
+		
+		await ctx.deny(f"{member.mention} is not listening to music right now.")
 
 async def setup(bot):
 	await bot.add_cog(Info(bot))
