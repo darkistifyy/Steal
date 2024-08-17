@@ -52,10 +52,6 @@ class StealHelp(HelpCommand):
             return
         
         prefix = self.context.clean_prefix
-        print(f"{command.signature}")
-        print(f"{command.params}")
-        print(f"{command.clean_params}")
-        
         return await self.context.send(
             embed = discord.Embed(
                 color = Colors.BASE_COLOR,
