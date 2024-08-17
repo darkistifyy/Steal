@@ -2,20 +2,11 @@ from __future__ import annotations
 
 import discord
 from discord import Color
-from discord import ui
-from discord.ui import Button,button, View
 from discord.ext import commands
 from discord.ext.commands import *
-from datetime import timedelta
-from typing import Optional, Literal
-import asyncio
 from typing import Optional
 import sys
-import humanfriendly
-import datetime
 import psutil
-from discord.ui import Button, View, button
-import sqlite3
 import os
 from discord import Spotify
 import requests
@@ -32,8 +23,8 @@ from tools.View import Invite
 import math
 
 class Info(commands.Cog):
-	def __init__(self, Steal):
-		self.bot = Steal
+	def __init__(self, bot: Steal):
+		self.bot = bot
 
 	@command(
 			name="invite",
@@ -929,6 +920,32 @@ class Info(commands.Cog):
 				))
 		
 		await ctx.paginate(embeds)
+
+	@command(
+			name="membercount",
+			description='Server members.',
+			aliases=['mc']
+	)
+	@guild_only()
+	async def membercount(self, ctx: StealContext) -> None:
+
+		humans = [mem for mem in ctx.guild.members if not mem.bot]
+		bots = [bot for bot in ctx.guild.members if bot.bot]
+
+		await ctx.send(
+			embed=discord.Embed(
+				title=f"{ctx.guild.name}'s statistics",
+				description=f"""
+							**humans** - {len(humans)}
+							**bots** - {len(bots)}
+							**total** - {len(humans + bots)}
+							""",
+				color=Colors.BASE_COLOR
+			).set_author(
+				name=ctx.author,
+				icon_url=ctx.author.display_avatar
+			)
+		)
 
 	@command(
 		name="roles",

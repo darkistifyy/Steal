@@ -6,55 +6,20 @@ from discord.ext import commands
 from discord.ext.commands import *
 import asyncio
 from discord.ui import *
-import base64
-import requests
-import psutil
 from sklearn import *
-import scipy.cluster
-import sys
-import unicodedata
-import aiohttp
-import mimetypes
-import functools
-import io
-import zipfile
-import math
-import os
-import zlib
 
 from tools.Steal import Steal
-from tools.rtfm import fuzzy
-from tools.EmbedBuilder import EmbedBuilder, EmbedScript
 from managers.context import StealContext
-from tools.View import DownloadAsset
 
-import typing
 from typing import List, Optional, Union
 from tools.Config import Colors, Emojis
-from tools.View import UrlView
 
 from typing import Optional
 
 time_convert = {"s": 1, "m": 60, "h": 3600, "d": 86400}
 
 from tools.bytesio import dom_color, caption_image
-
-from io import BytesIO
-from sklearn.cluster import KMeans
-from skimage.transform import rescale
-
-import binascii
-import struct
-
-import re
-from typing import Generator, Union, Optional
-
-import discord
-from discord.ext import commands
-
 from managers.context import StealContext
-
-from tools.EmbedBuilderUi import EmbedEditor, Embed
 
 class Roles(commands.Cog):
 	def __init__(self, bot: Steal):

@@ -1,14 +1,10 @@
 import discord
 from discord import Color
-from discord import ui
-from discord.ui import Button,button, View
 from discord.ext import commands
 from discord.ext.commands import *
 import python_weather as pw
 from discord import *
-import psutil
 import asyncio
-import sys
 import random
 import aiohttp
 import time
@@ -21,13 +17,7 @@ from typing import List, Optional, Union
 from tools.Config import Colors, Emojis
 from discord.ext import commands
 import discord
-
-
-import datetime
-import io
-import json
 import random
-from datetime import datetime, timedelta, timezone
 
 import aiohttp
 import discord

@@ -6,55 +6,23 @@ from discord.ext import commands
 from discord.ext.commands import *
 import asyncio
 from discord.ui import *
-import base64
-import requests
-import psutil
 from sklearn import *
-import scipy.cluster
-import sys
-import unicodedata
-import aiohttp
-import mimetypes
-import functools
-import io
-import zipfile
-import math
-import os
-import zlib
-
 from tools.Steal import Steal
-from tools.rtfm import fuzzy
-from tools.EmbedBuilder import EmbedBuilder, EmbedScript
 from managers.context import StealContext
-from tools.View import DownloadAsset
 
-import typing
 from typing import List, Optional, Union
 from tools.Config import Colors, Emojis
-from tools.View import UrlView
 
 from typing import Optional
 
 time_convert = {"s": 1, "m": 60, "h": 3600, "d": 86400}
 
-from tools.bytesio import dom_color, caption_image
-
-from io import BytesIO
-from sklearn.cluster import KMeans
-from skimage.transform import rescale
-
-import binascii
-import struct
-
-import re
 from typing import Generator, Union, Optional
 
 import discord
 from discord.ext import commands
 
 from managers.context import StealContext
-
-from tools.EmbedBuilderUi import EmbedEditor, Embed
 
 class ChannelDeleteConfirm(discord.ui.View):
 	def __init__(self):
@@ -233,13 +201,13 @@ class Channels(commands.Cog):
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
-	async def lockchannel(self, ctx: StealContext, reason:Optional[str] = "No reason.", channel:Optional[discord.abc.GuildChannel] = None, target:Optional[Union[discord.Member, discord.Role]] = None):
+	async def lockchannel(self, ctx: StealContext, target:Optional[Union[discord.Member, discord.Role]] = None, reason:Optional[str] = "No reason.", channel:Optional[discord.abc.GuildChannel] = None):
 		reason += ' | Executed by {}'.format(ctx.author)
 		if channel is None: channel = ctx.channel
 		if target is None: target = ctx.guild.default_role
 		perms = channel.overwrites_for(target)
 		if perms.send_messages is None or perms.send_messages is True:
-			perms = target.guild_permissions
+			perms = target.guild_permissions if isinstance(target, discord.Member) else target.permissions
 			if isinstance(target, discord.Role):
 				if target.position > ctx.guild.me.top_role.position:
 					return await ctx.warn(f"I cannot manage {target.mention}.")
@@ -276,7 +244,7 @@ class Channels(commands.Cog):
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
-	async def unlockchannel(self, ctx: StealContext, reason:Optional[str] = "No reason.", channel:Optional[discord.abc.GuildChannel] = None):
+	async def unlockchannel(self, ctx: StealContext, target:Optional[Union[discord.Member, discord.Role]] = None, reason:Optional[str] = "No reason.", channel:Optional[discord.abc.GuildChannel] = None):
 		reason += ' | Executed by {}'.format(ctx.author)
 		if channel is None: channel = ctx.channel	
 		if target is None: target = ctx.guild.default_role

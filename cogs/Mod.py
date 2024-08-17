@@ -1,21 +1,11 @@
 from __future__ import annotations
 
 import discord
-from discord import Color
-from discord import ui
-from discord.ui import Button,button, View
 from discord.ext import commands
 from discord.ext.commands import *
-from datetime import timedelta
-from typing import Optional, Literal
-import asyncio
 from typing import Optional
 import humanfriendly
 import datetime
-from discord.ui import Button, View, button
-import sqlite3
-
-from tools.bytesio import dom_color
 
 from tools.Steal import Steal
 from managers.context import StealContext
@@ -35,8 +25,8 @@ time_convert = {"s": 1, "m": 60, "h": 3600, "d": 86400}
 #		msg = await interaction.followup.send(embed=discord.Embed(title='Verifying...', description='> You are being verified...', color=Color.yellow()))
 
 class Mod(commands.Cog):
-	def __init__(self, Steal):
-		self.bot = Steal
+	def __init__(self, bot: Steal):
+		self.bot = bot
 
 	@group(
 			name='nickname',

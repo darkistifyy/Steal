@@ -6,8 +6,6 @@ from discord.ext import commands
 from discord.ext.commands import *
 from discord import Color
 from discord.ui import Button, View, button
-from typing import Optional, Literal
-import datetime
 import asyncio
 
 from tools.Steal import Steal
