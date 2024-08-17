@@ -259,9 +259,6 @@ class EmbedEditor(discord.ui.View):
             description=(
                 "Create your embed"),
         )
-        if not self.embed and not self.showing_help:
-            footer_text += '\n💢This embed will be replaced by yours once it has characters💢'
-        embed.set_footer(icon_url='https://cdn.duck-bot.com/file/ICON', text=footer_text)
         return embed
 
     @discord.ui.button(row=1, emoji='\N{HEAVY MINUS SIGN}', style=ButtonStyle.red, disabled=True)
