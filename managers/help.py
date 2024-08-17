@@ -8,7 +8,7 @@ from discord.ext.commands import *
 
 from typing import Any, Callable, Dict, List, Mapping
 
-from tools.Config import Colors
+from tools.Config import Colors, Guild
 from managers.interaction import PatchedInteraction
 
 
@@ -16,7 +16,7 @@ class StealHelp(HelpCommand):
     def __init__(self):
         super().__init__()
         self.command_attrs = {
-            'aliases': ['help', 'assist', 'commands']
+            'aliases': ['assist', 'commands']
         }
         self.verify_checks = True
         
@@ -24,7 +24,7 @@ class StealHelp(HelpCommand):
         view = discord.ui.View(timeout = 3000)
         embed = discord.Embed(
             color = Colors.BASE_COLOR,
-            description=f"> **Navigate** throughout the help embed with the dropdown."
+            description=f"> Use the **Select** to navigate throughout **Cogs**.\n> Support server: [Click me to join]({Guild.INVITE}) "
         ).set_author(name = self.context.author.display_name, icon_url = self.context.author.display_avatar.url if self.context.author.display_avatar else None).set_thumbnail(url = self.context.bot.user.display_avatar.url)
         
 
@@ -52,6 +52,10 @@ class StealHelp(HelpCommand):
             return
         
         prefix = self.context.clean_prefix
+        print(f"{command.signature}")
+        print(f"{command.params}")
+        print(f"{command.clean_params}")
+        
         return await self.context.send(
             embed = discord.Embed(
                 color = Colors.BASE_COLOR,
@@ -61,7 +65,7 @@ class StealHelp(HelpCommand):
             .set_author(name = self.context.author.display_name, icon_url = self.context.author.display_avatar.url)
             .add_field(name = 'Aliases', value = ', '.join(command.aliases) or 'N/A', inline = True)
             .add_field(name = 'Parameters', value = ', '.join([parameter for parameter in command.params] or 'N/A'), inline = True)
-            .add_field(name = 'Usage', value = f'>>> Syntax: `{prefix}{command.qualified_name} {" ".join([f"({parameter})" if not parameter else f"[{parameter}]" for parameter in command.params])}`', inline = False)
+            .add_field(name = 'Usage', value = f'>>> **Syntax**: `{prefix}{command.qualified_name} {command.signature}`', inline = False)
             .set_footer(text = f'Module: {command.cog_name}', icon_url = self.context.bot.user.display_avatar.url)
         )
         
@@ -96,7 +100,8 @@ class StealHelp(HelpCommand):
                 .set_author(name = self.context.author.display_name, icon_url = self.context.author.display_avatar.url)
                 .add_field(name = 'Aliases', value = ', '.join(command.aliases) or 'N/A', inline = True)
                 .add_field(name = 'Parameters', value = ', '.join([parameter for parameter in command.params] if not isinstance(command, Group) else [parameter.name for parameter in group.commands]) or 'N/A', inline = True)
-                .add_field(name = 'Usage', value = f'>>> **Syntax**: `{prefix}{command.qualified_name} {" ".join([f"[{parameter}]" for parameter in command.params] if not isinstance(command, Group) else [parameter.name for parameter in group.commands])}`', inline = False)
+                #.add_field(name = 'Usage', value = f'>>> **Syntax**: `{prefix}{command.qualified_name} {" ".join([f"<{parameter.name}>" for parameter in command.params if parameter.required or f"[{parameter}]"] if not isinstance(command, Group) else [parameter.name for parameter in group.commands])}`', inline = False)
+                .add_field(name = 'Usage', value = f'>>> **Syntax**: `{prefix}{command.qualified_name} {command.signature}`', inline = False)
                 .set_footer(text = f'Page {i + 1}/{len(commands)} ({len(commands)} entries) ∙ Module: {command.cog_name}', icon_url = self.context.bot.user.display_avatar.url)
             for i, command in enumerate(commands)
         ])
@@ -123,7 +128,10 @@ class CategorySelector(discord.ui.Select):
         
         embed = self.embed.copy()
         embed.title = f'Category: {category.__cog_name__}'
-        embed.description = f'\nCommands:\n```{", ".join([command.qualified_name for command in list(category.walk_commands()) if not command.hidden])}```'
+        embed.description = f'\nCommands:\n```{", ".join([f"{command.qualified_name}" if not isinstance(command, discord.ext.commands.Group) else f"{command.qualified_name}*" for command in list(category.walk_commands()) if not command.hidden and not command.parent])}```'
+        embed.set_footer(
+                text=f"{len(list(category.walk_commands()))} commands."
+        )
         
         return await interaction.response.edit_message(
             embed = embed
