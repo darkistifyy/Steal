@@ -40,7 +40,6 @@ log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 intents = discord.Intents.all()
-intents.presences = False
 
 class Steal(commands.Bot):
 	def __init__(self):
@@ -49,7 +48,7 @@ class Steal(commands.Bot):
 		self.session = Session()
 
 		super().__init__(
-			command_prefix=[';'],
+			command_prefix=[';', 'sudo '],
 			help_command=StealHelp(),
 			intents=intents,
 			allowed_mentions=discord.AllowedMentions(
@@ -196,7 +195,7 @@ class Steal(commands.Bot):
 		if isinstance(exception, commands.ExtensionNotFound):
 			return await ctx.warn(f"I'm **unable** to find the cog **{exception.args}**")
 		if isinstance(exception, commands.ExtensionNotLoaded):
-			return await ctx.warn(f"**{exception.args}* * is not **loaded**.")
+			return await ctx.warn(f"**{exception.args}** is not **loaded**.")
 		if isinstance(exception, commands.MissingPermissions):
 			return await ctx.warn(f"I do not have permissions to do that.")
 		elif isinstance(exception.original, discord.HTTPException):
