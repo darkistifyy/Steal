@@ -257,37 +257,8 @@ class EmbedEditor(discord.ui.View):
             title='__`M⬇`__ This is the embed title',
             color=Colors.BASE_COLOR,
             description=(
-                "__`M⬇`__ This is the embed description. This field "
-                "**supports** __*Mark*`Down`__, which means you can "
-                "use features like ~~strikethrough~~, *italics*, **bold** "
-                "and `mono`, and they will be rendered!"
-                "\nText that supports MarkDown have this: __`M⬇`__"
-            ),
-            url='https://this-is.the/title-url',
+                "Create your embed"),
         )
-        embed.add_field(name='__`M⬇`__ This is a field name.', value='and this is the value. This field is in-line.')
-        embed.add_field(name='Fields per line?', value='you can have up to **3** fields in a single line!')
-        embed.add_field(
-            name='Here is another field, but not in-line',
-            value='Fields can have up to 256 characters in the name of a field, and up to 1,024 characters in the value!',
-            inline=False,
-        )
-        embed.add_field(
-            name='How do I use this interface?',
-            value=(
-                'To edit parts of the embed, you just use the buttons that appear below.'
-                ' I will tell you if anything you put was not valid. Leaving a text field '
-                'empty will make that field be removed.'
-            ),
-        )
-        embed.set_author(
-            name='This is the author of the embed',
-            icon_url='https://cdn.duck-bot.com/file/AVATAR',
-            url='https://this-is.the/author-url',
-        )
-        embed.set_image(url='https://cdn.duck-bot.com/file/IMAGE')
-        embed.set_thumbnail(url='https://cdn.duck-bot.com/file/THUMBNAIL')
-        footer_text = "This is the footer, which like the author, does not support markdown."
         if not self.embed and not self.showing_help:
             footer_text += '\n💢This embed will be replaced by yours once it has characters💢'
         embed.set_footer(icon_url='https://cdn.duck-bot.com/file/ICON', text=footer_text)
