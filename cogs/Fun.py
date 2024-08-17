@@ -185,7 +185,6 @@ class Fun(commands.Cog):
 	@command(
 			name="ping",
 			description="Bot ping.",
-			usage="ping"
 	)
 	async def ping(self,ctx: StealContext) -> None:
 		time_1 = time.perf_counter()
@@ -205,7 +204,6 @@ class Fun(commands.Cog):
 	@command(
 			name="tic",
 			description="TTT battle with an opp.",
-			usage="tic <user>"
 	)
 	@guild_only()
 	async def tic(self, ctx: StealContext, opp: discord.Member) -> None:
@@ -221,7 +219,6 @@ class Fun(commands.Cog):
 	@command(
 			name="explode",
 			description="Explodes a user.",
-			usage="explode <user>"
 	)
 	@guild_only()
 	async def explode(self, ctx: StealContext, opp: discord.Member) -> None:		
@@ -232,7 +229,6 @@ class Fun(commands.Cog):
 	@command(
 		name="weather",
 			description="Gets the forecast in the selected area.",
-			usage="weather <country>"
 	)
 	@cooldown(1,15, BucketType.guild)
 	async def weather(self, ctx: StealContext, *, location: str) -> None:
@@ -332,7 +328,6 @@ class Fun(commands.Cog):
 	@command(
 			name="eightball",
 			description="Ask the eightball a question.",
-			usage="eightball <question>",
 			aliases=["8ball", "eb"]
 	)
 	async def eightball(self, ctx: StealContext, *, question: str):
@@ -358,7 +353,6 @@ class Fun(commands.Cog):
 	@command(
 			name="bird",
 			description="Sends a random bird pic.",
-			usage="bird",
 			aliases=["birb"]
 	)
 	async def bird(self, ctx: StealContext):
@@ -371,7 +365,6 @@ class Fun(commands.Cog):
 	@command(
 			name="dog",
 			description="Sends a random dog pic.",
-			usage="dog",
 	)
 	@cooldown(3,5, BucketType.user)
 	async def dog(self, ctx: StealContext):
@@ -387,7 +380,6 @@ class Fun(commands.Cog):
 	@command(
 			name="cat",
 			description="Sends a random cat pic.",
-			usage="cat"
 	)
 	@cooldown(3,5, BucketType.user)
 	async def cat(self, ctx: StealContext):
@@ -407,7 +399,6 @@ class Fun(commands.Cog):
 	@command(
 			name="capybara",
 			description="Sends a random capybara image.",
-			usage="capybara"
 	)
 	async def capybara(self, ctx: StealContext):
 
@@ -424,7 +415,6 @@ class Fun(commands.Cog):
 	@command(
 			name="lizard",
 			description="Sends a random lizard image.",
-			usage="lizard"
 	)
 	async def lizard(self, ctx: StealContext):
 
@@ -443,7 +433,6 @@ class Fun(commands.Cog):
 	@command(
 			name="panda",
 			description="Sends a random panda image.",
-			usage="panda"
 	)
 	async def panda(self, ctx: StealContext):
 
@@ -461,7 +450,6 @@ class Fun(commands.Cog):
 	@command(
 			name="fox",
 			description="Sends a random fox image.",
-			usage="fox",
 			aliases=['floof']
 	)
 	async def fox(self, ctx: StealContext):
@@ -480,7 +468,6 @@ class Fun(commands.Cog):
 	@command(
 			name="duck",
 			description="Sends a random duckie image.",
-			usage="duck",
 			aliases=['quack', 'duckie']
 	)
 	async def duck(self, ctx: StealContext):
@@ -514,7 +501,6 @@ class Fun(commands.Cog):
 	@command(
 			name="choose",
 			description="Picks between two choices.",
-			usage="choice <choice1>, <choice2>..."
 	)
 	async def choose_cmd(self, ctx: StealContext, *, choices: str):
 		choices1 = choices.split(", ")
@@ -527,7 +513,6 @@ class Fun(commands.Cog):
 	@command(
 			name="ship",
 			description="The ship \% between you and a member",
-			usage="ship <@user>"
 	)
 	async def ship(self, ctx: StealContext, member: discord.Member):
 
@@ -538,7 +523,6 @@ class Fun(commands.Cog):
 	@command(
 			name="advice",
 			description="Sends random advice.",
-			usage="advice"
 	)
 	async def advice(self, ctx: StealContext):
 
@@ -551,7 +535,6 @@ class Fun(commands.Cog):
 	@command(
 			name="pack",
 			description="Packs a member.",
-			usage="pack <@user>",
 			aliases=["flame"]
 	)
 	async def pack(self, ctx: StealContext, member: discord.Member):
@@ -571,7 +554,6 @@ class Fun(commands.Cog):
 		name="bitches",
 		description="Shows the bitches of a member.",
 		aliases=["bitchrate"],
-		usage="bitchrate <@user>",
 	)
 	async def bitches(self, ctx: StealContext, *, user: Optional[discord.Member] = Author):
 		choices = ["regular", "still regular", "lol", "xd", "id", "zero", "infinite"]
@@ -586,7 +568,6 @@ class Fun(commands.Cog):
 	@command(
 			name="gayrate",
 			description="Shows the gay \% of a member.",
-			usage="gayrate <@user>",
 			aliases=["gay"]
 	)
 	async def gay(self, ctx: StealContext, *, member: Optional[discord.Member] = Author):
@@ -596,7 +577,6 @@ class Fun(commands.Cog):
 	@command(
 			name="ppsize",
 			description="Shows the pp size of a member.",
-			usage="ppsize <@user>",
 			aliases=["pp"]
 	)
 	async def pp(self, ctx: StealContext, *, member: Optional[discord.Member] = Author):
@@ -607,7 +587,6 @@ class Fun(commands.Cog):
 	@command(
 			name="kiss",
 			description="Kisses a member.",
-			usage="kiss <@user>",
 			aliases=["smooch"]
 	)
 	async def kiss(self, ctx: StealContext, member: discord.Member):
@@ -628,7 +607,6 @@ class Fun(commands.Cog):
 	@command(
 			name="cuddle",
 			description="Cuddles a member.",
-			usage="cuddle <@user>",
 			aliases=["snuggle"]
 	)
 	async def cuddle(self, ctx: StealContext, member: discord.Member):
@@ -648,7 +626,6 @@ class Fun(commands.Cog):
 	@command(
 			name="hug",
 			description="Hugs a member.",
-			usage="hug <@user>",
 	)
 	async def hug(self, ctx: StealContext, member: discord.Member):
 
@@ -667,7 +644,6 @@ class Fun(commands.Cog):
 	@command(
 			name="pat",
 			description="Pats a member.",
-			usage="pat <@user>",
 			aliases=["pet"]
 	)
 	async def pat(self, ctx: StealContext, member: discord.Member):
@@ -687,7 +663,6 @@ class Fun(commands.Cog):
 	@command(
 			name="slap",
 			description="Slaps a member.",
-			usage="slap <@user>",
 			aliases=["smack"]
 	)
 	async def slap(self, ctx: StealContext, member: discord.Member):

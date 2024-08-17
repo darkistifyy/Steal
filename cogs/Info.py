@@ -20,14 +20,16 @@ import os
 from discord import Spotify
 import requests
 
+from tools.View import DownloadAsset
 from tools.bytesio import dom_color
 
 from tools.Steal import Steal
 from managers.context import StealContext
 
-from typing import List, Optional
+from typing import List, Optional, Union
 from tools.Config import Colors, Emojis, Flags
 from tools.View import Invite
+import math
 
 class Info(commands.Cog):
 	def __init__(self, Steal):
@@ -35,9 +37,8 @@ class Info(commands.Cog):
 
 	@command(
 			name="invite",
-			aliases=["inv", "link"],
+			aliases=["inv", "link", "support"],
 			description="Sends the support server invite link.",
-			usage="invite"
 	)
 	async def invite(self, ctx: StealContext):
 
@@ -56,7 +57,6 @@ class Info(commands.Cog):
 	@command(
 			name="credits",
 			description="Sends the credits of the bot.",
-			usage="credits"
 	)
 	async def credits(self, ctx: StealContext):
 
@@ -85,7 +85,6 @@ class Info(commands.Cog):
 			name="userinfo",
 			description="Gives userinfo.",
 			aliases=["ui", "uinfo"],
-			usage='userinfo [user]'
 	)
 	@cooldown(1,15, commands.BucketType.user)
 	@guild_only()
@@ -188,7 +187,6 @@ class Info(commands.Cog):
 	@command(
 			name="serverinfo",
 			description="Gives server info.",
-			usage="serverinfo",
 			aliases=["si"]
 	)
 	@cooldown(1,15, BucketType.user)
@@ -262,7 +260,6 @@ class Info(commands.Cog):
 	@command(
 			name="channelinfo",
 			description="Gives channel info.",
-			usage="channelinfo",
 			aliases=["ci"]
 	)
 	async def channelinfo(self, ctx: StealContext, channel: Optional[discord.abc.GuildChannel] = None):
@@ -296,7 +293,6 @@ class Info(commands.Cog):
 
 	@command(
 		name = "botinfo",
-		usage = "botinfo",
 		aliases = ["bi", "bot"],
 		description = "Get information about the bot."
 	)
@@ -318,7 +314,6 @@ class Info(commands.Cog):
 			name="inviteinfo",
 			description="Gives invite info.",
 			aliases=["ii"],
-			usage="inviteinfo"
 	)
 	@cooldown(1,15, BucketType.user)
 	async def inviteinfo(self, ctx: StealContext, invite: discord.Invite) -> None:
@@ -377,10 +372,29 @@ class Info(commands.Cog):
 			return lines
 
 	@command(
+			name="info",
+			aliases=["ei"],
+			description="Gives emoji info."
+	)
+	@guild_only()
+	async def emojiinfo(self, ctx: StealContext, *, emoji: Union[discord.Emoji, discord.PartialEmoji]):
+
+		embed = discord.Embed(
+			color=Colors.BASE_COLOR, title=emoji.name, timestamp=emoji.created_at
+		)
+
+		embed.set_thumbnail(url=emoji.url)
+
+		embed.add_field(name="Animated", value=emoji.animated)
+		embed.add_field(name="Link", value=f"[emoji]({emoji.url})")
+		embed.set_footer(text=f"id: {emoji.id}")
+		view = DownloadAsset(emoji.url)
+		view.message = await ctx.reply(embed=embed, view=view)
+
+	@command(
 		name="spotify",
 		description="Shows a users currently listening info.",
-		usage="spotify <user>",
-		aliases=["song"]
+		aliases=["song", "nowplaying"]
 	)
 	@cooldown(1,15, BucketType.user)
 	@guild_only()
@@ -402,7 +416,7 @@ class Info(commands.Cog):
 					info = discord.Embed(
 						title=f"{activity.title}",
 						url=f"{activity.track_url}",
-						description=f"🎵 {member} is listening to [{activity.title}]({activity.track_url})",
+						description=f"🎵 {member} is **listening to** [{activity.title}]({activity.track_url})",
 						color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])
 					).add_field(
 						name="Lyricist/Artist",
@@ -411,13 +425,623 @@ class Info(commands.Cog):
 						name="Album",
 						value=f"{activity.album}"
 					).set_footer(
-						text=f"Started listening at {activity.created_at.strftime("%H:%M")}"
+						text=f"Started listening at {activity.created_at.strftime('%H:%M')}"
 					).set_thumbnail(
 						url=activity.album_cover_url
 					)
 					return await ctx.reply(embed=info)
 		
 		await ctx.deny(f"{member.mention} is not listening to music right now.")
+
+	@command(
+		name="game",
+		description="Shows the game the user is currently playing.",
+		aliases=["playing"]
+	)
+	@cooldown(1,15, BucketType.user)
+	@guild_only()
+	async def game(self, ctx: StealContext, member:Optional[discord.Member] = Author):
+		if member.activities:
+
+			for activity in member.activities:
+
+				if activity.type == discord.ActivityType.playing:
+
+					response = requests.get(member.display_avatar.url)
+					bytes = response.content
+					if bytes is not None:
+						dominant_color = dom_color(bytes)
+						from isHex import isHex
+						if isHex(dominant_color):
+							rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
+
+					info = discord.Embed(
+						title=f"{activity.name}",
+						description=f"🎮 {member} is **playing** {activity.name}",
+						color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])
+					).add_field(
+						name="Platform",
+						value=f"{activity.platform}"
+					).add_field(
+						name="",
+						value=f"{activity.type}"
+					).set_footer(
+						text=f"Started playing at {activity.created_at.strftime('%H:%M')}"
+					).set_thumbnail(
+						url=member.display_avatar.url
+					)
+					return await ctx.reply(embed=info)
+		
+		await ctx.deny(f"{member.mention} is not playing any games right now.")
+
+
+	@command(
+		name="activity",
+		description="Shows the current users activity.",
+		aliases=["doing", "act", "status"]
+	)
+	@cooldown(1,15, BucketType.user)
+	@guild_only()
+	async def activity(self, ctx: StealContext, member:Optional[discord.Member] = Author):
+		if member.activities:
+
+			for activity in member.activities:
+
+				if isinstance(activity, Spotify):
+
+					response = requests.get(activity.album_cover_url)
+					bytes = response.content
+					if bytes is not None:
+						dominant_color = dom_color(bytes)
+						from isHex import isHex
+						if isHex(dominant_color):
+							rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
+
+					info = discord.Embed(
+						title=f"{activity.title}",
+						url=f"{activity.track_url}",
+						description=f"🎵 {member} is **{str(activity.type).split(".")[1].capitalize()} to** [{activity.title}]({activity.track_url})",
+						color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])
+					).add_field(
+						name="Lyricist/Artist",
+						value=f"{activity.artist}"
+					).add_field(
+						name="Album",
+						value=f"{activity.album}"
+					).set_footer(
+						text=f"Started listening at {activity.created_at.strftime('%H:%M')}"
+					).set_thumbnail(
+						url=activity.album_cover_url
+					)
+					return await ctx.reply(embed=info)
+
+				elif activity.type == discord.ActivityType.playing:
+
+					response = requests.get(activity.large_image_url)
+					bytes = response.content
+					if bytes is not None:
+						dominant_color = dom_color(bytes)
+						from isHex import isHex
+						if isHex(dominant_color):
+							rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
+
+					info = discord.Embed(
+						title=f"{activity.name}",
+						description=f"🎮 {member} is **{str(activity.type).split(".")[1].capitalize()}** {activity.name}",
+						color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])
+					).add_field(
+						name="Platform",
+						value=f"{activity.platform if activity.platform else "Not avaliable."}"
+					).add_field(
+						name="Info",
+						value=f"{activity.large_image_text}"
+					).set_footer(
+						text=f"Started playing at {activity.created_at.strftime('%H:%M')}"
+					).set_thumbnail(
+						url=activity.large_image_url
+					)
+					return await ctx.reply(embed=info)
+				
+				elif activity.type == discord.ActivityType.streaming:
+
+					response = requests.get(activity.large_image_url)
+					bytes = response.content
+					if bytes is not None:
+						dominant_color = dom_color(bytes)
+						from isHex import isHex
+						if isHex(dominant_color):
+							rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
+
+					info = discord.Embed(
+						title=f"{activity.name}",
+						url=activity.url,
+						description=f"🖥️ {member} is **{str(activity.type).split(".")[1].capitalize()}** {activity.game}",
+						color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])
+					).add_field(
+						name="Platform",
+						value=f"{activity.platform if activity.platform else "Not avaliable."}"
+					).add_field(
+						name="Twitch Name",
+						value=f"{activity.twitch_name}"
+					).set_footer(
+						text=f"Started playing at {activity.created_at.strftime('%H:%M')}"
+					).set_thumbnail(
+						url=activity.large_image_url
+					)
+					return await ctx.reply(embed=info)
+
+		
+		await ctx.deny(f"{member.mention} does doing a supported activity right now.")
+
+	@command(
+			name='nitrohavers',
+			description='Users with nitro.',
+			aliases=['nhavers', 'nhs', 'premiumusers'],
+	)
+	@guild_only()
+	async def nhavers(self, ctx: StealContext) -> None:
+		def guns(user:discord.Member):
+			if isinstance(user, discord.Member):
+				has_emote_status = any([a.emoji.is_custom_emoji() for a in user.activities if getattr(a, 'emoji', None)])
+ 
+				if not user.bot:
+					return any([user.display_avatar.is_animated(), has_emote_status, user.premium_since, user.guild_avatar, user.banner])
+		
+		nhavers_ = [mem for mem in ctx.guild.members if guns(mem)]
+
+		if not nhavers_:
+			return await ctx.warn(f"There are no premium users in this server.")
+			
+
+		count = 0
+		embeds = []
+		
+		entries = [
+			f"`{i}` {b.mention} (`{b}`)"
+			for i, b in enumerate(nhavers_, start=1)
+		]
+
+		l = 5
+
+		embed = discord.Embed(
+			color=Colors.BASE_COLOR,
+			title=f"Nitro Users (`{len(entries)}`)",
+			description=""
+		).set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				)
+
+		for entry in entries:
+			embed.description += f'{entry}\n'
+			count += 1
+			
+			if count == l:
+				embeds.append(embed)
+				embed = discord.Embed(
+					color=Colors.BASE_COLOR,
+					title=f"Nitro Users (`{len(entries)}`)",
+					description=""
+				).set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				)
+
+				count = 0
+		
+		if count > 0:
+			embeds.append(embed.set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				))
+		
+		await ctx.paginate(embeds)
+
+	@command(
+			name="invites",
+			description='Invites to this guild.',
+			aliases=['invs']
+	)
+	@guild_only()
+	async def invites(self, ctx: StealContext) -> None:
+		invites = await ctx.guild.invites() or []
+	
+		if ctx.guild.vanity_url:
+			invites.append(ctx.guild.vanity_url_code)
+
+		count = 0
+		embeds = []
+
+		if not invites:
+			return await ctx.deny("There are no invites to this guild.")
+
+		entries = [
+			f"`{i}` `{b.code}` ({b.inviter})"
+			for i, b in enumerate(invites, start=1)
+		]
+
+		l = 10
+
+		embed = discord.Embed(
+			color=Colors.BASE_COLOR,
+			title=f"Invites (`{len(entries)}`)",
+			description=""
+		).set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				)
+
+		for entry in entries:
+			embed.description += f'{entry}\n'
+			count += 1
+			
+			if count == l:
+				embeds.append(embed)
+				embed = discord.Embed(
+					color=Colors.BASE_COLOR,
+					title=f"Invites (`{len(entries)}`)",
+					description=""
+				).set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				)
+
+				count = 0
+		
+		if count > 0:
+			embeds.append(embed.set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				))
+		
+		await ctx.paginate(embeds)
+	
+	@command(
+			name="boosters",
+			description='Users server boosting.',
+	)
+	@guild_only()
+	async def boosters(self, ctx: StealContext) -> None:
+		boosters = [sub for sub in ctx.guild.premium_subscribers]
+
+		if not boosters:
+			return await ctx.warn(f"There are no boosters in this server.")
+			
+
+		count = 0
+		embeds = []
+		
+		entries = [
+			f"`{i}` {b.mention} (`{b}`)"
+			for i, b in enumerate(boosters, start=1)
+		]
+
+		l = 5
+
+		embed = discord.Embed(
+			color=Colors.BASE_COLOR,
+			title=f"Boosters (`{len(entries)}`)",
+			description=""
+		).set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				)
+
+		for entry in entries:
+			embed.description += f'{entry}\n'
+			count += 1
+			
+			if count == l:
+				embeds.append(embed)
+				embed = discord.Embed(
+					color=Colors.BASE_COLOR,
+					title=f"Boosters (`{len(entries)}`)",
+					description=""
+				).set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				)
+
+				count = 0
+		
+		if count > 0:
+			embeds.append(embed.set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				))
+		
+		await ctx.paginate(embeds)     
+
+	@group(
+			name='server',
+			description='Manages server.',
+			aliases=['guild']
+	)
+	async def server(self, ctx: StealContext):
+		if ctx.invoked_subcommand is None:
+			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `server`.')
+
+	@server.command(
+			name='icon',
+			description='Changes or gets server icon without args.',
+			aliases=['pfp', 'logo'],
+	)
+	@has_permissions(manage_guild=True)
+	@bot_has_guild_permissions(manage_guild=True)
+	@guild_only()
+	async def servericon(self, ctx: StealContext, image:Optional[discord.Attachment] = None) -> None:
+
+		if image is not None:
+
+			bytes_image = await image.read()
+			await ctx.guild.edit(icon=bytes_image, reason=f'Updated icon | Executed by {ctx.author}')
+			return await ctx.approve(f"Updated guild icon.")
+		elif ctx.guild.icon:
+
+			avatarbytes = await ctx.guild.icon.read()
+			dominant_color = dom_color(avatarbytes)
+			from isHex import isHex
+			if isHex(dominant_color):
+				rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
+
+			return await ctx.reply(embed=discord.Embed(
+				title=f"{ctx.guild}'s icon",
+				color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])
+			).set_image(
+				url=ctx.guild.icon.url
+				).set_author(
+					name=f"{ctx.author}",
+					url=ctx.guild.icon.url,
+					icon_url=ctx.author.display_avatar.url if ctx.author.display_avatar else None
+				)
+			)
+		else:
+			return await ctx.deny(f"Missing argument `image`")
+
+	@server.command(
+			name='splash',
+			description='Changes or gets server splash without args.'
+	)
+	@has_permissions(manage_guild=True)
+	@bot_has_guild_permissions(manage_guild=True)
+	@guild_only()
+	async def serversplash(self, ctx: StealContext, image:Optional[discord.Attachment] = None) -> None:
+
+		if image is not None:
+			bytes_image = await image.read()
+
+			await ctx.guild.edit(splash=bytes_image, reason=f'Updated splash | Executed by {ctx.author}')
+			return await ctx.approve("Updated guild splash.")
+		elif ctx.guild.splash:
+
+			avatarbytes = await ctx.guild.splash.read()
+			dominant_color = dom_color(avatarbytes)
+			from isHex import isHex
+			if isHex(dominant_color):
+				rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
+
+			return await ctx.reply(embed=discord.Embed(
+				title=f"{ctx.guild}'s splash",
+				color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])
+			).set_image(
+				url=ctx.guild.splash
+				).set_author(
+					name=f"{ctx.author}",
+					url=ctx.guild.icon.url,
+					icon_url=ctx.author.display_avatar.url if ctx.author.display_avatar else None
+				)
+			)
+		else:
+			return await ctx.deny(f"Missing argument `image`")
+
+	@server.command(
+			name='banner',
+			description='Changes or gets server banner without args.'
+	)
+	@has_permissions(manage_guild=True)
+	@bot_has_guild_permissions(manage_guild=True)
+	@guild_only()
+	async def serverbanner(self, ctx: StealContext, image:Optional[discord.Attachment] = None) -> None:
+
+		if image is not None:
+			bytes_image = await image.read()
+
+			await ctx.guild.edit(banner=bytes_image, reason=f'Updated banner | Executed by {ctx.author}')
+			return await ctx.approve("Updated guild banner.")
+
+		elif ctx.guild.banner:
+
+			avatarbytes = await ctx.guild.banner.read()
+			dominant_color = dom_color(avatarbytes)
+			from isHex import isHex
+			if isHex(dominant_color):
+				rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
+
+			return await ctx.reply(embed=discord.Embed(
+				title=f"{ctx.guild}'s banner",
+				color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])
+			).set_image(
+				url=ctx.guild.banner
+				).set_author(
+					name=f"{ctx.author}",
+					url=ctx.guild.icon.url,
+					icon_url=ctx.author.display_avatar.url if ctx.author.display_avatar else None
+				)
+			)
+		else:
+			return await ctx.deny(f"Missing argument `image`")
+
+	@command(
+			name="members",
+			description='Server members.'
+	)
+	@guild_only()
+	async def members(self, ctx: StealContext) -> None:
+
+		members = [mem for mem in ctx.guild.members if not mem.bot]
+		bots = [mem for mem in ctx.guild.members if mem.bot]
+
+
+		if not members:
+			return await ctx.warn(f"There are no members in this server.")
+			
+
+		count = 0
+		embeds = []
+		
+		entries = [
+			f"`{i}` {b.mention} (`{b}`)"
+			for i, b in enumerate(members, start=1)
+		]
+
+		l = 5
+
+		embed = discord.Embed(
+			color=Colors.BASE_COLOR,
+			title=f"Members (`{len(entries)}`)",
+			description=f"There are `{len(bots)}` bots, `{len(members)}` users and `{len(members)-len(bots)}` total members.\n\n"
+		).set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				)
+
+		for entry in entries:
+			embed.description += f'{entry}\n'
+			count += 1
+			
+			if count == l:
+				embeds.append(embed)
+				embed = discord.Embed(
+					color=Colors.BASE_COLOR,
+					title=f"Members (`{len(entries)}`)",
+					description=f"There are `{len(bots)}` bots, `{len(members)}` users and `{len(members)-len(bots)}` total members.\n\n"
+				).set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				)
+
+				count = 0
+		
+		if count > 0:
+			embeds.append(embed.set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				))
+		
+		await ctx.paginate(embeds)
+
+	@command(
+		name="roles",
+		aliases=["rolelist"],
+		desciption="Lists server roles."
+	)
+	@guild_only()
+	async def roles(self, ctx: StealContext):
+	
+		roles = ctx.guild.roles[::-1]
+
+		count = 0
+		embeds = []
+
+		if not roles:
+			return await ctx.deny("There are no roles in this guild.")
+		
+		entries = [
+			f"`{i}` {b.mention} (`{b.name}`)"
+			for i, b in enumerate(roles, start=1) if not i == ctx.guild.default_role
+		]
+
+		l = 10
+
+		embed = discord.Embed(
+			color=Colors.BASE_COLOR,
+			title=f"Roles ({len(entries)})",
+			description=""
+		).set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				)
+
+		for entry in entries:
+			embed.description += f'{entry}\n'
+			count += 1
+			
+			if count == l:
+				embeds.append(embed)
+				embed = discord.Embed(
+					color=Colors.BASE_COLOR,
+					title=f"Roles ({len(entries)})",
+					description=""
+				).set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				)
+				count = 0
+		
+		if count > 0:
+			embeds.append(embed.set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				))
+		
+		await ctx.paginate(embeds)
+
+	@command(
+		name="emojis",
+		aliases=["emojilist"],
+		desciption="Lists server emojis."
+	)
+	@guild_only()
+	async def emojis(self, ctx: StealContext):
+	
+		emojis = ctx.guild.emojis
+
+		count = 0
+		embeds = []
+
+		if not emojis:
+			return await ctx.deny("There are no emojis in this guild.")
+		
+		entries = [
+			f"`{i}` {b} (`{b.name}`)"
+			for i, b in enumerate(emojis, start=1)
+		]
+
+		l = 10
+
+		embed = discord.Embed(
+			color=Colors.BASE_COLOR,
+			title=f"Emojis (`{len(entries)}`)",
+			description=""
+		).set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				)
+
+		for entry in entries:
+			embed.description += f'{entry}\n'
+			count += 1
+			
+			if count == l:
+				embeds.append(embed)
+				embed = discord.Embed(
+					color=Colors.BASE_COLOR,
+					title=f"Emojis (`{len(entries)}`)",
+					description=""
+				).set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				)
+
+				count = 0
+		
+		if count > 0:
+			embeds.append(embed.set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				))
+		
+		await ctx.paginate(embeds)
 
 async def setup(bot):
 	await bot.add_cog(Info(bot))

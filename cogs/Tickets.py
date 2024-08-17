@@ -160,7 +160,6 @@ class Tickets(commands.Cog):
 			name='panel',
 			description='Creates a ticket panel.', 
 			aliases=['p', 'createpanel', 'panelcreate'],
-			usage='ticket panel'
 	)
 	@guild_only()
 	@has_permissions(administrator=True)
@@ -189,7 +188,6 @@ class Tickets(commands.Cog):
 			name='delete', 
 			description='Deletes a ticket.', 
 			aliases=['d', 'dt'], 
-			usage="ticket delete"
 	)
 	@guild_only()
 	@cooldown(1,5, commands.BucketType.channel)
@@ -209,7 +207,6 @@ class Tickets(commands.Cog):
 			name='close', 
 			description='Closes a ticket.', 
 			aliases=['lock', 'tc', 'tl'], 
-			usage='ticket close'
 	)
 	@guild_only()
 	@cooldown(1,5, commands.BucketType.channel)
@@ -251,7 +248,6 @@ class Tickets(commands.Cog):
 			name='open', 
 			description='Opens a ticket.', 
 			aliases=['unlock', 'to', 'tu'], 
-			usage="ticket open"
 	)
 	@guild_only()
 	@cooldown(1,5, commands.BucketType.channel)
