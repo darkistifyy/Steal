@@ -22,7 +22,6 @@ colorgram.py==1.2.0
 cssselect2==0.7.0
 decorator==4.4.2
 defusedxml==0.7.1
-discord==2.3.2
 discord.py==2.4.0
 flask==3.0.3
 frozenlist==1.4.1
@@ -64,6 +63,7 @@ scikit-image==0.24.0
 scikit-learn==1.5.1
 scipy==1.14.0
 setuptools==72.2.0
+six==1.16.0
 soupsieve==2.6
 threadpoolctl==3.5.0
 tifffile==2024.8.10
@@ -73,8 +73,10 @@ typing==3.7.4.3
 urllib3==2.2.2
 utils==1.0.2
 werkzeug==3.0.3
+wheel==0.44.0
 yarl==1.9.4
-pip==24.2
+asqlite==2.0.0
+pip==24.0
 autocommand==2.2.2
 backports.tarfile==1.2.0
 importlib-metadata==8.0.0
@@ -89,6 +91,4 @@ platformdirs==4.2.2
 tomli==2.0.1
 typeguard==4.3.0
 typing-extensions==4.12.2
-wheel==0.43.0
 zipp==3.19.2
-regex
