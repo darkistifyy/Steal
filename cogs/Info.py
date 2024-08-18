@@ -550,7 +550,7 @@ class Info(commands.Cog):
 						color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])
 					).add_field(
 						name="Platform",
-						value=f"{activity.platform if activity.platform else "Not avaliable."}"
+						value=f"{activity.platform if activity.platform else 'Not avaliable.'}"
 					).add_field(
 						name="Twitch Name",
 						value=f"{activity.twitch_name}"
@@ -743,6 +743,63 @@ class Info(commands.Cog):
 		
 		await ctx.paginate(embeds)     
 
+
+	@command(
+			name="bans",
+			description='Ban entries for this guild.',
+	)
+	@guild_only()
+	async def bans(self, ctx: StealContext) -> None:
+		bans = [ban async for ban in ctx.guild.bans(limit=None)] or []
+
+		count = 0
+		embeds = []
+
+		if not bans:
+			return await ctx.deny("There are no users banned from this guild.")
+
+		entries = [
+			f"`{i}` **{b.user}** (`{b.user.id}`) - **{b.reason}**"
+			for i, b in enumerate(bans, start=1)
+		]
+
+		l = 10
+
+		embed = discord.Embed(
+			color=Colors.BASE_COLOR,
+			title=f"Bans (`{len(entries)}`)",
+			description=""
+		).set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				)
+
+		for entry in entries:
+			embed.description += f'{entry}\n'
+			count += 1
+			
+			if count == l:
+				embeds.append(embed)
+				embed = discord.Embed(
+					color=Colors.BASE_COLOR,
+					title=f"Bans (`{len(entries)}`)",
+					description=""
+				).set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				)
+
+				count = 0
+		
+		if count > 0:
+			embeds.append(embed.set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				))
+		
+		await ctx.paginate(embeds)
+	
+
 	@group(
 			name='server',
 			description='Manages server.',
@@ -777,6 +834,7 @@ class Info(commands.Cog):
 
 			return await ctx.reply(embed=discord.Embed(
 				title=f"{ctx.guild}'s icon",
+				url=ctx.guild.icon.url,
 				color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])
 			).set_image(
 				url=ctx.guild.icon.url
@@ -813,9 +871,10 @@ class Info(commands.Cog):
 
 			return await ctx.reply(embed=discord.Embed(
 				title=f"{ctx.guild}'s splash",
+				url=ctx.guild.splash.url,
 				color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])
 			).set_image(
-				url=ctx.guild.splash
+				url=ctx.guild.splash.url
 				).set_author(
 					name=f"{ctx.author}",
 					url=ctx.guild.icon.url,
@@ -850,9 +909,10 @@ class Info(commands.Cog):
 
 			return await ctx.reply(embed=discord.Embed(
 				title=f"{ctx.guild}'s banner",
+				url=ctx.guild.banner.url,
 				color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])
 			).set_image(
-				url=ctx.guild.banner
+				url=ctx.guild.banner.url
 				).set_author(
 					name=f"{ctx.author}",
 					url=ctx.guild.icon.url,
@@ -935,8 +995,7 @@ class Info(commands.Cog):
 		await ctx.send(
 			embed=discord.Embed(
 				title=f"{ctx.guild.name}'s statistics ({len(humans)})",
-				description=f""">>>
-							**humans** - {len(humans)}
+				description=f""">>> **humans** - {len(humans)}
 							**bots** - {len(bots)}
 							**total** - {len(humans + bots)}
 							""",
