@@ -211,7 +211,6 @@ class Roles(commands.Cog):
 		if hex is None:
 			return await ctx.approve(f"Hex color of {role.mention}: {role.color}")
 
-		import regex as re
 		from isHex import isHex, isHexLower, isHexUpper
 		
 		if role.position >= ctx.author.top_role.position and ctx.author != ctx.guild.owner:
@@ -251,7 +250,6 @@ class Roles(commands.Cog):
 				return await ctx.deny(f"Missing argument `image`")
 		else:
 
-			import regex as re
 			from isHex import isHex, isHexLower, isHexUpper
 
 			if role.position >= ctx.author.top_role.position and ctx.author != ctx.guild.owner:
@@ -287,7 +285,6 @@ class Roles(commands.Cog):
 			else: 
 				return await ctx.deny(f"Missing argument `emoji`")
 		else:
-			import regex as re
 			from isHex import isHex, isHexLower, isHexUpper
 
 			if role.position >= ctx.author.top_role.position and ctx.author != ctx.guild.owner:

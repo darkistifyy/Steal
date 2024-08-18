@@ -11,6 +11,7 @@ import datetime
 import time
 from discord.ext.commands import *
 from tools.Config import Auth
+from tools.View import UrlView
 
 from tools.Steal import Steal
 from managers.context import StealContext
@@ -178,6 +179,16 @@ class BotManagement(commands.Cog):
 			return await ctx.deny("Fuck off.")
 
 	@command(
+			name='bot',
+			description='The invite for the bot.',
+			aliases=['inv', 'steal']
+	)
+	async def invite(self, ctx: StealContext) -> None:
+		view = UrlView(Auth.invite, "Steal")
+		out = await ctx.send(content=ctx.author.mention, view=view)
+		view.message = out 
+
+	@command(
 			name='reload'
 	)
 	async def reload(self, ctx: StealContext, cog) -> None:
@@ -256,7 +267,11 @@ class BotManagement(commands.Cog):
 	def restart_bot(self):
 		os.execv(sys.executable, ["python3"] + sys.argv)
 
-	@system.command(name='Restart', aliases=['rs', 'reboot'], description='Restarts the bot.')
+	@system.command(
+			name='Restart', 
+			aliases=['rs', 'reboot'], 
+			description='Restarts the bot.'
+	)
 	async def systemrestart(self, ctx: StealContext) -> None:
 		if ctx.author.id in self.bot.owner_ids:
 			await ctx.approve(f"{self.bot.user} proccess is restarting.")

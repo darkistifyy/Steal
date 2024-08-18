@@ -28,7 +28,7 @@ class Info(commands.Cog):
 
 	@command(
 			name="invite",
-			aliases=["inv", "link", "support"],
+			aliases=["support"],
 			description="Sends the support server invite link.",
 	)
 	async def invite(self, ctx: StealContext):
@@ -284,7 +284,7 @@ class Info(commands.Cog):
 
 	@command(
 		name = "botinfo",
-		aliases = ["bi", "bot"],
+		aliases = ["bi"],
 		description = "Get information about the bot."
 	)
 	@cooldown(1, 5, commands.BucketType.user)
