@@ -19,5 +19,6 @@ class Steal(commands.Bot):
     )
 
 installation = sudo$ git clone https://github.com/oxy-devv/Steal.git
+python ver = 3.12.3
 
 ```
