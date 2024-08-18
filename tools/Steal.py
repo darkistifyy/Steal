@@ -51,6 +51,7 @@ class Steal(commands.Bot):
 			command_prefix=[';', 'sudo ', 'await '],
 			help_command=StealHelp(),
 			intents=intents,
+			activity=discord.Activity(type=discord.ActivityType.listening, name=f";help"),
 			allowed_mentions=discord.AllowedMentions(
 				everyone=False,
 				users=True,
