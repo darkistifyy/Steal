@@ -6,7 +6,10 @@ from discord.ext import commands
 from discord.ext.commands import *
 from discord import Color
 from discord.ui import Button, View, button
+from tools.EmbedBuilder import EmbedBuilder, EmbedScript
+from tools.EmbedBuilderUi import EmbedEditor, Embed
 import asyncio
+import asqlite
 
 from tools.Steal import Steal
 from managers.context import StealContext
@@ -116,9 +119,9 @@ class TicketCreate(discord.ui.View):
 		await interaction.response.defer(ephemeral=True)
 
 		status = await interaction.followup.send(embed=discord.Embed(description=f'{Emojis.WARN} Creating ticket. . .', color=Colors.WARN_COLOR), ephemeral=True)
-		
-		for ch in interaction.channel.category.text_channels:
-			if f"Open - {interaction.user.id}" in ch.topic:
+
+		for ch in interaction.guild.text_channels:
+			if f"Open - {interaction.user.id}" in ch.topic if ch.topic else False:
 				await status.edit(embed=discord.Embed(description=f'{Emojis.WARN} You already have a ticket open in {ch.mention}.', color=Colors.WARN_COLOR))
 				return
 
@@ -128,22 +131,83 @@ class TicketCreate(discord.ui.View):
 			interaction.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
 		}
 
-		tc = await interaction.channel.category.create_text_channel(
-			name=f'{interaction.user.name}',
-			topic=f'Open - {interaction.user.id}',
-			overwrites=overwrites
-		)
+		
+		async with asqlite.connect("main.db") as conn:
+			async with conn.cursor() as cursor:
+				cur = await cursor.execute(
+					"""
+					SELECT categoryid, supportroleid, openscript FROM tickets WHERE guildid = $1
+					""", interaction.guild.id
+				) 
 
-		top = await tc.send(embed=discord.Embed(
-			title='__Ticket opened.__',
-			description='﹒Please explain why you opened this ticket\n﹒Be patient for a response.',
-			color=Colors.BASE_COLOR
-		).set_author(
-			icon_url=interaction.guild.icon.url if interaction.guild.icon else None,
-			name=interaction.guild.name
-		),view=TicketClose())
-		await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} Ticket opened successfully: {tc.mention}', color=Colors.BASE_COLOR))
-		await top.pin()
+				items = await cur.fetchmany()
+				for item in items:
+					supportroleid = item[1] or None
+					categoryid = item[0] or None
+					openscript = item[2] or None
+
+				if supportroleid:
+					sup = interaction.guild.get_role(supportroleid)
+
+					overwrites = {
+						interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False, view_channel=False),
+						interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True, view_channel = True),
+						interaction.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+						sup: discord.PermissionOverwrite(read_messages=True, send_messages=True)
+					}
+
+					try:
+						cat = interaction.guild.get_channel(categoryid)
+						tc = await cat.create_text_channel(
+							name=f"{interaction.user.name}",
+							topic=f"Open - {interaction.user.id}",
+							overwrites=overwrites
+						)
+
+						if openscript:
+							parsed = EmbedBuilder.embed_replacement(interaction.user, openscript)
+							content, embed, view = await EmbedBuilder.to_object(parsed)
+							out = await tc.send(content=content, embed=embed, view=TicketClose())
+							await out.pin()
+							return await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} Ticket opened successfully: {tc.mention}', color=Colors.BASE_COLOR))
+
+						top = await tc.send(embed=discord.Embed(
+							title='__Ticket opened.__',
+							description='﹒Please explain why you opened this ticket\n﹒Be patient for a response.',
+							color=Colors.BASE_COLOR
+						).set_author(
+							icon_url=interaction.guild.icon.url if interaction.guild.icon else None,
+							name=interaction.guild.name
+						),view=TicketClose())
+						await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} Ticket opened successfully: {tc.mention}', color=Colors.BASE_COLOR))
+						await top.pin()
+
+					except:
+						tc = await interaction.guild.create_text_channel(
+								name=f'{interaction.user.name}',
+								topic=f'Open - {interaction.user.id}',
+								overwrites=overwrites
+						)
+
+
+						if openscript:
+							parsed = EmbedBuilder.embed_replacement(interaction.user, openscript)
+							content, embed, view = await EmbedBuilder.to_object(parsed)
+							out = await tc.send(content=content, embed=embed, view=TicketClose())
+							await out.pin()
+							return await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} Ticket opened successfully: {tc.mention}', color=Colors.BASE_COLOR))
+
+
+						top = await tc.send(embed=discord.Embed(
+							title='__Ticket opened.__',
+							description='﹒Please explain why you opened this ticket\n﹒Be patient for a response.',
+							color=Colors.BASE_COLOR
+						).set_author(
+							icon_url=interaction.guild.icon.url if interaction.guild.icon else None,
+							name=interaction.guild.name
+						),view=TicketClose())
+						await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} Ticket opened successfully: {tc.mention}', color=Colors.BASE_COLOR))
+						await top.pin()
 
 class Tickets(commands.Cog):
 	def __init__(self, bot: Steal):
@@ -155,16 +219,40 @@ class Tickets(commands.Cog):
 			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `ticket`.')
 
 	@ticket.command(
-			name='panel',
+			name='send',
 			description='Creates a ticket panel.', 
-			aliases=['p', 'createpanel', 'panelcreate'],
+			aliases=['p', 'panel', 'panelcreate'],
 	)
 	@guild_only()
 	@has_permissions(administrator=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@cooldown(1,120, commands.BucketType.guild)
-	async def create_panel(self, ctx: StealContext) -> None:
+	async def panelsend(self, ctx: StealContext,  *, script:Optional[str] = commands.param(default=None, displayed_default=None), channel:discord.TextChannel = None) -> None:
 
+		if channel is None: channel = ctx.channel
+		if not script:
+
+			panelembed = discord.Embed(
+				title='__Open a ticket!__',
+				description='﹒Click on the button below to create a ticket\n﹒Explain why you opened the ticket\n﹒Be patient for a response.',
+				color=Color.pink(),
+			).set_author(
+				name=ctx.guild.name,
+				icon_url=ctx.guild.icon.url if ctx.guild.icon else None
+			).set_image(
+				url=embedgif
+			)
+
+			await channel.send(embed=panelembed, view=TicketCreate())
+			return await ctx.approve(f'Sent ticket panel to {channel.mention}.')
+		
+		processed_message = EmbedBuilder.embed_replacement(ctx.author, script)
+		content, embed, view = await EmbedBuilder.to_object(processed_message)
+
+		await channel.send(content=content, embed=embed, view=TicketCreate())
+		return await ctx.approve(f'Sent ticket panel to {channel.mention}.')
+
+		"""
 		tcg = await ctx.guild.create_category(name='◜ 🎫 ◞ @ TICKETS')
 		tc = await tcg.create_text_channel(name='🎟﹒tickets', topic='Open tickets here.\nDo not move this channel from the bot created category.')
 		
@@ -180,7 +268,256 @@ class Tickets(commands.Cog):
 		)
 
 		await tc.send(embed=panelembed, view=TicketCreate())
-		return await ctx.approve(f'Panel created successfully! {tc.mention}')
+		return await ctx.approve(f'Panel created successfully! {tc.mention}')"""
+
+	@ticket.command(
+			name="opened",
+			description="The script that sends when a ticket is opened."
+	)
+	@has_permissions(administrator=True)
+	@bot_has_guild_permissions(manage_channels=True)
+	async def ticketopened(self, ctx: StealContext, *, script:Optional[str] = commands.param(default=None, displayed_default=None)):
+		async with asqlite.connect("main.db") as conn:
+			async with conn.cursor() as cursor:
+
+				await cursor.execute(
+					"""
+					CREATE TABLE IF NOT EXISTS tickets(guildid INTEGER, categoryid INTEGER, openscript TEXT, supportroleid INTEGER)
+					"""
+				)
+
+				cur = await cursor.execute(
+					"""
+					SELECT openscript FROM tickets WHERE guildid = $1
+					""", ctx.guild.id, 
+				)
+
+				openscript = await cur.fetchone()
+
+				if openscript:
+					if not script:
+						script = """{embed}{color: #ff8fab}{title: __Ticket opened.__}{description: ﹒Please explain why you opened this ticket
+								﹒Be patient for a response.}{author: Test Server}"""
+						
+						await cursor.execute(
+							"""
+							UPDATE tickets SET openscript = $1 WHERE guildid = $2
+							""", script, ctx.guild.id, 
+						)
+						await conn.commit()
+						await ctx.approve(f"Set script to default ```{script}```")
+						return
+
+					await cursor.execute(
+						"""
+						UPDATE tickets SET openscript = $1 WHERE guildid = $2
+						""", script, ctx.guild.id, 
+					)
+
+					await conn.commit()
+
+					return await ctx.approve(f"Overwrote ticket opening message to ```{script}```")
+				
+				if not script:
+					script = """{embed}{color: #ff8fab}{title: __Ticket opened.__}{description: ﹒Please explain why you opened this ticket
+							﹒Be patient for a response.}{author: Test Server}"""
+					
+					await cursor.execute(
+						"""
+						INSERT INTO tickets (guildid, openscript) VALUES ($1, $2)
+						""", ctx.guild.id, script, 
+					)
+					await conn.commit()
+					await ctx.approve(f"Set script to default ```{script}```")
+					return
+
+				await cursor.execute(
+					"""
+					INSERT INTO tickets (guildid, openscript) VALUES ($1, $2)
+					""", ctx.guild.id, script, 
+				)
+				await conn.commit()
+				return await ctx.approve(f"Set ticket opening message to ```{script}```")
+
+	@ticket.command(
+			name="support",
+			description="Sets the ticket support role."
+	)
+	@has_permissions(administrator=True)
+	@bot_has_guild_permissions(manage_channels=True)
+	async def ticketsupport(self, ctx: StealContext, role:discord.Role):
+		async with asqlite.connect("main.db") as conn:
+			async with conn.cursor() as cursor:
+
+				await cursor.execute(
+					"""
+					CREATE TABLE IF NOT EXISTS tickets(guildid INTEGER, categoryid INTEGER, openscript TEXT, supportroleid INTEGER)
+					"""
+				)
+
+				cur = await cursor.execute(
+					"""
+					SELECT supportroleid FROM tickets WHERE guildid = $1
+					""", ctx.guild.id, 
+				)
+
+				support = await cur.fetchone()
+
+				if support:
+					await cursor.execute(
+						"""
+						UPDATE tickets SET supportroleid = $1 WHERE guildid = $2
+						""", role.id, ctx.guild.id, 
+					)
+					await conn.commit()
+					await ctx.approve(f"Set ticket support role to {role.mention}")
+					return
+				
+			await cursor.execute(
+				"""
+				INSERT INTO tickets (guildid, supportroleid) VALUES ($1, $2)
+				""", ctx.guild.id, role.id, 
+			)
+			await conn.commit()
+			return await ctx.approve(f"Set ticket support role to {role.mention}")
+
+	@ticket.command(
+			name="category",
+			description="Sets the ticket category."
+	)
+	@has_permissions(administrator=True)
+	@bot_has_guild_permissions(manage_channels=True)
+	async def ticketcategory(self, ctx: StealContext, category:discord.CategoryChannel):
+		async with asqlite.connect("main.db") as conn:
+			async with conn.cursor() as cursor:
+
+				await cursor.execute(
+					"""
+					CREATE TABLE IF NOT EXISTS tickets(guildid INTEGER, categoryid INTEGER, openscript TEXT, supportroleid INTEGER)
+					"""
+				)
+
+				cur = await cursor.execute(
+					"""
+					SELECT categoryid FROM tickets WHERE guildid = $1
+					""", ctx.guild.id, 
+				)
+
+				categoryid = await cur.fetchone()
+
+				if categoryid:
+					await cursor.execute(
+						"""
+						UPDATE tickets SET categoryid = $1 WHERE guildid = $2
+						""", category.id, ctx.guild.id, 
+					)
+					await conn.commit()
+					await ctx.approve(f"Set ticket category to {category}")
+					return
+				
+				await cursor.execute(
+					"""
+					INSERT INTO tickets (guildid, openscript) VALUES ($1, $2)
+					""", ctx.guild.id, category.id, 
+				)
+				await conn.commit()
+				return await ctx.approve(f"Set ticket category to {category}")
+
+	@ticket.command(
+			name="config",
+			description="Config for the ticket module."
+	)
+	@has_permissions(manage_channels=True)
+	async def ticketconfig(self, ctx: StealContext):
+		async with asqlite.connect("main.db") as conn:
+			async with conn.cursor() as cursor:
+
+				await cursor.execute(
+					"""
+					CREATE TABLE IF NOT EXISTS tickets(guildid INTEGER, categoryid INTEGER, openscript TEXT, supportroleid INTEGER)
+					"""
+				)
+
+				cur = await cursor.execute(
+					"""
+					SELECT categoryid, openscript, supportroleid FROM tickets WHERE guildid = $1
+					""", ctx.guild.id
+				)
+
+				config = await cur.fetchmany()
+
+				for sec in config:
+					categoryid = sec[0] or None
+					script = sec[1] or "Default"
+					supportroleid = sec[2] or None
+				
+				if categoryid:
+					try:
+						category = ctx.guild.get_channel(categoryid)
+					except:
+						category = "Invalid category"
+				if supportroleid:
+					try:
+						role = ctx.guild.get_role(supportroleid)
+						rolemention = role.mention
+					except:
+						rolemention = "Invalid role"
+				await ctx.send(
+					embed=discord.Embed(
+						title="Ticket config",
+						color=Colors.BASE_COLOR
+					).set_author(
+						name=ctx.guild.name,
+						icon_url=ctx.guild.icon.url if ctx.guild.icon else None
+					).add_field(
+						name="Category",
+						value=f"> {category if categoryid else "None"}"
+					).add_field(
+						name="Support role",
+						value=f"> {rolemention if supportroleid else "None"}",
+					).add_field(
+						name="Opening ticket embed",
+						value=f"```{script if script else "None"}```",
+						inline=False
+					)
+				)
+
+	@ticket.command(
+			name="clear",
+			description="Clears the ticket config."
+	)
+	@has_permissions(administrator=True)
+	@bot_has_guild_permissions(manage_channels=True)
+	async def ticketclear(self, ctx: StealContext):
+		async with asqlite.connect("main.db") as conn:
+			async with conn.cursor() as cursor:
+
+				await cursor.execute(
+					"""
+					CREATE TABLE IF NOT EXISTS tickets(guildid INTEGER, categoryid INTEGER, openscript TEXT, supportroleid INTEGER)
+					"""
+				)
+
+				cur = await cursor.execute(
+					"""
+					SELECT * FROM tickets WHERE guildid = $1
+					""", ctx.guild.id, 
+				)
+
+				res = await cur.fetchall()
+
+				if res:
+					await cursor.execute(
+						"""
+						DELETE FROM tickets WHERE guildid = $1
+						""", ctx.guild.id, 
+					)
+					await conn.commit()
+					await ctx.approve(f"Cleared **ticket** config.")
+					return
+				
+			return await ctx.warn(f"There is no **ticket** config for this guild.")
+
 
 	@ticket.command(
 			name='delete', 

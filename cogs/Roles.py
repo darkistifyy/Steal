@@ -7,6 +7,7 @@ from discord.ext.commands import *
 import asyncio
 from discord.ui import *
 from sklearn import *
+import asqlite
 
 from tools.Steal import Steal
 from managers.context import StealContext
@@ -336,6 +337,126 @@ class Roles(commands.Cog):
 
 		role = await ctx.guild.create_role(name=name if name else "new role", hoist=hoist, color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2]) if rgb else None, reason = f"Executed by {ctx.author}")
 		await ctx.approve(f"Created role {role.mention}.")
+
+	@group(
+			name="autorole",
+			description="Autorole module.",
+			aliases=["ar"]
+	)
+	async def autorole(self, ctx: StealContext):
+		if ctx.invoked_subcommand is None:
+			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `autorole`.')
+	
+	@autorole.command(
+			name="set",
+			description="Adds a role on member join."
+	)
+	@has_permissions(manage_roles=True)
+	@bot_has_guild_permissions(manage_roles=True)
+	async def autorole_add(self, ctx: StealContext, role: discord.Role):
+		async with asqlite.connect("main.db") as conn:
+			async with conn.cursor() as cursor:
+
+				await cursor.execute(
+					"""
+					CREATE TABLE IF NOT EXISTS autorole(guildid INTEGER, roleid INTEGER)
+					"""
+				)
+
+				cur = await cursor.execute(
+					"""
+					SELECT roleid FROM autorole WHERE guildid = $1
+					""", ctx.guild.id, 
+				)
+
+				roleid = await cur.fetchone()
+
+				if roleid:
+					await cursor.execute(
+						"""
+						UPSERT INTO roleid (guildid, roleid) VALUES ($1, $2)
+						""", ctx.guild.id, role.id, 
+					)
+					await conn.commit()
+					return await ctx.approve(f"Overwrote **autorole** to {role.mention}")
+				
+				await cursor.execute(
+					"""
+					INSERT INTO autorole () VALUES ($1, $2)
+					""", ctx.guild.id, role.id, 
+				)
+				await conn.commit()
+				return await ctx.approve(f"Set **autorole** to {role.mention}")
+			
+	@autorole.command(
+			name="clear",
+			description="Clears the autorole config."
+	)
+	@has_permissions(manage_roles=True)
+	@bot_has_guild_permissions(manage_roles=True)
+	async def autorole_clear(self, ctx: StealContext):
+		async with asqlite.connect("main.db") as conn:
+			async with conn.cursor() as cursor:
+
+				await cursor.execute(
+					"""
+					CREATE TABLE IF NOT EXISTS autorole(guildid INTEGER, roleid INTEGER)
+					"""
+				)
+
+				cur = await cursor.execute(
+					"""
+					SELECT roleid FROM autorole WHERE guildid = $1
+					""", ctx.guild.id, 
+				)
+
+				roleid = await cur.fetchone()
+
+				if roleid:
+					await cursor.execute(
+						"""
+						DELETE FROM autorole WHERE guildid = $1
+						""", ctx.guild.id,
+					)
+					await conn.commit()
+					return await ctx.approve(f"Cleared **autorole** config.")
+				
+				return await ctx.warn("There is no **autorole** config set for this guild.")
+
+	@autorole.command(
+			name="config",
+			description="Sends the autorole config."
+	)
+	@has_permissions(manage_roles=True)
+	@bot_has_guild_permissions(manage_roles=True)
+	async def autorole_config(self, ctx: StealContext):
+		async with asqlite.connect("main.db") as conn:
+			async with conn.cursor() as cursor:
+
+				await cursor.execute(
+					"""
+					CREATE TABLE IF NOT EXISTS autorole(guildid INTEGER, roleid INTEGER)
+					"""
+				)
+
+				cur = await cursor.execute(
+					"""
+					SELECT roleid FROM autorole WHERE guildid = $1
+					""", ctx.guild.id, 
+				)
+
+				roleid = await cur.fetchone()
+
+				if not roleid:
+					return await ctx.warn("There is no **autorole** config set for this guild.")
+
+				try:
+					role = ctx.guild.get_role(roleid[0])
+				except:
+					return await ctx.warn(f"The **autorole** in this guild is configured to a deleted role.")
+
+				return await ctx.neutral(f"{ctx.author.mention}: The **autorole** in this guild is configured to {role.mention}")
+
 
 
 async def setup(bot):
