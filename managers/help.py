@@ -21,10 +21,10 @@ class StealHelp(HelpCommand):
         self.verify_checks = True
         
     async def send_bot_help(self, mapping: Mapping[Cog, List[Command[Any, Callable[..., Any], Any]]]) -> None:
-        view = discord.ui.View(timeout = 3000)
+        view = discord.ui.View(timeout = 180)
         embed = discord.Embed(
             color = Colors.BASE_COLOR,
-            description=f"> Use the **Select** to navigate throughout **Cogs**.\n> Support server: [Click me to join]({Guild.INVITE}) "
+            description=f"```< > = required, [ ] = optional\ngroups are marked with an asterisk (*)```\n[Support server]({Guild.INVITE}) "
         ).set_author(name = self.context.author.display_name, icon_url = self.context.author.display_avatar.url if self.context.author.display_avatar else None).set_thumbnail(url = self.context.bot.user.display_avatar.url)
         
 
@@ -96,7 +96,6 @@ class StealHelp(HelpCommand):
                 .set_author(name = self.context.author.display_name, icon_url = self.context.author.display_avatar.url)
                 .add_field(name = 'Aliases', value = ', '.join(command.aliases) or 'N/A', inline = True)
                 .add_field(name = 'Parameters', value = ', '.join([parameter for parameter in command.params] if not isinstance(command, Group) else [parameter.name for parameter in group.commands]) or 'N/A', inline = True)
-                #.add_field(name = 'Usage', value = f'>>> **Syntax**: `{prefix}{command.qualified_name} {" ".join([f"<{parameter.name}>" for parameter in command.params if parameter.required or f"[{parameter}]"] if not isinstance(command, Group) else [parameter.name for parameter in group.commands])}`', inline = False)
                 .add_field(name = 'Usage', value = f'>>> **Syntax**: `{prefix}{command.qualified_name} {command.signature}`', inline = False)
                 .set_footer(text = f'Page {i + 1}/{len(commands)} ({len(commands)} entries) ∙ Module: {command.cog_name}', icon_url = self.context.bot.user.display_avatar.url)
             for i, command in enumerate(commands)
