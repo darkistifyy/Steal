@@ -24,8 +24,20 @@ class StealHelp(HelpCommand):
         view = discord.ui.View(timeout = 180)
         embed = discord.Embed(
             color = Colors.BASE_COLOR,
-            description=f"```< > = required, [ ] = optional\ngroups are marked with an asterisk (*)```\n[Support server]({Guild.INVITE}) "
-        ).set_author(name = self.context.author.display_name, icon_url = self.context.author.display_avatar.url if self.context.author.display_avatar else None).set_thumbnail(url = self.context.bot.user.display_avatar.url)
+        ).set_author(
+                name = f"{self.context.bot.user.name.split('#')[0]} command menu",
+                icon_url = self.context.author.display_avatar.url if self.context.author.display_avatar else None
+        ).set_thumbnail(
+                url = self.context.bot.user.display_avatar.url
+        ).set_footer(
+                text="Select a cog from the dropdown menu below"
+        ).add_field(
+            name="Information",
+            value="> [] = optional, <> = required"
+        ).add_field(
+            name="Support",
+            value=f"[**Support server**]({Guild.INVITE})"
+        )
         
 
         
@@ -120,14 +132,18 @@ class CategorySelector(discord.ui.Select):
             )
             
         category: Cog = self.categories[self.values[0]]
-        
+        commands = [command for command in list(category.walk_commands()) if not command.parent]
+
+
         embed = self.embed.copy()
         embed.title = f'Category: {category.__cog_name__}'
         embed.description = f'\nCommands:\n```{", ".join([f"{command.qualified_name}" if not isinstance(command, discord.ext.commands.Group) else f"{command.qualified_name}*" for command in list(category.walk_commands()) if not command.hidden and not command.parent])}```'
         embed.set_footer(
-                text=f"{len(list(category.walk_commands()))} commands."
+                text=f"{len(commands)} commands."
+        ).set_author(
+                name=f"{interaction.message.author.name.split('#')[0]} command menu",
+                icon_url=interaction.user.display_avatar.url
         )
-        
         return await interaction.response.edit_message(
             embed = embed
         )
