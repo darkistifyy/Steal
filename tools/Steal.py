@@ -48,7 +48,7 @@ class Steal(commands.Bot):
 		self.session = Session()
 
 		super().__init__(
-			command_prefix=[';', 'sudo '],
+			command_prefix=[';', 'sudo ', 'await '],
 			help_command=StealHelp(),
 			intents=intents,
 			allowed_mentions=discord.AllowedMentions(
