@@ -6,9 +6,10 @@ from typing import TYPE_CHECKING, Optional, Type, Union, Self
 import discord
 from discord import ButtonStyle, Emoji, PartialEmoji
 from discord.ext import commands
+from tools.Config import Emojis, Colors
 
 if TYPE_CHECKING:
-    from ...managers.context import PatchedInteraction 
+    from managers.context import PatchedInteraction 
 
     from EmbedBuilderUi import EmbedEditor
 
@@ -113,7 +114,7 @@ class EditEmbedModal(BaseModal, title='Editing the embed:'):
             except (ValueError, IndexError):
                 failed.append('Invalid Color given!')
         else:
-            self.parent_view.embed.color = None
+            self.parent_view.embed.color = Colors.BASE_COLOR
 
         sti = self.image.value.strip()
         if URL_REGEX.fullmatch(sti):
@@ -186,6 +187,9 @@ class EditAuthorModal(BaseModal, title='Editing the embed author:'):
         if author:
             self.parent_view.embed.set_author(name=author, url=url, icon_url=image_url)
 
+        if not self.parent_view.embed.color:
+            self.parent_view.embed.color = Colors.BASE_COLOR
+
         if failed:
             raise InvalidModalField('\n'.join(failed))
 
@@ -224,6 +228,9 @@ class EditFooterModal(BaseModal, title='Editing the embed author:'):
 
         if text:
             self.parent_view.embed.set_footer(text=text, icon_url=image_url)
+
+        if not self.parent_view.embed.color:
+            self.parent_view.embed.color = Colors.BASE_COLOR
 
         if failed:
             raise InvalidModalField('\n'.join(failed))
@@ -270,6 +277,9 @@ class AddFieldModal(BaseModal, title='Add a field'):
                 self.parent_view.embed.add_field(name=name, value=value, inline=inline)
         else:
             self.parent_view.embed.add_field(name=name, value=value, inline=inline)
+
+        if not self.parent_view.embed.color:
+            self.parent_view.embed.color = Colors.BASE_COLOR
 
         if failed:
             raise InvalidModalField('\n'.join(failed))
@@ -323,6 +333,9 @@ class EditFieldModal(BaseModal):
             self.parent_view.embed.insert_field_at(int(self.new_index.value) - 1, name=name, value=value, inline=inline)
         else:
             self.parent_view.embed.set_field_at(self.index, name=name, value=value, inline=inline)
+
+        if not self.parent_view.embed.color:
+            self.parent_view.embed.color = Colors.BASE_COLOR
 
         if failed:
             raise InvalidModalField(failed)
