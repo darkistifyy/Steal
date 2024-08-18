@@ -562,7 +562,7 @@ class Info(commands.Cog):
 					return await ctx.reply(embed=info)
 
 		
-		await ctx.deny(f"{member.mention} does doing a supported activity right now.")
+		await ctx.deny(f"{member.mention} is not doing a supported activity right now.")
 
 	@command(
 			name='nitrohavers',
