@@ -43,7 +43,51 @@ class ChannelDeleteConfirm(discord.ui.View):
 		await interaction.response.defer()
 		for button in self.children:
 			button.disabled=True
-			return await interaction.message.edit(embed=discord.Embed(description=f"{Emojis.DENY} You have cancelled the deletion of {interaction.channel.mention}", color=Colors.DENY_COLOR), view=self)
+			return await interaction.message.edit(embed=discord.Embed(description=f"{Emojis.DENY} {interaction.user.mention}: **Deletion** cancelled - {interaction.channel.mention}.", color=Colors.DENY_COLOR), view=self)
+		
+class ChannelNukeConfirm(discord.ui.View):
+	def __init__(self, ctx: StealContext, channel: discord.abc.GuildChannel, bot: Steal):
+		self.ctx = ctx
+		self.channel = channel
+		self.bot = bot
+		super().__init__(timeout=None)
+
+	@button(label="Confirm", emoji="✅", style=discord.ButtonStyle.green, custom_id="channelnukeconfirm")
+	async def channeldeleteconfirm(self,interaction:discord.Interaction, button:Button):
+		await interaction.response.defer()
+		for button in self.children:
+			button.disabled=True
+			await interaction.message.edit(view=self)
+
+		if isinstance(self.channel, Union[discord.ForumChannel, discord.Thread]):
+			return await interaction.message.edit(
+				embed=discord.Embed(
+					description=f"{Emojis.WARN} {self.ctx.author.mention}: Unsupported channel type.",
+					color=Colors.WARN_COLOR
+				)
+			)
+	
+		newchannelabc = await self.channel.clone(name=self.channel.name, reason=f"Nuke channel clone - {self.ctx.author}")
+		newchannel = await self.ctx.guild.fetch_channel(newchannelabc.id)
+		await self.channel.delete(reason=f'Nuke channel delete - {self.ctx.author}')
+		if self.channel != self.ctx.channel: await self.ctx.approve(f"Nuked {self.channel.name}") 
+
+		return await newchannel.send(
+			embed=discord.Embed(
+				description=f"{self.channel.name} was **nuked** by {self.ctx.author.mention}, this is the channel made to take its place.",
+				color=Colors.BASE_COLOR
+			).set_author(
+				name=self.bot.user,
+				icon_url=self.bot.user.display_avatar.url
+			)
+		)
+
+	@button(label="Cancel", emoji="❌", style=discord.ButtonStyle.danger, custom_id="channelnukecancel")
+	async def channeldeletecancel(self, interaction:discord.Interaction, button:Button):
+		await interaction.response.defer()
+		for button in self.children:
+			button.disabled=True
+			return await interaction.message.edit(embed=discord.Embed(description=f"{Emojis.DENY} {self.ctx.author.mention}: **Nuking** cancelled - {interaction.channel.mention}.", color=Colors.DENY_COLOR), view=self)
 
 class Channels(commands.Cog):
 	def __init__(self, bot: Steal):
@@ -65,10 +109,10 @@ class Channels(commands.Cog):
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
-	async def deletechannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = None) -> None:
+	async def deletechannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = commands.param(default=None, displayed_default=None)) -> None:
 		if not channel or channel == ctx.channel:
 			bs = "\'"
-			return await ctx.warn(f'{f"I couldn{bs}t find a channel with those parameters" if not channel else ""}. Would you like to delete {ctx.channel.mention}?', view=ChannelDeleteConfirm())
+			return await ctx.warn(f'Would you like to delete {ctx.channel.mention}?', view=ChannelDeleteConfirm())
 			
 		
 		if channel in ctx.guild.channels:
@@ -76,6 +120,19 @@ class Channels(commands.Cog):
 			return await ctx.approve(f"Deleted {channel.name}")
 			
 		await ctx.warn(f'{channel} is not a valid channel.')
+
+
+	@managechannels.command(
+			name='nuke',
+			description='Nukes a channel.',
+	)
+	@cooldown(2,5, commands.BucketType.guild)
+	@has_permissions(manage_channels=True)
+	@bot_has_guild_permissions(manage_channels=True)
+	@guild_only()
+	async def nukechannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = commands.param(default=None, displayed_default=None)) -> None:
+		if not channel: channel = ctx.channel
+		return await ctx.warn(f'Are you sure you want to nuke {channel.mention}?', view=ChannelNukeConfirm(ctx, channel, self.bot))
 
 	@managechannels.command(
 			name='create',
@@ -85,7 +142,7 @@ class Channels(commands.Cog):
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
-	async def createchannel(self, ctx: StealContext, name:Optional[str]) -> None:
+	async def createchannel(self, ctx: StealContext, name:Optional[str] = commands.param(default=None, displayed_default=None)) -> None:
 		channel = await ctx.guild.create_text_channel(name=name if name else "channel", reason=f'Executed by {ctx.author}')
 		await ctx.approve(f'Created {channel.mention}.')
 
@@ -98,7 +155,7 @@ class Channels(commands.Cog):
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
-	async def hidechannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = None, target:Optional[Union[discord.Role, discord.Member]] = None):
+	async def hidechannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = commands.param(default=None, displayed_default=None), target:Optional[Union[discord.Role, discord.Member]] = commands.param(default=None, displayed_default=None)):
 		if channel is None: channel = ctx.channel	
 		if target is None: target = ctx.guild.default_role
 		perms = channel.overwrites_for(target)
@@ -140,7 +197,7 @@ class Channels(commands.Cog):
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
-	async def revealchannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = None, target: Optional[Union[discord.Member, discord.Role]] = None):
+	async def revealchannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = commands.param(default=None, displayed_default=None), target: Optional[Union[discord.Member, discord.Role]] = commands.param(default=None, displayed_default=None)):
 		if channel is None: channel = ctx.channel	
 		if target is None: target = ctx.guild.default_role
 		perms = channel.overwrites_for(target)
@@ -181,7 +238,7 @@ class Channels(commands.Cog):
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
-	async def renamechannel(self, ctx: StealContext, name:str, channel:Optional[discord.abc.GuildChannel]) -> None:
+	async def renamechannel(self, ctx: StealContext, name:str, channel:Optional[discord.abc.GuildChannel] = commands.param(default=None, displayed_default=None)) -> None:
 		if not channel:channel=ctx.channel
 		try:
 			await asyncio.wait_for(channel.edit(name=name, reason=f'Executed by {ctx.author}'), timeout=2)
@@ -201,11 +258,17 @@ class Channels(commands.Cog):
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
-	async def lockchannel(self, ctx: StealContext, target:Optional[Union[discord.Member, discord.Role]] = None, reason:Optional[str] = "No reason.", channel:Optional[discord.abc.GuildChannel] = None):
+	async def lockchannel(self, ctx: StealContext, target:Optional[Union[discord.Member, discord.Role]] = None, reason:Optional[str] = commands.param(default="No reason.", displayed_default=None), channel:Optional[discord.abc.GuildChannel] = None):
 		reason += ' | Executed by {}'.format(ctx.author)
 		if channel is None: channel = ctx.channel
 		if target is None: target = ctx.guild.default_role
+
+		if isinstance(channel, Union[discord.ForumChannel, discord.Thread]):
+			await channel.edit(locked=True, archived=True)
+			return await ctx.approve(f"Locked {channel.mention} for {ctx.guild.default_role} - **{reason.split(' |')[0]}**")
+
 		perms = channel.overwrites_for(target)
+
 		if perms.send_messages is None or perms.send_messages is True:
 			perms = target.guild_permissions if isinstance(target, discord.Member) else target.permissions
 			if isinstance(target, discord.Role):
@@ -244,11 +307,17 @@ class Channels(commands.Cog):
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
-	async def unlockchannel(self, ctx: StealContext, target:Optional[Union[discord.Member, discord.Role]] = None, reason:Optional[str] = "No reason.", channel:Optional[discord.abc.GuildChannel] = None):
+	async def unlockchannel(self, ctx: StealContext, target:Optional[Union[discord.Member, discord.Role]] = None, reason:Optional[str] = commands.param(default="No reason.", displayed_default=None), channel:Optional[discord.abc.GuildChannel] = None):
 		reason += ' | Executed by {}'.format(ctx.author)
 		if channel is None: channel = ctx.channel	
 		if target is None: target = ctx.guild.default_role
+
+		if isinstance(channel, Union[discord.ForumChannel, discord.Thread]):
+			await channel.edit(locked=False, archived=False)
+			return await ctx.approve(f"Unlocked {channel.mention} for {ctx.guild.default_role} - **{reason.split(' |')[0]}**")
+
 		perms = channel.overwrites_for(target)
+
 		if perms.send_messages is False:
 			perms = target.guild_permissions
 			if isinstance(target, discord.Role):
@@ -286,7 +355,7 @@ class Channels(commands.Cog):
 	@has_permissions(manage_channels=True)
 	@bot_has_permissions(manage_channels=True)
 	@guild_only()
-	async def slowmode_set(self, ctx:StealContext, time, channel:Optional[discord.abc.GuildChannel]) -> None:
+	async def slowmode_set(self, ctx:StealContext, time, channel:Optional[discord.abc.GuildChannel] = commands.param(default=None, displayed_default=None)) -> None:
 		if not channel:channel=ctx.channel
 		def time_conv(time):
 			try:

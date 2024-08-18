@@ -4,48 +4,23 @@ import discord
 from discord import Color
 from discord.ext import commands
 from discord.ext.commands import *
-import asyncio
 from discord.ui import *
-import base64
-import requests
-import psutil
 from sklearn import *
-import scipy.cluster
-import sys
-import unicodedata
-import aiohttp
-import mimetypes
-import functools
-import io
-import zipfile
-import math
-import os
-import zlib
 
 from managers.interaction import PatchedInteraction
 from tools.Steal import Steal
-from tools.rtfm import fuzzy
-from tools.EmbedBuilder import EmbedBuilder, EmbedScript
 from managers.context import StealContext
-from tools.View import DownloadAsset
 
 import typing
+from io import BytesIO
 from typing import List, Optional, Union
 from tools.Config import Colors, Emojis
 from tools.View import UrlView
+import zipfile
 
 from typing import Optional
 
 time_convert = {"s": 1, "m": 60, "h": 3600, "d": 86400}
-
-from tools.bytesio import dom_color, caption_image
-
-from io import BytesIO
-from sklearn.cluster import KMeans
-from skimage.transform import rescale
-
-import binascii
-import struct
 
 import re
 from typing import Generator, Union, Optional
@@ -55,20 +30,10 @@ from discord.ext import commands
 
 from managers.context import StealContext
 
-from tools.EmbedBuilderUi import EmbedEditor, Embed
-
-
 class Emojis(commands.Cog):
 	def __init__(self, bot: Steal):
 		self.bot = bot
-		self.ctx_menu = discord.app_commands.ContextMenu(
-			name="Jumbo",
-			callback=self.stickerenlarge
-
-		)
-		self.bot.tree.add_command(self.ctx_menu)
 		
-
 	@group(
 			name='emoji',
 			description='Manage emojis.'
@@ -80,11 +45,11 @@ class Emojis(commands.Cog):
 	@emoji.command(
 			name="add",
 			description="Adds an emoji.",
-			aliases=['create', 'steal', 'rob'])
+			aliases=['create', 'steal', 'rob', 'yoink'])
 	@has_permissions(manage_emojis=True)
 	@bot_has_guild_permissions(manage_emojis=True)
 	@guild_only()
-	async def emojiadd(self, ctx: StealContext, emoji:Union[discord.Attachment, discord.PartialEmoji], *, emoji_name:Optional[str]=None) -> None:
+	async def emojiadd(self, ctx: StealContext, emoji:Union[discord.Attachment, discord.PartialEmoji], *, emoji_name:Optional[str]=commands.param(default=Author, displayed_default=None)) -> None:
 		try:
 			if isinstance(emoji, discord.Attachment):
 
@@ -116,7 +81,7 @@ class Emojis(commands.Cog):
 	async def emojidelete(self, ctx: StealContext, emoji:discord.PartialEmoji) -> None:
 		try:
 			if emoji in ctx.guild.emojis:
-				await ctx.guild.delete_emoji(emoji)
+				await ctx.guild.delete_emoji(emoji, reason=f"Executed by {ctx.author}")
 
 				return await ctx.approve(f"Deleted emoji {emoji}")
 			else:
@@ -135,7 +100,7 @@ class Emojis(commands.Cog):
 		try:
 			if emoji in ctx.guild.emojis:
 				emoji = await ctx.guild.fetch_emoji(emoji.id)
-				await emoji.edit(name=f"{name}")
+				await emoji.edit(name=f"{name}", reason=f"Executed by {ctx.author}")
 				
 				return await ctx.approve(f"Renamed {emoji} to **{name}**")
 			else:
@@ -143,24 +108,143 @@ class Emojis(commands.Cog):
 		except:
 			return await ctx.deny(f"Could not rename emoji {emoji}")				
 
-	@guild_only()
-	async def stickerenlarge(self, interaction: PatchedInteraction, message: discord.Message):
+	@emoji.command(
+			name="zip",
+			description="Zips all server emojis."
+	)
+	async def sticker_zip(self, ctx: StealContext):
 
-		if message.stickers:
-			for sticker in message.stickers:
-				await interaction.response.send_message(embed=
-					discord.Embed(
-						title=f"{sticker.name}",
-						color=Colors.BASE_COLOR
-					).set_image(
-						url=sticker.url
-					).set_author(
-						name=interaction.user,
-						icon_url=interaction.user.display_avatar.url if interaction.user.display_avatar else None
-					)
-				)
-		else:
-			await interaction.warn("There are no stickers in that message.")
+		async with ctx.typing():
+			buff = BytesIO()
+			with zipfile.ZipFile(buff, "w") as zip:
+				for emoji in ctx.guild.emojis:
+					zip.writestr(f"{emoji.name}.png", data=await emoji.read())
+
+			buff.seek(0)
+			await ctx.send(file=discord.File(buff, filename=f"emojis-{ctx.guild.name}.zip"))
+
+	@emoji.command(
+			name="enlarge",
+			description="Enlarges an emoji and sends the image.",
+			aliases=["download", "e", "jumbo"]
+	)
+	async def emojienlarge(self, ctx: StealContext, emoji: discord.PartialEmoji):
+
+		url = ""
+
+		if isinstance(emoji, discord.PartialEmoji):
+			return await ctx.reply(
+				embed=discord.Embed(
+					title=f"{emoji.name} image",
+					url=emoji.url,
+					color=Colors.BASE_COLOR,
+				).set_image(
+					url=emoji.url
+				).set_author(
+					name=ctx.author,
+					icon_url=ctx.author.display_avatar.url
+				),
+			)
+
+	@group(
+			name="sticker",
+			description="Manage stickers."
+	)
+	async def stickers(self, ctx: StealContext):
+		if ctx.invoked_subcommand is None:
+			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `sticker`.')
+
+	@stickers.command(
+		name="add", 
+		aliases=["yoink", "steal"],
+		description="Adds a sticker."
+	)
+	@has_guild_permissions(manage_expressions=True)
+	@bot_has_guild_permissions(manage_expressions=True)
+	async def addsticker(self, ctx: StealContext, *, name:Optional[str] = commands.param(default=Author, displayed_default=None)):
+
+		if len(ctx.guild.stickers) >= ctx.guild.sticker_limit:
+			return await ctx.warn(
+				"This server does not have space for new stickers."
+			)
+
+		if not ctx.message.stickers and not ctx.message.attachments:
+			return await ctx.warn("Missing argument **sticker/attachment**.")
+
+		sticker = [sticker for sticker in ctx.message.stickers or ctx.message.attachments]
+
+		if name is None: name = sticker[0].name if ctx.message.stickers else sticker[0].filename.split(".")[0]
+
+		file = discord.File(fp=BytesIO(await sticker[0].read()))
+		stick = await ctx.guild.create_sticker(
+			name=name,
+			description=name,
+			emoji="skull",
+			file=file,
+			reason=f"Executed by {ctx.author}",
+		)
+		return await ctx.approve(
+			f"Added [**sticker**]({stick.url}) with the name - **{name}**"
+		)
+
+	@stickers.command(
+			name="delete", 
+			description="Deletes a sticker.",
+	)
+	@has_guild_permissions(manage_expressions=True)
+	@bot_has_guild_permissions(manage_expressions=True)
+	async def stickerdelete(self, ctx: StealContext):
+
+		if not ctx.message.stickers:
+			return await ctx.warn("Missing argument **sticker**.")
+		
+		sticker = [sticker.id for sticker in ctx.message.stickers]
+
+		sticker = await ctx.guild.fetch_sticker(sticker[0])
+
+		await sticker.delete(reason=f"Executed by {ctx.author}")
+		return await ctx.approve("Deleted that sticker")
+
+	@stickers.command(
+			name="zip",
+			description="Zips all server emojis."
+	)
+	async def stickerzip(self, ctx: StealContext):
+
+		async with ctx.typing():
+			buff = BytesIO()
+			with zipfile.ZipFile(buff, "w") as zip:
+				for sticker in ctx.guild.stickers:
+					zip.writestr(f"{sticker.name}.png", data=await sticker.read())
+
+			buff.seek(0)
+			await ctx.send(file=discord.File(buff, filename=f"stickers-{ctx.guild.name}.zip"))
+
+	@stickers.command(
+			name="enlarge",
+			description="Enlarges a sticker and sends the image.",
+			aliases=["download", "e", "jumbo"]
+	)
+	async def stickerenlarge(self, ctx: StealContext):
+
+		url = ""
+		if not ctx.message.stickers:
+			return await ctx.warn("Missing argument **sticker**.")
+		
+		sticker = [sticker for sticker in ctx.message.stickers]
+
+		return await ctx.reply(
+			embed=discord.Embed(
+				title=f"{sticker[0].name} image",
+				url=sticker[0].url,
+				color=Colors.BASE_COLOR,
+			).set_image(
+				url=sticker[0].url
+			).set_author(
+				name=ctx.author,
+				icon_url=ctx.author.display_avatar.url
+			),
+		)
 
 async def setup(bot):
 	await bot.add_cog(Emojis(bot))

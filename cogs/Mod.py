@@ -3,7 +3,7 @@ from __future__ import annotations
 import discord
 from discord.ext import commands
 from discord.ext.commands import *
-from typing import Optional
+from typing import Optional, Union
 import humanfriendly
 import datetime
 
@@ -44,7 +44,7 @@ class Mod(commands.Cog):
 	@has_permissions(manage_nicknames=True)
 	@bot_has_guild_permissions(manage_nicknames=True)
 	@cooldown(1,10, BucketType.user)
-	async def nickforce(self, ctx: StealContext, member:discord.Member, *, nick:Optional[str] = None):
+	async def nickforce(self, ctx: StealContext, member:discord.Member, *, nick:Optional[str] = commands.param(default="No reason.", displayed_default=None)):
 		try:
 			if nick is not None:
 				await member.edit(nick=nick, reason=f'Executed by {ctx.author}')
@@ -62,7 +62,7 @@ class Mod(commands.Cog):
 	@has_permissions(manage_nicknames=True)
 	@bot_has_guild_permissions(manage_nicknames=True)
 	@cooldown(1,10, BucketType.user)
-	async def nickset(self, ctx: StealContext, *, nick:Optional[str] = None):
+	async def nickset(self, ctx: StealContext, *, nick:Optional[str] = commands.param(default="No reason.", displayed_default=None)):
 		try:
 			if nick is not None:
 				await ctx.author.edit(nick=nick, reason=f'Executed by {ctx.author}')
@@ -102,7 +102,7 @@ class Mod(commands.Cog):
 	@cooldown(1, 10, BucketType.user)
 	@has_permissions(ban_members=True)
 	@bot_has_guild_permissions(ban_members=True)
-	async def banadd(self, ctx: StealContext, user: discord.User, *, reason: Optional[str] = "no reason") -> None:
+	async def banadd(self, ctx: StealContext, user: discord.User, *, reason: Optional[str] = commands.param(default="No reason.", displayed_default=None)) -> None:
 		reason += ' | Executed by {}'.format(ctx.author)
 
 		try:
@@ -133,7 +133,7 @@ class Mod(commands.Cog):
 	@bot_has_guild_permissions(ban_members=True)
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
-	async def banremove(self, ctx: StealContext, user:discord.User, *, reason: Optional[str] = 'No reason.') -> None:
+	async def banremove(self, ctx: StealContext, user:discord.User, *, reason: Optional[str] = commands.param(default="No reason.", displayed_default=None)) -> None:
 		reason += ' | Executed by {}'.format(ctx.author)
 		try:
 			bans = [entry async for entry in ctx.guild.bans(limit=None)]
@@ -153,7 +153,7 @@ class Mod(commands.Cog):
 	@cooldown(1, 10, BucketType.user)
 	@has_permissions(kick_members=True)
 	@bot_has_permissions(kick_members=True)
-	async def kick(self, ctx: StealContext, user: discord.Member, *, reason: Optional[str] = "No reason.") -> None:
+	async def kick(self, ctx: StealContext, user: discord.Member, *, reason: Optional[str] = commands.param(default="No reason.", displayed_default=None)) -> None:
 		reason += ' | Executed by {}'.format(ctx.author)
 
 		try:
@@ -182,13 +182,13 @@ class Mod(commands.Cog):
 
 	@mute.command(
 			name='add', 
-		    description='Mutes a user.', 
+			description='Mutes a user.', 
 	)
 	@has_permissions(manage_messages=True)
 	@bot_has_guild_permissions(mute_members=True)
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
-	async def muteadd(self, ctx: StealContext, user: discord.Member, time: str="60s", *, reason: Optional[str] = "No reason.") -> None:
+	async def muteadd(self, ctx: StealContext, user: discord.Member, time: str="60s", *, reason: Optional[str] = commands.param(default="No reason.", displayed_default=None)) -> None:
 		reason += ' | Executed by {}'.format(ctx.author)
 		try:
 			if user.id == self.bot.user.id:
@@ -226,7 +226,7 @@ class Mod(commands.Cog):
 	@bot_has_guild_permissions(mute_members=True)
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
-	async def muteremove(self, ctx: StealContext, member:discord.Member, *, reason: Optional[str] = 'No reason.') -> None:
+	async def muteremove(self, ctx: StealContext, member:discord.Member, *, reason: Optional[str] = commands.param(default="No reason.", displayed_default=None)) -> None:
 		reason += ' | Executed by {}'.format(ctx.author)
 		try:
 			if member.is_timed_out():
@@ -246,7 +246,7 @@ class Mod(commands.Cog):
 	@bot_has_guild_permissions(manage_messages=True)
 	@cooldown(1, 30, BucketType.user)
 	@guild_only()
-	async def purge(self, ctx: StealContext, number: Optional[int] = 5) -> None:
+	async def purge(self, ctx: StealContext, number: Optional[int] = commands.param(default=5, displayed_default=None)) -> None:
 		if number <= 100 and ctx.author != ctx.guild.owner or ctx.author == ctx.guild.owner and number <= 200:
 			await ctx.channel.purge(limit=number + 1, reason=f'Executed by {ctx.author}')
 			embed=discord.Embed(
@@ -264,7 +264,7 @@ class Mod(commands.Cog):
 	@has_permissions(manage_messages=True)
 	@bot_has_guild_permissions(manage_messages=True)
 	@guild_only()
-	async def pin(self, ctx: StealContext, message:Optional[discord.Message] = None):
+	async def pin(self, ctx: StealContext, message:Optional[discord.Message] = commands.param(default=None, displayed_default=None)):
 		message = await ctx.channel.fetch_message(ctx.message.reference.message_id) or None if not message else message
 		if message is not None:
 			if message not in await ctx.channel.pins():
@@ -282,7 +282,7 @@ class Mod(commands.Cog):
 	@has_permissions(manage_messages=True)
 	@bot_has_guild_permissions(manage_messages=True)
 	@guild_only()
-	async def unpin(self, ctx: StealContext, message:Optional[discord.Message] = None):
+	async def unpin(self, ctx: StealContext, message:Optional[discord.Message] = commands.param(default=None, displayed_default=None)):
 		message = await ctx.channel.fetch_message(ctx.message.reference.message_id) or None if not message else message
 		if message is not None:
 			if message in await ctx.channel.pins():
@@ -292,6 +292,55 @@ class Mod(commands.Cog):
 				await ctx.warn("That message is not pinned.")
 		else:
 			await ctx.warn("Pass a message or reply to unpin it.")
+
+	@command(
+			name="quickpoll", 
+			aliases=["poll"],
+			description="Creates a quickpoll."
+	)
+	async def quickpoll_cmd(self, ctx: StealContext, question: str, *, answers:Union[str, list]):
+
+		answers = [answer for answer in answers.split(",")]
+		desc = []
+
+		if len(answers) <= 1:
+			return await ctx.warn("You need more than 1 answer.")
+
+		if len(answers) > 10:
+			return await ctx.warn("You cannot have more than 10 answers.")
+
+		reactions = {
+				1 : "1️⃣",
+				2 : "2️⃣",
+				3 : "3️⃣",
+				4 : "4️⃣",
+				5 : "5️⃣",
+				6 : "6️⃣",
+				7 : "7️⃣",
+				8 : "8️⃣",
+				9 : "9️⃣",
+				10 : "🔟"}
+
+		number = 1
+		for answer in answers:
+			desc.append(f"{reactions.get(number)} - **{str(answer).replace('**', '')}**")
+			number += 1
+
+		message = await ctx.reply(
+			embed=discord.Embed(
+					color=Colors.BASE_COLOR,
+					title=question,
+					description="\n".join(desc)
+				).set_author(
+					name=ctx.author,
+					icon_url=ctx.author.display_avatar.url
+				)
+		)
+
+		number = 1
+		for answer in answers:
+			await message.add_reaction(reactions.get(number))
+			number += 1
 
 async def setup(bot):
 	await bot.add_cog(Mod(bot))

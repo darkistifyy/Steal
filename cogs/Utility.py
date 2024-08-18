@@ -360,7 +360,7 @@ class Utility(commands.Cog):
 
 		self._rtfm_cache = cache
 
-	async def do_rtfm(self, ctx: StealContext, key: str, obj: Optional[str]):
+	async def do_rtfm(self, ctx: StealContext, key: str, obj: str = commands.param(default=None, displayed_default=None) ):
 		if obj is None:
 			view = UrlView(RTFM_PAGE_TYPES[key], "Docs")
 			out = await ctx.reply(
@@ -426,7 +426,7 @@ class Utility(commands.Cog):
 			name="rtfm",
 			description="Gives you a documentation link for a discord.py entity"
 	)
-	async def rtfm(self, ctx: StealContext, *, entity: Optional[str] = None):
+	async def rtfm(self, ctx: StealContext, *, entity: Optional[str] = commands.param(default=None, displayed_default=None)):
 		await self.do_rtfm(ctx, 'stable', entity)
 
 	@command(
@@ -541,7 +541,7 @@ class Utility(commands.Cog):
 			description='Gets someones avatar.',
 			aliases=['av', 'pfp'],
 	)
-	async def avatar(self, ctx: StealContext, member:Optional[discord.User]) -> None:
+	async def avatar(self, ctx: StealContext, member:Optional[discord.User] = commands.param(default=None, displayed_default=None)) -> None:
 		if not member:member=ctx.author
 		if not member.display_avatar:
 			return await ctx.deny(f"**{member}** does not have an avatar.")
@@ -560,7 +560,7 @@ class Utility(commands.Cog):
 			name="banner",
 			description='Gets someones avatar.',
 	)
-	async def banner(self, ctx: StealContext, member:Optional[discord.User]) -> None:
+	async def banner(self, ctx: StealContext, member:Optional[discord.User] = commands.param(default=None, displayed_default=None)) -> None:
 		if not member:member=ctx.author
 		user = await self.bot.fetch_user(member.id)
 		if user.banner:

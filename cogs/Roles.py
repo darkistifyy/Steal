@@ -38,7 +38,7 @@ class Roles(commands.Cog):
 	@bot_has_guild_permissions(manage_roles=True)
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
-	async def roleadd(self, ctx: StealContext, member:discord.Member, role:discord.Role, *, reason: Optional[str] = "No reason.") -> None:
+	async def roleadd(self, ctx: StealContext, member:discord.Member, role:discord.Role, *, reason: Optional[str] = commands.param(default="No reason.", displayed_default=None)) -> None:
 			reason += ' | Executed by {}'.format(ctx.author)
 			if member.top_role.position > ctx.author.top_role.position and ctx.author != ctx.guild.owner:
 				return await ctx.deny("You do not have permission to manage this users roles.")
@@ -59,7 +59,7 @@ class Roles(commands.Cog):
 	@bot_has_guild_permissions(manage_roles=True)
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
-	async def roleremove(self, ctx: StealContext, member:discord.Member, role:discord.Role, reason: Optional[str] = "No reason.") -> None: 
+	async def roleremove(self, ctx: StealContext, member:discord.Member, role:discord.Role, reason: Optional[str] = commands.param(default="No reason.", displayed_default=None)) -> None: 
 			reason += ' | Executed by {}'.format(ctx.author)
 			if member.top_role.position > ctx.author.top_role.position and ctx.author != ctx.guild.owner:
 				return await ctx.deny(f'You do not have permission to manage this users roles.')
@@ -207,7 +207,7 @@ class Roles(commands.Cog):
 	@bot_has_guild_permissions(manage_roles=True)
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
-	async def colorrole(self, ctx: StealContext, role:discord.Role, hex:Optional[str] = None) -> None:
+	async def colorrole(self, ctx: StealContext, role:discord.Role, hex:Optional[str] = commands.param(default=None, displayed_default=None)) -> None:
 		if hex is None:
 			return await ctx.approve(f"Hex color of {role.mention}: {role.color}")
 
@@ -233,7 +233,7 @@ class Roles(commands.Cog):
 	@bot_has_guild_permissions(manage_roles=True)
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
-	async def roleicon(self, ctx: StealContext, role:discord.Role, image:Optional[discord.Attachment] = None) -> None:
+	async def roleicon(self, ctx: StealContext, role:discord.Role, image:Optional[discord.Attachment] = commands.param(default=None, displayed_default=None)) -> None:
 		if image is None:
 			if role.display_icon:
 				if not isinstance(role.display_icon, str):
@@ -270,7 +270,7 @@ class Roles(commands.Cog):
 	@bot_has_guild_permissions(manage_roles=True)
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
-	async def roleemoji(self, ctx: StealContext, role:discord.Role, emoji:Optional[str] = None) -> None:
+	async def roleemoji(self, ctx: StealContext, role:discord.Role, emoji:Optional[str] = commands.param(default=None, displayed_default=None)) -> None:
 		if emoji is None:
 			if role.display_icon:
 				if not isinstance(role.display_icon, str):
@@ -325,7 +325,7 @@ class Roles(commands.Cog):
 	@bot_has_guild_permissions(manage_roles=True)
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
-	async def createrole(self, ctx: StealContext, name:Optional[str], hoist:Optional[bool] = False, hex:Optional[str] = None) -> None:
+	async def createrole(self, ctx: StealContext, name:Optional[str], hoist:Optional[bool] = False, hex:Optional[str] = commands.param(default=None, displayed_default=None)) -> None:
 		from isHex import isHex
 
 		rgb = None

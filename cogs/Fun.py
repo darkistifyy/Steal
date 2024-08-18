@@ -545,7 +545,7 @@ class Fun(commands.Cog):
 		description="Shows the bitches of a member.",
 		aliases=["bitchrate"],
 	)
-	async def bitches(self, ctx: StealContext, *, user: Optional[discord.Member] = Author):
+	async def bitches(self, ctx: StealContext, *, user: Optional[discord.Member] = commands.param(default=Author, displayed_default=None)):
 		choices = ["regular", "still regular", "lol", "xd", "id", "zero", "infinite"]
 		if random.choice(choices) == "infinite":
 			result = "∞"
@@ -560,7 +560,7 @@ class Fun(commands.Cog):
 			description="Shows the gay \% of a member.",
 			aliases=["gay"]
 	)
-	async def gay(self, ctx: StealContext, *, member: Optional[discord.Member] = Author):
+	async def gay(self, ctx: StealContext, *, member: Optional[discord.Member] = commands.param(default=Author, displayed_default=None)):
 
 		return await ctx.neutral(f"{member.mention} is **{random.randint(0, 100)}%** gay 🏳️‍🌈")
 
@@ -569,7 +569,7 @@ class Fun(commands.Cog):
 			description="Shows the pp size of a member.",
 			aliases=["pp"]
 	)
-	async def pp(self, ctx: StealContext, *, member: Optional[discord.Member] = Author):
+	async def pp(self, ctx: StealContext, *, member: Optional[discord.Member] = commands.param(default=Author, displayed_default=None)):
 	
 		length = "===================="
 		return await ctx.neutral(f"{member.mention}'s penis\n\n8{length[random.randint(1, 20):]}D")
@@ -668,6 +668,52 @@ class Fun(commands.Cog):
 			description=f"**{ctx.author.name}** slaps **{member.name}**",
 		).set_image(url=gif["url"])
 		return await ctx.reply(embed=embed)
+
+	@command(
+			name="quran",
+			description="get a random Qur'an verse",
+			aliases=["qur'an"]
+	)
+	async def quran(self, ctx: StealContext):
+
+		result = await self.bot.session.get_json(
+			"https://api.alquran.cloud/v1/surah/40/en.sahih"
+		)
+		name = f"{result['data']['name']} ({result['data']['englishName']})"
+		number = result["data"]["number"]
+		ayah = random.choice(result["data"]["ayahs"])
+		numberInSurah = ayah["numberInSurah"]
+		text = ayah["text"]
+
+		embed = Embed(
+			color=Colors.BASE_COLOR, description=f"**{number}:{numberInSurah}** {text}"
+		).set_author(
+				name=name,
+				icon_url=ctx.author.display_avatar.url
+		)
+		
+
+		return await ctx.send(embed=embed)
+	
+
+
+	@command(
+			name="bible",
+			description="get a random Bible verse",
+	)
+	async def bible(self, ctx: StealContext):
+
+		params = {"format": "json", "order": "random"}
+
+		result = await self.bot.session.get_json(
+			"https://beta.ourmanna.com/api/v1/get", params=params
+		)
+		embed = Embed(
+			color=Colors.BASE_COLOR, description=result["verse"]["details"]["text"]
+		)
+		embed.set_author(name=result["verse"]["details"]["reference"])
+		await ctx.send(embed=embed)
+
 
 async def setup(bot):
 	await bot.add_cog(Fun(bot))

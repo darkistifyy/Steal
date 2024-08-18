@@ -491,7 +491,7 @@ class Info(commands.Cog):
 					info = discord.Embed(
 						title=f"{activity.title}",
 						url=f"{activity.track_url}",
-						description=f"🎵 {member} is **{str(activity.type).split(".")[1].capitalize()} to** [{activity.title}]({activity.track_url})",
+						description=f"🎵 {member} is **{str(activity.type).split('.')[1].capitalize()} to** [{activity.title}]({activity.track_url})",
 						color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])
 					).add_field(
 						name="Lyricist/Artist",
@@ -518,11 +518,11 @@ class Info(commands.Cog):
 
 					info = discord.Embed(
 						title=f"{activity.name}",
-						description=f"🎮 {member} is **{str(activity.type).split(".")[1].capitalize()}** {activity.name}",
+						description=f"🎮 {member} is **{str(activity.type).split('.')[1].capitalize()}** {activity.name}",
 						color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])
 					).add_field(
 						name="Platform",
-						value=f"{activity.platform if activity.platform else "Not avaliable."}"
+						value=f"{activity.platform if activity.platform else 'Not avaliable.'}"
 					).add_field(
 						name="Info",
 						value=f"{activity.large_image_text}"
@@ -546,7 +546,7 @@ class Info(commands.Cog):
 					info = discord.Embed(
 						title=f"{activity.name}",
 						url=activity.url,
-						description=f"🖥️ {member} is **{str(activity.type).split(".")[1].capitalize()}** {activity.game}",
+						description=f"🖥️ {member} is **{str(activity.type).split('.')[1].capitalize()}** {activity.game}",
 						color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])
 					).add_field(
 						name="Platform",
@@ -934,8 +934,8 @@ class Info(commands.Cog):
 
 		await ctx.send(
 			embed=discord.Embed(
-				title=f"{ctx.guild.name}'s statistics",
-				description=f"""
+				title=f"{ctx.guild.name}'s statistics ({len(humans)})",
+				description=f""">>>
 							**humans** - {len(humans)}
 							**bots** - {len(bots)}
 							**total** - {len(humans + bots)}
