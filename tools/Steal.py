@@ -87,6 +87,15 @@ class Steal(commands.Bot):
 		self.add_view(TicketClose())
 		self.add_view(TicketCreate())
 		self.add_view(TicketModPanel())
+		try:
+			print("Jishaku.")
+			await self.load_extension("jishaku")
+			log.info("Loaded module: Jishaku.")
+		except commands.ExtensionFailed:
+			log.warning(f'Extension failed to load: Jishaku.')
+			raise
+		except Exception as e:
+			log.error(f'Error loading module Jishaku.: {e}')		
 
 		return await super().setup_hook()
 
