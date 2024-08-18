@@ -143,7 +143,7 @@ class Steal(commands.Bot):
 	@property
 	def uptime(self) -> str:
 		return self.humanize_time(self._uptime)
-	"""
+	
 	async def on_command_error(self, ctx: StealContext, exception: commands.CommandError) -> None:
 		if type(exception) in [commands.CommandNotFound, commands.NotOwner, commands.CheckFailure]: return
 		elif isinstance(exception, commands.BadColourArgument):
@@ -209,7 +209,7 @@ class Steal(commands.Bot):
 		if isinstance(exception, commands.MissingPermissions):
 			return await ctx.warn(f"I do not have permissions to do that.")
 		elif isinstance(exception.original, discord.HTTPException):
-			return await ctx.warn(f"**Invalid code**\n```{exception.original}```")"""
+			return await ctx.warn(f"**Invalid code**\n```{exception.original}```")
 
 	async def get_context(self, message, *, cls= StealContext):
 		return await super().get_context(message, cls=cls)
