@@ -9,6 +9,7 @@ import random
 import aiohttp
 import time
 import orjson
+import asqlite
 
 from tools.Steal import Steal
 from managers.context import StealContext
@@ -171,6 +172,111 @@ class Fun(commands.Cog):
 		self.bot = bot
 		self.MatchStart = {}
 		self.lifes = {}
+
+	@group(
+			name="vape",
+			description="Vape commands.",
+			aliases=["juul", "nic"]
+	)
+	async def vape(self, ctx: StealContext):
+		if ctx.invoked_subcommand is None:
+			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `vape`.')
+
+	@vape.command(
+			name="hit",
+			description="Hit the vape.",
+			aliases=["toke", "slurp"]
+	)
+	@cooldown(1,60, BucketType.user)
+	async def vapehit(self, ctx: StealContext):
+		async with asqlite.connect('main.db') as conn:
+			async with conn.cursor() as cursor:
+				await cursor.execute(
+					"""
+					CREATE TABLE IF NOT EXISTS vape(userid INTEGER, hits INTEGER)
+					"""
+				)
+
+				cur = await cursor.execute(
+					"""
+					SELECT hits FROM VAPE WHERE userid = $1
+					""", (ctx.author.id, )
+				)
+
+				hits = await cur.fetchone()
+
+				if not hits:
+
+					await cursor.execute(
+						"""
+						INSERT INTO vape VALUES ($1, $2)
+						""", (ctx.author.id, 1, )
+					)
+
+					message = await ctx.send("Hitting the **vape**...")
+			
+					await conn.commit()
+					await asyncio.sleep(4)
+
+					await message.edit(
+							content=message.content,
+							embed=discord.Embed(
+								description = f"{ctx.author.mention}: You have hit the **vape** for the `first` time.",
+								color=Colors.BASE_COLOR
+							)
+					)
+
+				hitsint = hits[0]
+				hitsint += 1
+
+				await cursor.execute(
+					"""
+					UPDATE vape SET hits = $1 WHERE userid = $2
+					""", (hitsint, ctx.author.id, )
+				)
+
+				message = await ctx.send("Hitting the **vape**...")
+			
+				await conn.commit()
+				await asyncio.sleep(4)
+
+				await message.edit(
+						content=message.content,
+						embed=discord.Embed(
+							description = f"{ctx.author.mention}: You have hit the **vape** `{hitsint}` times.",
+							color=Colors.BASE_COLOR
+						)
+				)
+				
+	@vape.command(
+			name="hits",
+			description="How much of a fiend are you.",
+			aliases=["tokes", "slurps"]
+	)
+	async def vapehits(self, ctx: StealContext, user: Optional[discord.User] = Author):
+		async with asqlite.connect('main.db') as conn:
+			async with conn.cursor() as cursor:
+				await cursor.execute(
+					"""
+					CREATE TABLE IF NOT EXISTS vape(userid INTEGER, hits INTEGER)
+					"""
+				)
+
+				cur = await cursor.execute(
+					"""
+					SELECT hits FROM VAPE WHERE userid = $1
+					""", (user.id, )
+				)	
+
+				hits = await cur.fetchone()
+
+				if not hits:
+					return await ctx.warn(f"{user.mention} has not hit the **vape** yet.")
+
+				hitsint = hits[0]
+
+				await ctx.neutral(f"{user.mention} has hit the **vape** `{hitsint}` times.")
+
 
 	@command(
 			name="ping",
@@ -355,6 +461,7 @@ class Fun(commands.Cog):
 	@command(
 			name="dog",
 			description="Sends a random dog pic.",
+			aliases=["bitch"]
 	)
 	@cooldown(3,5, BucketType.user)
 	async def dog(self, ctx: StealContext):
@@ -370,6 +477,7 @@ class Fun(commands.Cog):
 	@command(
 			name="cat",
 			description="Sends a random cat pic.",
+			aliases=["pussy"]
 	)
 	@cooldown(3,5, BucketType.user)
 	async def cat(self, ctx: StealContext):
@@ -405,6 +513,7 @@ class Fun(commands.Cog):
 	@command(
 			name="lizard",
 			description="Sends a random lizard image.",
+			aliases=["gecko"]
 	)
 	async def lizard(self, ctx: StealContext):
 

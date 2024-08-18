@@ -10,6 +10,8 @@ import aiohttp
 import io
 import os
 import zlib
+import asqlite
+import math
 
 from tools.Steal import Steal
 from tools.rtfm import fuzzy
@@ -428,6 +430,194 @@ class Utility(commands.Cog):
 	)
 	async def rtfm(self, ctx: StealContext, *, entity: Optional[str] = commands.param(default=None, displayed_default=None)):
 		await self.do_rtfm(ctx, 'stable', entity)
+
+	@group(
+			name="tag",
+			description="Manage tags and shit."
+	)
+	async def tag(self, ctx: StealContext):
+		if ctx.invoked_subcommand is None:
+			name = ctx.message.content.split("tag ")[1]
+			if name is None:
+				return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `tag`.')
+			async with asqlite.connect("main.db") as conn:
+				async with conn.cursor() as cursor:
+
+					await cursor.execute(
+						"""
+						CREATE TABLE IF NOT EXISTS tags(guildid INTEGER, ownerid INTEGER, name TEXT, script TEXT)
+						"""
+					)
+
+					cur = await cursor.execute(
+						"""
+						SELECT script FROM tags WHERE guildid = $1 AND name = $2
+						""", ctx.guild.id, name.lower(), 
+					)
+
+					script = await cur.fetchone()
+
+					if not script:
+						return await ctx.warn(f"Tag `{name}` not found.")
+					
+					scriptcode = script[0]
+
+					processed_message = EmbedBuilder.embed_replacement(ctx.author, scriptcode)
+					content, embed, view = await EmbedBuilder.to_object(processed_message)
+					await ctx.reply(content=content, embed=embed, view=view)
+
+	@tag.command(
+			name="create",
+			descrtiption="Creates a tag."
+	)
+	@has_permissions(manage_messages=True)
+	async def tagcreate(self, ctx: StealContext, name:str, *, script: str):
+		async with asqlite.connect("main.db") as conn:
+			async with conn.cursor() as cursor:
+
+				await cursor.execute(
+					"""
+					CREATE TABLE IF NOT EXISTS tags(guildid INTEGER, ownerid INTEGER, name TEXT, script TEXT)
+					"""
+				)
+
+				cur = await cursor.execute(
+					"""
+					SELECT ownerid FROM tags WHERE guildid = $1 AND name = $2
+					""", ctx.guild.id, name.lower()
+				)
+
+				id = await cur.fetchone()
+
+				if not id:
+
+					await cursor.execute(
+						"""
+						INSERT INTO tags VALUES ($1, $2, $3, $4)
+						""", ctx.guild.id, ctx.author.id, name.lower(), script, 
+					)
+
+					await conn.commit()
+
+					return await ctx.approve(f"Created tag **{name.lower()}**.")
+				
+				else:
+					return await ctx.warn(f"The tag **{name.lower()}** already exists.")
+
+	@tag.command(
+			name="delete",
+			descrtiption="Deletes a tag."
+	)
+	@has_permissions(manage_messages=True)
+	async def tagdelete(self, ctx: StealContext, *, name: str):
+		async with asqlite.connect("main.db") as conn:
+			async with conn.cursor() as cursor:
+
+				await cursor.execute(
+					"""
+					CREATE TABLE IF NOT EXISTS tags(guildid INTEGER, ownerid INTEGER, name TEXT, script TEXT)
+					"""
+				)
+
+				cur = await cursor.execute(
+					"""
+					SELECT ownerid FROM tags WHERE guildid = $1 AND name = $2
+					""", ctx.guild.id, name.lower()
+				)
+
+				id = await cur.fetchone()
+
+				if not id:
+					return await ctx.warn(f"Tag **{name.lower()}** not found.")
+
+				ownerid = id[0]
+				if ownerid != ctx.author.id and ctx.author.id != ctx.guild.owner.id:
+					return await ctx.deny(f"You are not the owner of this tag.")
+
+				await cursor.execute(
+					"""
+					DELETE FROM tags WHERE guildid = $1 AND ownerid = $2 AND name = $3
+					""", ctx.guild.id, ownerid, name.lower(), 
+				)
+
+				return await ctx.approve(f"Deleted tag **{name.lower()}**.")
+
+	@tag.command(
+			name="list",
+			descrtiption="Lists all server tags."
+	)
+	@has_permissions(manage_messages=True)
+	async def taglist(self, ctx: StealContext):
+		async with asqlite.connect("main.db") as conn:
+			async with conn.cursor() as cursor:
+
+				await cursor.execute(
+					"""
+					CREATE TABLE IF NOT EXISTS tags(guildid INTEGER, ownerid INTEGER, name TEXT, script TEXT)
+					"""
+				)
+
+				cur = await cursor.execute(
+					"""
+					SELECT name, ownerid FROM tags WHERE guildid = $1
+					""", ctx.guild.id, 
+				)
+
+				tags = await cur.fetchall()
+
+				if not tags:
+					return await ctx.warn(f"There are no tags in this guild.")
+
+				taglist = tags
+
+				count = 0
+				embeds = []
+				"""
+				entries = [
+					f"{tagname} ({tagowner})"
+					for tagname, tagowner, in enumerate(taglist, start=1)
+				]"""
+				entries = [
+						f"`{i}` **{tagname}** (<@{tagowner}>)"
+						for i, [tagname, tagowner] in enumerate(taglist, start=1)
+					]
+					
+				print(entries)
+
+				l = 5
+
+				embed = discord.Embed(
+					color=Colors.BASE_COLOR,
+					description="",
+					title=f"Tags (`{len(entries)}`)",
+				).set_footer(
+							icon_url=self.bot.user.display_avatar.url or None,
+							text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+						)
+
+				for entry in entries:
+					embed.description += f'{entry}\n'
+					count += 1
+
+					if count == l:
+						embeds.append(embed)
+						embed = discord.Embed(
+							color=Colors.BASE_COLOR,
+							title=f"Tags (`{len(entries)}`)",
+						).set_footer(
+							icon_url=self.bot.user.display_avatar.url or None,
+							text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+						)
+
+						count = 0
+
+				if count > 0:
+					embeds.append(embed.set_footer(
+							icon_url=self.bot.user.display_avatar.url or None,
+							text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+						))
+
+				await ctx.paginate(embeds)
 
 	@command(
 			name="embedui",

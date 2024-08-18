@@ -142,7 +142,7 @@ class Channels(commands.Cog):
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
-	async def createchannel(self, ctx: StealContext, name:Optional[str] = commands.param(default=None, displayed_default=None)) -> None:
+	async def createchannel(self, ctx: StealContext, *, name:Optional[str] = commands.param(default=None, displayed_default=None)) -> None:
 		channel = await ctx.guild.create_text_channel(name=name if name else "channel", reason=f'Executed by {ctx.author}')
 		await ctx.approve(f'Created {channel.mention}.')
 
@@ -160,7 +160,7 @@ class Channels(commands.Cog):
 		if target is None: target = ctx.guild.default_role
 		perms = channel.overwrites_for(target)
 		if perms.view_channel is None or perms.view_channel is True:
-			perms = target.guild_permissions
+			perms = target.guild_permissions if not isinstance(target, discord.Role) else target.permissions
 			if isinstance(target, discord.Role):
 				if target.position > ctx.guild.me.top_role.position:
 					return await ctx.warn(f"I cannot manage {target.mention}.")
