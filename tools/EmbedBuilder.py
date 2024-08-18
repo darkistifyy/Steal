@@ -88,7 +88,7 @@ class EmbedBuilder:
             author = embed["author"]
             to_return += "{author: "
             if author.get("name"):
-                to_return += f"name: {author.get('name')}"
+                to_return += f"{author.get('name')}"
             if author.get("icon_url"):
                 to_return += f" && icon: {author.get('icon_url')}"
             if author.get("url"):
