@@ -9,6 +9,7 @@ from dotenv import *
 from discord import Color
 import datetime
 import time
+import math
 from discord.ext.commands import *
 from tools.Config import Auth
 from tools.View import UrlView
@@ -278,6 +279,65 @@ class BotManagement(commands.Cog):
 			await self.restart_bot()
 		else: 
 			return await ctx.deny("Fuck off.")
+
+	@command(
+			name="guilds",
+			description='Guilds the bot is in.',
+			aliases=["servers"]
+	)
+	@guild_only()
+	async def guilds(self, ctx: StealContext) -> None:
+
+		guilds = [guild for guild in self.bot.guilds]
+
+		if not guilds:
+			return await ctx.warn(f"The bot is in no guilds.")
+			
+
+		count = 0
+		embeds = []
+		
+		entries = [
+			f"`{i}` {b.name} (`{b.owner}`)"
+			for i, b in enumerate(guilds, start=1)
+		]
+
+		l = 5
+
+		embed = discord.Embed(
+			color=Colors.BASE_COLOR,
+			description="",
+			title=f"Guilds (`{len(entries)}`)",
+		).set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				)
+
+		for entry in entries:
+			embed.description += f'{entry}\n'
+			count += 1
+			
+			if count == l:
+				embeds.append(embed)
+				embed = discord.Embed(
+					color=Colors.BASE_COLOR,
+					description="",
+					title=f"Guilds (`{len(entries)}`)",
+				).set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				)
+
+				count = 0
+		
+		if count > 0:
+			embeds.append(embed.set_footer(
+					icon_url=self.bot.user.display_avatar.url or None,
+					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
+				))
+		
+		await ctx.paginate(embeds)
+
 
 async def setup(bot):
 	await bot.add_cog(BotManagement(bot))

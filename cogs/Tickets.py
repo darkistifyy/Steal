@@ -141,12 +141,17 @@ class TicketCreate(discord.ui.View):
 				) 
 
 				items = await cur.fetchmany()
+
+				supportroleid = None
+				categoryid = None
+				openscript = None
+
 				for item in items:
 					supportroleid = item[1] or None
 					categoryid = item[0] or None
 					openscript = item[2] or None
 
-				if supportroleid:
+				if supportroleid is not None:
 					sup = interaction.guild.get_role(supportroleid)
 
 					overwrites = {
@@ -156,7 +161,8 @@ class TicketCreate(discord.ui.View):
 						sup: discord.PermissionOverwrite(read_messages=True, send_messages=True)
 					}
 
-					try:
+				
+					if categoryid is not None:
 						cat = interaction.guild.get_channel(categoryid)
 						tc = await cat.create_text_channel(
 							name=f"{interaction.user.name}",
@@ -164,7 +170,7 @@ class TicketCreate(discord.ui.View):
 							overwrites=overwrites
 						)
 
-						if openscript:
+						if openscript is not None:
 							parsed = EmbedBuilder.embed_replacement(interaction.user, openscript)
 							content, embed, view = await EmbedBuilder.to_object(parsed)
 							out = await tc.send(content=content, embed=embed, view=TicketClose())
@@ -181,22 +187,53 @@ class TicketCreate(discord.ui.View):
 						),view=TicketClose())
 						await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} Ticket opened successfully: {tc.mention}', color=Colors.BASE_COLOR))
 						await top.pin()
+					else:
 
-					except:
 						tc = await interaction.guild.create_text_channel(
 								name=f'{interaction.user.name}',
 								topic=f'Open - {interaction.user.id}',
 								overwrites=overwrites
 						)
-
-
-						if openscript:
+						if openscript is not None:
 							parsed = EmbedBuilder.embed_replacement(interaction.user, openscript)
 							content, embed, view = await EmbedBuilder.to_object(parsed)
 							out = await tc.send(content=content, embed=embed, view=TicketClose())
 							await out.pin()
 							return await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} Ticket opened successfully: {tc.mention}', color=Colors.BASE_COLOR))
+						
+						top = await tc.send(embed=discord.Embed(
+							title='__Ticket opened.__',
+							description='﹒Explain why you opened this ticket\n﹒Be patient for a response.',
+							color=Colors.BASE_COLOR
+						).set_author(
+							icon_url=interaction.guild.icon.url if interaction.guild.icon else None,
+							name=interaction.guild.name
+						),view=TicketClose()
+						)
+						await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} Ticket opened successfully: {tc.mention}', color=Colors.BASE_COLOR))
+						await top.pin()
+				else:
 
+					overwrites = {
+						interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False, view_channel=False),
+						interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True, view_channel = True),
+						interaction.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
+					}
+
+					if categoryid is not None:
+						cat = interaction.guild.get_channel(categoryid)
+						tc = await cat.create_text_channel(
+							name=f"{interaction.user.name}",
+							topic=f"Open - {interaction.user.id}",
+							overwrites=overwrites
+						)
+
+						if openscript is not None:
+							parsed = EmbedBuilder.embed_replacement(interaction.user, openscript)
+							content, embed, view = await EmbedBuilder.to_object(parsed)
+							out = await tc.send(content=content, embed=embed, view=TicketClose())
+							await out.pin()
+							return await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} Ticket opened successfully: {tc.mention}', color=Colors.BASE_COLOR))
 
 						top = await tc.send(embed=discord.Embed(
 							title='__Ticket opened.__',
@@ -208,6 +245,33 @@ class TicketCreate(discord.ui.View):
 						),view=TicketClose())
 						await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} Ticket opened successfully: {tc.mention}', color=Colors.BASE_COLOR))
 						await top.pin()
+					else:
+
+						tc = await interaction.guild.create_text_channel(
+								name=f'{interaction.user.name}',
+								topic=f'Open - {interaction.user.id}',
+								overwrites=overwrites
+						)
+						if openscript is not None:
+							parsed = EmbedBuilder.embed_replacement(interaction.user, openscript)
+							content, embed, view = await EmbedBuilder.to_object(parsed)
+							out = await tc.send(content=content, embed=embed, view=TicketClose())
+							await out.pin()
+							return await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} Ticket opened successfully: {tc.mention}', color=Colors.BASE_COLOR))
+						
+						top = await tc.send(embed=discord.Embed(
+							title='__Ticket opened.__',
+							description='﹒Explain why you opened this ticket\n﹒Be patient for a response.',
+							color=Colors.BASE_COLOR
+						).set_author(
+							icon_url=interaction.guild.icon.url if interaction.guild.icon else None,
+							name=interaction.guild.name
+						),view=TicketClose()
+						)
+						await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} Ticket opened successfully: {tc.mention}', color=Colors.BASE_COLOR))
+						await top.pin()
+
+
 
 class Tickets(commands.Cog):
 	def __init__(self, bot: Steal):
@@ -417,7 +481,7 @@ class Tickets(commands.Cog):
 				
 				await cursor.execute(
 					"""
-					INSERT INTO tickets (guildid, openscript) VALUES ($1, $2)
+					INSERT INTO tickets (guildid, categoryid) VALUES ($1, $2)
 					""", ctx.guild.id, category.id, 
 				)
 				await conn.commit()
@@ -438,30 +502,52 @@ class Tickets(commands.Cog):
 					"""
 				)
 
-				cur = await cursor.execute(
+				cur1 = await cursor.execute(
 					"""
-					SELECT categoryid, openscript, supportroleid FROM tickets WHERE guildid = $1
+					SELECT categoryid FROM tickets WHERE guildid = $1
 					""", ctx.guild.id
 				)
 
-				config = await cur.fetchmany()
+				catid = await cur1.fetchone()
 
-				for sec in config:
-					categoryid = sec[0] or None
-					script = sec[1] or "Default"
-					supportroleid = sec[2] or None
+				if not catid:
+					category = "None"
+
+				cur2 = await cursor.execute(
+					"""
+					SELECT openscript FROM tickets WHERE guildid = $1
+					""", ctx.guild.id
+				)
+
+				oscript = await cur2.fetchone()
+
+
+				cur3 = await cursor.execute(
+					"""
+					SELECT supportroleid FROM tickets WHERE guildid = $1
+					""", ctx.guild.id
+				)
+
+				sroleid = await cur3.fetchone()
+
+				if not catid and not oscript and not sroleid:
+					return await ctx.warn("There is no **ticket** config set for this guild.")
 				
-				if categoryid:
+				if catid:
 					try:
-						category = ctx.guild.get_channel(categoryid)
+						category = ctx.guild.get_channel(catid[0])
 					except:
 						category = "Invalid category"
-				if supportroleid:
+				else:
+					category = "None"
+				if sroleid:
 					try:
-						role = ctx.guild.get_role(supportroleid)
+						role = ctx.guild.get_role(sroleid[0])
 						rolemention = role.mention
 					except:
 						rolemention = "Invalid role"
+				else:
+					rolemention = "None"
 				await ctx.send(
 					embed=discord.Embed(
 						title="Ticket config",
@@ -471,13 +557,13 @@ class Tickets(commands.Cog):
 						icon_url=ctx.guild.icon.url if ctx.guild.icon else None
 					).add_field(
 						name="Category",
-						value=f"> {category if categoryid else "None"}"
+						value=f"> {category if catid else "None"}"
 					).add_field(
 						name="Support role",
-						value=f"> {rolemention if supportroleid else "None"}",
+						value=f"> {rolemention if sroleid else "None"}",
 					).add_field(
 						name="Opening ticket embed",
-						value=f"```{script if script else "None"}```",
+						value=f"```{oscript[0] if oscript else "None"}```",
 						inline=False
 					)
 				)
