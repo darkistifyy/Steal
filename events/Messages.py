@@ -3,6 +3,8 @@ from discord.ext import commands
 from dotenv import *
 from discord.ext.commands import *
 import asqlite
+import humanize
+import datetime
 
 from tools.Config import Emojis, Colors
 from tools.Steal import Steal
@@ -12,10 +14,13 @@ url_prefixes = "https://discord.com/invite/", "discord.gg/", ".gg/"
 class Messages(commands.Cog):
 	def __init__(self, bot: Steal):
 		self.bot = bot
+		self.status = False
 		
 	@Cog.listener("on_message")
 	async def filter_message_invite_event(self, message: discord.Message) -> None:
 		if message.author.bot: return
+		if message.is_system(): return
+		if not message.author: return
 		if isinstance(message.channel, discord.DMChannel): return
 		async with asqlite.connect("main.db") as conn:
 			async with conn.cursor() as cursor:
@@ -60,6 +65,8 @@ class Messages(commands.Cog):
 	@Cog.listener("on_message")
 	async def filter_message_blacklist_event(self, message: discord.Message) -> None:
 		if message.author.bot: return
+		if message.is_system(): return
+		if not message.author: return
 		if isinstance(message.channel, discord.DMChannel): return
 		async with asqlite.connect("main.db") as conn:
 			async with conn.cursor() as cursor:
@@ -109,7 +116,83 @@ class Messages(commands.Cog):
 								)
 
 								await message.delete()
-	
+
+	@Cog.listener("on_message")
+	async def afk_message_event(self, message: discord.Message) -> None:
+		if message.author.bot: return
+		if message.is_system(): return
+		if not message.author: return
+		if isinstance(message.channel, discord.DMChannel): return
+		if message.content.startswith(f"{self.bot.command_prefix[0]}afk"): return
+		if self.status: return
+		async with asqlite.connect("main.db") as conn:
+			async with conn.cursor() as cursor:
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS afk(guildid INTEGER, userid, status, time)"
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM afk WHERE guildid = $1 AND userid = $2",
+					message.guild.id, message.author.id,
+				)
+
+				row = await cur.fetchone()
+
+				if row:
+					self.status = True
+					await cursor.execute(
+						"DELETE FROM afk WHERE guildid = $1 AND userid = $2",
+						message.guild.id, row[1],
+					)
+
+					await message.reply(
+						embed=discord.Embed(
+							description=f"Welcome back {message.author.mention}! You were gone for **{humanize.precisedelta(datetime.datetime.fromtimestamp(int(row[3])), format=f'%0.0f')}**",
+							color=Colors.BASE_COLOR
+						)
+					)
+				self.status = False
+
+	@Cog.listener("on_message")
+	async def afk_user_mention_event(self, message: discord.Message) -> None:
+		if message.author.bot: return
+		if message.is_system(): return
+		if not message.author: return
+		if isinstance(message.channel, discord.DMChannel): return
+		if self.status: return
+		async with asqlite.connect("main.db") as conn:
+			async with conn.cursor() as cursor:
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS afk(guildid INTEGER, userid INTEGER, status TEXT, time INTEGER)"
+				)
+
+				cur = await cursor.execute(
+					"SELECT userid FROM afk WHERE guildid = $1", message.guild.id,
+				)
+
+				row = await cur.fetchall()
+
+				if row:
+					if row[0]:
+						for userid in row[0]:
+							if message.author.id == userid: return
+							self.status = True
+							user = self.bot.get_user(userid)
+							if user.mention in message.content:
+								cur1 = await cursor.execute(
+									"SELECT status FROM afk WHERE guildid = $1 AND userid = $2", message.guild.id, userid,
+								)
+
+								status = await cur1.fetchone()
+
+
+								await message.reply(
+									embed=discord.Embed(
+										description=f"{user.mention} is AFK with the status - **{status[0] if status else "Unretriveable status"}**"
+									)
+								)
+				self.status = False
+							
 
 async def setup(bot):
 	await bot.add_cog(Messages(bot))
