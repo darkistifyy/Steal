@@ -12,6 +12,7 @@ import os
 import zlib
 import asqlite
 import math
+import datetime
 
 from tools.Steal import Steal
 from tools.rtfm import fuzzy
@@ -767,6 +768,36 @@ class Utility(commands.Cog):
 			return await ctx.reply(embed=discord.Embed(
 				title=f"{member.display_name}'s banner color: {user.accent_color}", color=user.accent_color
 				))
+
+	@command(
+			name="afk",
+			description="Sets your afk status"
+	)
+	async def afk(self, ctx: StealContext, *, status:Optional[str] = "None") -> None:
+		async with asqlite.connect("main.db") as conn:
+			async with conn.cursor() as cursor:
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS afk(guildid INTEGER, userid INTEGER, status TEXT, time INTEGER)"
+				)
+
+				await cursor.execute(
+					"INSERT INTO afk (guildid, userid, status, time) VALUES ($1, $2, $3, $4)",
+					ctx.guild.id, ctx.author.id, status, datetime.datetime.now().timestamp(),
+				)
+
+				await conn.commit()
+				await ctx.approve(f"You are now AFK with the status - **{status}**")
+
+	@command(
+			name="temp",
+	)
+	async def temp(self, ctx: StealContext):
+		async with asqlite.connect("main.db") as conn:
+			async with conn.cursor() as cursor:
+				await cursor.execute(
+					"DROP TABLE afk"
+				)
+				await conn.commit()
 
 async def setup(bot):
 	await bot.add_cog(Utility(bot))

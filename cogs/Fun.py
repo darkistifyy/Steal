@@ -894,7 +894,7 @@ class Fun(commands.Cog):
 
 				partner = self.bot.get_user(partnerid)
 
-				view = DivorceView(ctx, partner)
+				view = DivorceView(ctx, partner, check[2])
 
 				await ctx.send(
 					embed=discord.Embed(
