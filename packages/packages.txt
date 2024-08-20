@@ -76,6 +76,9 @@ werkzeug==3.0.3
 wheel==0.44.0
 yarl==1.9.4
 asqlite==2.0.0
+docopt==0.6.2
+humanize==4.10.0
+num2words==0.5.13
 pip==24.0
 autocommand==2.2.2
 backports.tarfile==1.2.0
