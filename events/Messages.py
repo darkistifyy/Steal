@@ -100,7 +100,7 @@ class Messages(commands.Cog):
 						things = [word for word in words[0].split(",") if word]
 
 						for thing in things:
-							if thing in message.content:
+							if thing.lower() in message.content.lower():
 								await message.author.send(
 									embed=discord.Embed(
 										description=f"{Emojis.WARN} {message.author.mention}: The word **{thing}** is blacklisted in **{message.guild.name}**.",
