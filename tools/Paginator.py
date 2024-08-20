@@ -17,9 +17,12 @@ class Paginator(discord.ui.View):
 		self.add_item(PaginatorButton(style=discord.ButtonStyle.grey, custom_id='cancel', emoji=Emojis.CANCEL_PAGINATOR))
 
 	async def on_timeout(self):
-		for child in self.children:
-			child.disabled = True
-		await self.response.edit(view=self)
+		try:
+			for child in self.children:
+				child.disabled = True
+			await self.response.edit(view=self)
+		except:
+			pass	
 
 	async def interaction_check(self, interaction: discord.Interaction[discord.Client]) -> bool:
 		if interaction.user.id != self.ctx.author.id:

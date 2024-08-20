@@ -7,6 +7,8 @@ from discord.ui import Button, View, button
 from typing import Optional, Literal
 import datetime
 import asyncio
+import humanize
+import asqlite
 
 from tools.Steal import Steal
 from managers.context import StealContext
@@ -47,3 +49,142 @@ class UrlView(discord.ui.View):
 		for child in self.children:
 			child.disabled = True
 		await self.message.edit(view=self)
+
+
+class MarryView(View):
+	def __init__(self, ctx: Context, member: discord.User):
+		super().__init__()
+		self.ctx = ctx
+		self.member = member
+		self.status = False
+		self.wedding = "💒"
+		self.marry_color = 0xFF819F
+
+	async def interaction_check(self, interaction: PatchedInteraction):
+		if interaction.user == self.ctx.author:
+			await interaction.warn(
+				"You cannot interact with your own marriage",
+			)
+			return False
+		elif interaction.user != self.member:
+			await interaction.warn(
+				"You are **not** involved in this embed",
+			)
+			return False
+		return True
+
+	@button(label="Marry", style=discord.ButtonStyle.success, custom_id="acceptmarriage")
+	async def accept(self, interaction: PatchedInteraction, button: Button):
+		async with asqlite.connect("main.db") as conn:
+			async with conn.cursor() as cursor:
+				cur = await cursor.execute(
+					"SELECT * FROM marry WHERE $1 IN (author, soulmate)", self.ctx.author.id
+				)
+				data = await cur.fetchone()
+				if data:
+					return await interaction.warn(
+						f"{self.ctx.author.mention} is **already** married",
+					)
+
+				cur = await cur.execute(
+					"SELECT * FROM marry WHERE $1 IN (author, soulmate)", interaction.user.id
+				)
+				data = await cur.fetchone()
+				if data:
+					return await interaction.warn(
+						"You are **already** married.",
+					)
+
+				await conn.execute(
+					"INSERT INTO marry VALUES ($1,$2,$3)",
+					self.ctx.author.id,
+					self.member.id,
+					datetime.datetime.now().timestamp(),
+				)
+				await conn.commit()
+				embe = discord.Embed(
+					color=Colors.BASE_COLOR,
+					description=f"{self.wedding} {self.ctx.author.mention} You have married {self.member.mention}",
+				)
+				for child in self.children:
+					child.disabled = True
+				await interaction.response.edit_message(content=None, embed=embe, view=self)
+				self.status = True
+
+	@button(label="Decline", style=discord.ButtonStyle.danger, custom_id="declinemarriage")
+	async def decline(self, interaction: PatchedInteraction, button: Button):
+		embe = discord.Embed(
+			color=Colors.BASE_COLOR,
+			description=f"{self.ctx.author.mention} I'm sorry, but {self.member.mention} said no.",
+		)
+		for child in self.children:
+			child.disabled = True
+		await interaction.response.edit_message(content=None, embed=embe, view=self)
+		self.status = True
+
+	async def on_timeout(self):
+		if self.status == False:
+			embed = discord.Embed(
+				color=0xFF819F,
+				description=f"{self.member.mention} didn't reply in time :(",
+			)
+			try:
+				for child in self.children:
+					child.disabled = True
+				await self.message.edit(content=None, embed=embed, view=self)
+			except:
+				pass
+
+
+
+class DivorceView(discord.ui.View):
+	def __init__(self, ctx: StealContext, member: discord.User):
+		super().__init__()
+		self.ctx = ctx
+		self.member = member
+
+	async def interaction_check(self, interaction: PatchedInteraction):
+		if interaction.user != self.ctx.message.author:
+			await interaction.warn(
+				"You are **not** involved in this embed",
+			)
+			return False
+		return True
+
+	@button(label="Divorce", style=discord.ButtonStyle.success, custom_id="acceptdivorce")
+	async def divorceaccept(self, interaction: PatchedInteraction, button: Button):
+		async with asqlite.connect("main.db") as conn:
+			async with conn.cursor() as cursor:
+				member = self.member
+				await conn.execute(
+					"DELETE FROM marry WHERE $1 IN (author, soulmate)", interaction.user.id
+				)
+				await conn.commit()
+				await cursor.close()
+				embe = discord.Embed(
+					color=Colors.BASE_COLOR,
+					description=f"**{interaction.user.mention}** divorced their partner, {member.mention}",
+				)
+				
+				try:
+					await member.send(
+						f"💔 It seems like your partner **{interaction.user}** decided to divorce :(. Your relationship with them lasted **{humanize.precisedelta(datetime.datetime.fromtimestamp(int(check['time'])), format=f'%0.0f')}**"
+					)
+				except:
+					pass
+			
+				for child in self.children:
+					child.disabled = True
+
+				await interaction.response.edit_message(content=None, embed=embe, view=self)
+
+	@button(label="Cancel", style=discord.ButtonStyle.danger, custom_id="canceldivorce")
+	async def divorcecancel(self, interaction: PatchedInteraction, button: Button):
+		embe = discord.Embed(
+			color=Colors.DENY_COLOR,
+			description=f"**{interaction.user.mention}**: You changed your mind",
+		)
+		for child in self.children:
+			child.disabled = True
+		await interaction.response.edit_message(content=None, embed=embe, view=self)
+		

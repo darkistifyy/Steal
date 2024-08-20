@@ -23,9 +23,11 @@ import colorgram
 
 from PIL import Image
 
+from num2words import num2words
 from asyncpg import Pool
 from typing import Dict, Union
 from collections import defaultdict
+from humanize import precisedelta
 
 from discord.ext import commands
 from discord import Message, Embed
@@ -118,6 +120,13 @@ class Steal(commands.Bot):
 			('second', 1),
 		)
 
+	def ordinal(self, number: int) -> str:
+		"""
+		convert a number to an ordinal number (ex: 1 -> 1st)
+		"""
+
+		return num2words(number, to="ordinal_num")
+
 	async def getbyte(self, url: str) -> BytesIO:
 
 		return BytesIO(await self.session.get_bytes(url))
@@ -140,6 +149,17 @@ class Steal(commands.Bot):
 
 		colors = await asyncio.to_thread(lambda: colorgram.extract(img, 1))
 		return discord.Color.from_rgb(*list(colors[0].rgb)).value
+
+	def humanize_date(self, date: datetime.datetime) -> str:
+		"""
+		Humanize a datetime (ex: 2 days ago)
+		"""
+
+		if date.timestamp() < datetime.datetime.now().timestamp():
+			return f"{(precisedelta(date, format='%0.0f').replace('and', ',')).split(', ')[0]} ago"
+		else:
+			return f"in {(precisedelta(date, format='%0.0f').replace('and', ',')).split(', ')[0]}"
+
 
 	@property
 	def uptime(self) -> str:
