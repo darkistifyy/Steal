@@ -210,7 +210,7 @@ class Roles(commands.Cog):
 	@guild_only()
 	async def colorrole(self, ctx: StealContext, role:discord.Role, hex:Optional[str] = commands.param(default=None, displayed_default=None)) -> None:
 		if hex is None:
-			return await ctx.approve(f"Hex color of {role.mention}: {role.color}")
+			return await ctx.approve(f"Hex color of {role.mention} - {role.color}")
 
 		from isHex import isHex, isHexLower, isHexUpper
 		
@@ -323,7 +323,7 @@ class Roles(commands.Cog):
 	@bot_has_guild_permissions(manage_roles=True)
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
-	async def createrole(self, ctx: StealContext, name:Optional[str], hoist:Optional[bool] = False, hex:Optional[str] = commands.param(default=None, displayed_default=None)) -> None:
+	async def createrole(self, ctx: StealContext, name:Optional[str], hoist:Optional[bool] = False, hex:Optional[str] = None) -> None:
 		from isHex import isHex
 
 		rgb = None

@@ -267,7 +267,7 @@ class Channels(commands.Cog):
 			await channel.edit(locked=True, archived=True)
 			return await ctx.approve(f"Locked {channel.mention} for {ctx.guild.default_role} - **{reason.split(' |')[0]}**")
 
-		perms = channel.overwrites_for(target)
+		perms = channel.overwrites_for(target.id)
 
 		if perms.send_messages is None or perms.send_messages is True:
 			perms = target.guild_permissions if isinstance(target, discord.Member) else target.permissions
@@ -292,9 +292,9 @@ class Channels(commands.Cog):
 						return await ctx.warn(f"You cannot manage {target.mention}")	
 
 
-			overwrite = channel.overwrites_for(target)
+			overwrite = channel.overwrites_for(target.id)
 			overwrite.send_messages = False
-			await channel.set_permissions(target=target, send_messages=False, reason=reason)
+			await channel.set_permissions(target=target, overwrite=overwrite, reason=reason)
 			await ctx.approve(f"Locked {channel.mention} for {target.mention} - **{reason.split(' |')[0]}**")
 		else:
 			await ctx.deny(f"{channel.mention} is already locked for {target.mention}.")
@@ -316,7 +316,7 @@ class Channels(commands.Cog):
 			await channel.edit(locked=False, archived=False)
 			return await ctx.approve(f"Unlocked {channel.mention} for {ctx.guild.default_role} - **{reason.split(' |')[0]}**")
 
-		perms = channel.overwrites_for(target)
+		perms = channel.overwrites_for(target.id)
 
 		if perms.send_messages is False:
 			perms = target.guild_permissions
@@ -340,7 +340,7 @@ class Channels(commands.Cog):
 					if target.top_role.position > ctx.author.top_role.position:
 						return await ctx.warn(f"You cannot manage {target.mention}")	
 
-			overwrite = channel.overwrites_for(target)
+			overwrite = channel.overwrites_for(target.id)
 			overwrite.send_messages = None
 			await channel.set_permissions(target=target, overwrite=overwrite, reason=reason)
 			await ctx.approve(f"Unlocked {channel.mention} - **{reason.split(' |')[0]}**.")

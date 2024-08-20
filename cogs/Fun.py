@@ -903,5 +903,34 @@ class Fun(commands.Cog):
 					), view=view
 				)
 
+	@command(
+			name="furryrate",
+			description="Gives the furry \% of a member.",
+			aliases=["furry"]
+	)
+	async def furry(self, ctx: StealContext, *, member: Member = Author):
+		embed = Embed(
+			color=Colors.BASE_COLOR,
+			description=f"{member.mention} is **{random.randrange(0, 100)}%** a furry 🦊",
+		)
+		return await ctx.send(embed=embed)
+
+	@command(
+			name="dadjoke",
+			description="Gives a random dad joke.",
+			aliases=["cringejoke"]
+	)
+	async def dadjoke(self, ctx: StealContext):
+		try:
+			joke = await asyncio.wait_for(
+				self.bot.session.get_json("https://icanhazdadjoke.com/slack"), timeout=2
+			)
+		except asyncio.TimeoutError:
+			return await ctx.warn(
+				"Womp Womp! Couldn't get a dad joke at this time."
+			)
+		return await ctx.neutral(f"{joke['attachments'][0]['text']}")
+
+
 async def setup(bot):
 	await bot.add_cog(Fun(bot))

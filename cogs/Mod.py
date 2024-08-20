@@ -110,7 +110,7 @@ class Mod(commands.Cog):
 				await ctx.guild.ban(user, reason=reason)
 				return await ctx.approve(f"Successfully banned {user} - **{reason.split(' |')[0]}**")
 			
-			member = await ctx.guild.fetch_member(user)
+			member = ctx.guild.get_member(user.id)
 
 			if member == ctx.guild.owner:
 				return await ctx.warn(f"You're unable to ban the **server owner**.")
@@ -265,15 +265,19 @@ class Mod(commands.Cog):
 	@bot_has_guild_permissions(manage_messages=True)
 	@guild_only()
 	async def pin(self, ctx: StealContext, message:Optional[discord.Message] = commands.param(default=None, displayed_default=None)):
-		message = await ctx.channel.fetch_message(ctx.message.reference.message_id) or None if not message else message
+		if message is None:
+			if ctx.message.reference:
+				message = ctx.message.reference.resolved
+			else:
+				return await ctx.warn("Pass a message or reply to pin it.")
 		if message is not None:
-			if message not in await ctx.channel.pins():
+			if not message.pinned:
 				await message.pin()
 				await ctx.message.add_reaction(Emojis.APPROVE)
 			else:
 				await ctx.warn("That message is already pinned.")
 		else:
-			await ctx.warn("Pass a message or reply to pin it.")
+			await ctx.warn("Pass a message or reply to unpin it.")
 
 	@command(
 			name="unpin",
@@ -282,10 +286,14 @@ class Mod(commands.Cog):
 	@has_permissions(manage_messages=True)
 	@bot_has_guild_permissions(manage_messages=True)
 	@guild_only()
-	async def unpin(self, ctx: StealContext, message:Optional[discord.Message] = commands.param(default=None, displayed_default=None)):
-		message = await ctx.channel.fetch_message(ctx.message.reference.message_id) or None if not message else message
+	async def unpin(self, ctx: StealContext, message:Optional[discord.Message] = None):
+		if message is None:
+			if ctx.message.reference:
+				message = ctx.message.reference.resolved
+			else:
+				return await ctx.warn("Pass a message or reply to unpin it.")
 		if message is not None:
-			if message in await ctx.channel.pins():
+			if message.pinned:
 				await message.unpin()
 				await ctx.message.add_reaction(Emojis.APPROVE)
 			else:
