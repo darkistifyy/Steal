@@ -351,7 +351,7 @@ class Automod(commands.Cog):
 
 				if words[0] == "none":
 					print("AAAAAAAAAAAAAHHHH")
-					formatted_word = word.strip()
+					formatted_word = word.strip().lower()
 					formatted_word = "," + formatted_word + ","
 
 					await cursor.execute(
@@ -369,7 +369,7 @@ class Automod(commands.Cog):
 				if word.strip() in things:
 					return await ctx.warn(f"**{word}** is already in the **words** filter.")
 				
-				formatted_word = word.strip()
+				formatted_word = word.strip().lower()
 				formatted_word = ',' + formatted_word + ","
 				things.append(formatted_word)
 				words = "".join(thing for thing in things)
@@ -414,33 +414,27 @@ class Automod(commands.Cog):
 				toggle = await cur.fetchone()
 
 				if toggle:
-					if toggle[0] == 1:
-
-						cur = await cursor.execute(
+					
+					cur = await cursor.execute(
+						"""
+						SELECT words FROM wordsautomod WHERE guildid = $1
+						""", ctx.guild.id
+					)
+					words = await cur.fetchone()
+					things = [word for word in words[0].split(",") if word]
+					if word.strip().lower() in things:
+						things.remove(word.strip())
+						words = "".join(thing for thing in things)
+						await cursor.execute(
 							"""
-							SELECT words FROM wordsautomod WHERE guildid = $1
-							""", ctx.guild.id
+							UPDATE wordsautomod SET words = $1 WHERE guildid = $2
+							""", words, ctx.guild.id, 
 						)
-
-						words = await cur.fetchone()
-
-						things = [word for word in words[0].split(",") if word]
-
-						if word.strip() in things:
-
-							things.remove(word.strip())
-							words = "".join(thing for thing in things)
-							await cursor.execute(
-								"""
-								UPDATE wordsautomod SET words = $1 WHERE guildid = $2
-								""", words, ctx.guild.id, 
-							)
-							await cur.close()
-							await conn.commit()
-							return await ctx.approve(f"Removed **{word.strip()}** from the **words** filter.")
-							
-
-						return await ctx.warn(f"**{word}** is not in the **words** filter.")
+						await cur.close()
+						await conn.commit()
+						return await ctx.approve(f"Removed **{word.strip()}** from the **words** filter.")
+						
+					return await ctx.warn(f"**{word}** is not in the **words** filter.")
 
 	@words.command(
 			name="config",
@@ -467,9 +461,9 @@ class Automod(commands.Cog):
 
 				res = await cur.fetchone()
 
-				if res:
-					if res is None:
-						return await ctx.warn("The **words** filter module is not configured in this guild.")
+				
+				if res is None:
+					return await ctx.warn("The **words** filter module is not configured in this guild.")
 
 
 				cur = await cursor.execute(
@@ -497,7 +491,7 @@ class Automod(commands.Cog):
 				embeds = []
 
 				entries = [
-						f"`{i}` **{tagname}**"
+						f"`{i}` **{tagname.lower()}**"
 						for i, tagname in enumerate(wordlist, start=1)
 					]
 
@@ -537,12 +531,45 @@ class Automod(commands.Cog):
 
 				await ctx.paginate(embeds)
 
-	@command(name="temp")
-	@is_owner()
-	async def temp(self, ctx:StealContext):
+
+	@words.command(
+			name="clear",
+			description="Clears the words filter module config.",
+	)
+	@has_permissions(manage_messages=True)
+	@bot_has_guild_permissions(administrator=True)
+	@guild_only()
+	async def wordsclear(self, ctx: StealContext):
 		async with asqlite.connect("main.db") as conn:
 			async with conn.cursor() as cursor:
-				await cursor.execute("DROP TABLE wordsautomod")
+
+				await cursor.execute(
+					"""
+					CREATE TABLE IF NOT EXISTS wordssautomod(guildid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), words)
+					""",				
+				)
+
+				cur = await cursor.execute(
+					"""
+					SELECT toggle FROM wordsautomod WHERE guildid = $1
+					""", ctx.guild.id, 
+				)
+
+				res = await cur.fetchone()
+
+				if not res:
+					return await ctx.warn("The **words** filter module is not configured in this guild.")
+
+				await cur.execute(
+					"""
+					DELETE FROM wordsautomod WHERE guildid = $1
+					""", ctx.guild.id, 
+				)
+				
+				await conn.commit()
+
+				return await ctx.approve(f"Cleared the **words** filter module.")
+			
 
 async def setup(bot):
 	await bot.add_cog(Automod(bot))

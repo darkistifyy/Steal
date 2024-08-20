@@ -9,11 +9,14 @@ import random
 import aiohttp
 import time
 import orjson
+import datetime
 import asqlite
+import humanize
 
 from tools.Steal import Steal
 from managers.context import StealContext
 
+from tools.View import MarryView, DivorceView
 from typing import List, Optional, Union
 from tools.Config import Colors, Emojis
 from discord.ext import commands
@@ -212,7 +215,8 @@ class Fun(commands.Cog):
 						INSERT INTO vape VALUES ($1, $2)
 						""", (ctx.author.id, 1, )
 					)
-
+					await conn.commit()
+					await conn.close()
 					message = await ctx.send("Hitting the **vape**...")
 			
 					await conn.commit()
@@ -235,9 +239,10 @@ class Fun(commands.Cog):
 					""", (hitsint, ctx.author.id, )
 				)
 
-				message = await ctx.send("Hitting the **vape**...")
-			
 				await conn.commit()
+				await conn.close()
+				message = await ctx.send("Hitting the **vape**...")
+
 				await asyncio.sleep(4)
 
 				await message.edit(
@@ -823,6 +828,80 @@ class Fun(commands.Cog):
 		embed.set_author(name=result["verse"]["details"]["reference"])
 		await ctx.send(embed=embed)
 
+	@command(
+			name="marry",
+			description="Marry a member."
+	)
+	async def marry(self, ctx: StealContext, *, member: discord.Member):
+		embed = Embed(
+			color=Colors.BASE_COLOR,
+			description=f"{Emojis.MARRY} {ctx.author.mention} wants to marry you. do you accept?",
+		)
+		view = MarryView(ctx, member)
+		view.message = await ctx.reply(content=member.mention, embed=embed, view=view)
+
+	@command(
+			name="marriage",
+			description="Shows the status of a user's marriage."
+	)
+	async def marriage(self, ctx: StealContext, *, member: User = Author):
+		async with asqlite.connect("main.db") as conn:
+			async with conn.cursor() as cursor:
+
+				await conn.execute(
+					"CREATE TABLE IF NOT EXISTS marry(author INTEGER, soulmate INTEGER, time INTEGER)"
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM marry WHERE $1 IN (author, soulmate)", member.id
+				)
+
+				check = await cur.fetchone()
+
+				if check is None:
+					return await ctx.warn(
+						f"{'You are' if member == ctx.author else f'{member.mention} is'} not **married**"
+					)
+
+				embed = Embed(
+					color=Colors.BASE_COLOR,
+					description=f"{Emojis.MARRY} {f'{member.mention} has been' if member != ctx.author else 'You have been'} married to <@!{check[1] if check[1] != member.id else check[0]}> since **{self.bot.humanize_date(datetime.datetime.fromtimestamp(int(check['time'])))}**",
+				)
+				return await ctx.reply(embed=embed)
+
+	@command(
+			name="Divorce",
+			description="Divorces your current soulmate."
+	)
+	async def divorce(self, ctx: StealContext):
+		async with asqlite.connect("main.db") as conn:
+			async with conn.cursor() as cursor:
+
+				await conn.execute(
+					"CREATE TABLE IF NOT EXISTS marry(author INTEGER, soulmate INTEGER, time INTEGER)"
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM marry WHERE $1 IN (author, soulmate)", ctx.author.id
+				)
+
+				check = await cur.fetchone()
+
+				if check is None:
+					return await ctx.warn("**You** are not **married**")
+
+				partnerid = check[1] if check[1] != ctx.author.id else check[0]
+
+				partner = self.bot.get_user(partnerid)
+
+				view = DivorceView(ctx, partner)
+
+				await ctx.send(
+					embed=discord.Embed(
+						description=f"{ctx.author.mention}: Are you sure you want to divorce {partner.mention}?",
+						color=Colors.WARN_COLOR,
+					), view=view
+				)
 
 async def setup(bot):
 	await bot.add_cog(Fun(bot))
