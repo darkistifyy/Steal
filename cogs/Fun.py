@@ -865,12 +865,12 @@ class Fun(commands.Cog):
 
 				embed = Embed(
 					color=Colors.BASE_COLOR,
-					description=f"{Emojis.MARRY} {f'{member.mention} has been' if member != ctx.author else 'You have been'} married to <@!{check[1] if check[1] != member.id else check[0]}> since **{self.bot.humanize_date(datetime.datetime.fromtimestamp(int(check['time'])))}**",
+					description=f"{Emojis.MARRY} {f'{member.mention} has been' if member != ctx.author else 'You have been'} married to <@!{check[1] if check[1] != member.id else check[0]}> for **{humanize.precisedelta(datetime.datetime.fromtimestamp(int(check[2])), format=f'%0.0f')}**",
 				)
 				return await ctx.reply(embed=embed)
 
 	@command(
-			name="Divorce",
+			name="divorce",
 			description="Divorces your current soulmate."
 	)
 	async def divorce(self, ctx: StealContext):

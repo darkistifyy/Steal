@@ -133,6 +133,7 @@ class Info(commands.Cog):
  
 				return any([user.display_avatar.is_animated(), has_emote_status, user.premium_since, user.guild_avatar, user.banner])
 
+
 		badges = [
 			flag_to_emoji.get(flag, "❓")
 			for flag in member.public_flags.all()
