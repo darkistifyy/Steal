@@ -683,7 +683,7 @@ class Utility(commands.Cog):
 			description='Sends an embed.',
 			aliases=['em'],
 	)
-	@has_permissions(administrator=True)
+	@has_permissions(manage_messages=True)
 	@bot_has_guild_permissions(send_messages=True)
 	@guild_only()
 	async def embedsend(self, ctx: StealContext, *, message:str) -> None:

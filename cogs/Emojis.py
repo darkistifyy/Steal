@@ -6,6 +6,7 @@ from discord.ext import commands
 from discord.ext.commands import *
 from discord.ui import *
 from sklearn import *
+import asyncio
 
 from managers.interaction import PatchedInteraction
 from tools.Steal import Steal
@@ -209,6 +210,8 @@ class Emojis(commands.Cog):
 			name="zip",
 			description="Zips all server emojis."
 	)
+	@has_permissions(manage_expressions=True)
+	@bot_has_guild_permissions(manage_expressions=True)
 	async def stickerzip(self, ctx: StealContext):
 
 		async with ctx.typing():
@@ -227,7 +230,6 @@ class Emojis(commands.Cog):
 	)
 	async def stickerenlarge(self, ctx: StealContext):
 
-		url = ""
 		if not ctx.message.stickers:
 			return await ctx.warn("Missing argument **sticker**.")
 		
@@ -245,6 +247,33 @@ class Emojis(commands.Cog):
 				icon_url=ctx.author.display_avatar.url
 			),
 		)
+	
+	@stickers.command(
+			name="tag",
+			description="Tags all stickers with your vanity invite.",
+			aliases=["vanity"]
+	)
+	async def stickertag(self, ctx: StealContext):
+
+		if not ctx.guild.vanity_url_code:
+			return await ctx.warn("This guild does not have a vanity url.")
+
+		tag = f"[.gg/{ctx.guild.vanity_url_code}]"
+		
+		amount = 0
+		async with ctx.typing():
+			for sticker in ctx.guild.stickers:
+				if tag not in sticker.name:
+					try:
+						name = sticker.name
+						tagged = f"{name} {tag}"
+						await sticker.edit(name=tagged)
+						amount += 1
+						await asyncio.sleep(0.5)
+					except:
+						pass
+
+		return await ctx.approve(f"Tagged {amount}/{len(ctx.guild.stickers)} stickers successfully.")
 
 async def setup(bot):
 	await bot.add_cog(Emojis(bot))

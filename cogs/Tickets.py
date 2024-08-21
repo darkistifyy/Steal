@@ -640,7 +640,7 @@ class Tickets(commands.Cog):
 
 		if ctx.channel.topic and "Closed - " or "Open - " in ctx.channel.topic:
 			if op in ctx.channel.members:
-					status = await ctx.warn(f"Locking ticket. . .")
+					status = await ctx.send(embed=discord.Embed(description=f'{Emojis.WARN} Locking ticket. . .', color=Colors.WARN_COLOR))
 
 					overwrites = {
 						ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False, view_channel = False),
@@ -681,7 +681,7 @@ class Tickets(commands.Cog):
 
 		if ctx.channel.topic and "Closed - " or "Open - " in ctx.channel.topic:
 			if op in ctx.channel.members:
-					status = await ctx.send(embed=discord.Embed(description=f'{Emojis.WARN} Opening ticket...', color=Colors.WARN_COLOR))
+					status = await ctx.send(embed=discord.Embed(description=f'{Emojis.WARN} Opening ticket. . .', color=Colors.WARN_COLOR))
 
 					overwrites = {
 					ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False, view_channel = False),
