@@ -5,6 +5,7 @@ from discord import Color
 from discord.ext import commands
 from discord.ext.commands import *
 import asyncio
+import asqlite
 from discord.ui import *
 from sklearn import *
 from tools.Steal import Steal
@@ -366,5 +367,283 @@ class Channels(commands.Cog):
 		await channel.edit(slowmode_delay=seconds, reason=f'Executed by {ctx.author}')
 		await ctx.approve(f'{f"Set {channel.mention}s slowmode to `{time}`" if int(seconds) > 0 else f"Removed {channel}s slowmode."}')
 
+
+	@group(
+			name = "welcome",
+			description="The welcoming members module.",
+	)
+	async def welcome(self, ctx: StealContext):
+		if not ctx.invoked_subcommand:
+			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `welcome`.')
+	
+
+	@welcome.command(
+			name="channel",
+			description="The channel to send welcome messages to.",
+			aliases=["join"],
+	)
+	@has_permissions(manage_channels=True)
+	@bot_has_guild_permissions(manage_messages=True)
+	@guild_only()
+	async def welcomechannel(self, ctx: StealContext, channel:discord.TextChannel = None):
+		if not channel: channel = ctx.channel
+
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS welcome(guildid INTEGER, channelid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), script TEXT)"
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM welcome WHERE guildid = $1",
+					ctx.guild.id,
+				)
+
+				row = await cur.fetchone()
+
+				if not row:
+					script = "{content:sup {user.mention}}"
+					await cursor.execute(
+						"INSERT INTO welcome (guildid, channelid, toggle, script) VALUES ($1, $2, $3, $4)",
+						ctx.guild.id, channel.id, 1.0, script,
+					)
+
+					await db.commit()
+
+					return await ctx.reply(
+						embed=discord.Embed(
+							description=f"{ctx.author.mention}: Set welcome channel to {channel.mention} with the script ```{script}```",
+							color=Colors.BASE_COLOR
+						).set_footer(
+							text=f"Use '{self.bot.command_prefix[0]}welcome code <script>' to update the script.",
+							icon_url=self.bot.user.display_avatar.url
+						)
+					)
+				
+				toggle = row[2]
+
+				if toggle != 1:
+					return await ctx.warn("The **welcome** module is **disabled**.")
+
+				await cursor.execute(
+					"UPDATE welcome SET channelid = $1 WHERE guildid = $2",
+					channel.id, ctx.guild.id, 
+				)
+
+				await db.commit()
+
+				await ctx.approve(f"Set **welcome** channel to {channel.mention}.")
+
+	@welcome.command(
+			name="disable",
+			description="Disables the welcome module",
+			aliases=["off"],
+	)
+	@has_permissions(manage_channels=True)
+	@bot_has_guild_permissions(manage_messages=True)
+	@guild_only()
+	async def welcomedisable(self, ctx: StealContext):
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS welcome(guildid INTEGER, channelid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), script TEXT)"
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM welcome WHERE guildid = $1",
+					ctx.guild.id,
+				)
+
+				row = await cur.fetchone()
+
+				if not row:
+					return await ctx.warn("There is no **welcome** config set for this guild.")
+				
+				toggle = row[2]
+
+				if toggle != 1:
+					return await ctx.warn("The **welcome** module is already **disabled**")
+				
+				await cursor.execute(
+					"UPDATE welcome SET toggle = $1 WHERE guildid = $2",
+					0, ctx.guild.id, 
+				)
+
+				await db.commit()
+
+				await ctx.approve("**Disabled** the **welcome** module.")
+
+	@welcome.command(
+			name="enable",
+			description="Enables the welcome module",
+			aliases=["on"],
+	)
+	@has_permissions(manage_channels=True)
+	@bot_has_guild_permissions(manage_messages=True)
+	@guild_only()
+	async def welcomeenable(self, ctx: StealContext):
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS welcome(guildid INTEGER, channelid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), script TEXT)"
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM welcome WHERE guildid = $1",
+					ctx.guild.id,
+				)
+
+				row = await cur.fetchone()
+
+				if not row:
+					return await ctx.warn("There is no **welcome** config set for this guild.")
+				
+				toggle = row[2]
+
+				if toggle != 0:
+					return await ctx.warn("The **welcome** module is already **enabled**")
+				
+				await cursor.execute(
+					"UPDATE welcome SET toggle = $1 WHERE guildid = $2",
+					1, ctx.guild.id, 
+				)
+				
+				await db.commit()
+
+				await ctx.approve("**Enabled** the **welcome** module.")
+
+	@welcome.command(
+			name="script",
+			description="The script for the welcome message.",
+			aliases=["code", "message"]
+	)
+	@has_permissions(manage_channels=True)
+	@bot_has_guild_permissions(manage_messages=True)
+	@guild_only()
+	async def welcomescript(self, ctx: StealContext, *, script: Optional[str] = None):
+		if not script: script = "{content:sup {user.mention}}"
+
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS welcome(guildid INTEGER, channelid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), script TEXT)"
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM welcome WHERE guildid = $1",
+					ctx.guild.id, 
+				)
+
+				row = await cur.fetchone()
+
+				if not row:
+					return await ctx.warn("The **welcome channel** has not been configured for this guild.")
+				
+				if str(row[2]) == str(script):
+					return await ctx.warn("That is the same script as before, not updating.")
+				
+				await cursor.execute(
+					"UPDATE welcome SET script = $1",
+					script,
+				)
+
+				await db.commit()
+
+				await ctx.approve(f"Set **channel** module script to ```{script}```")
+
+	@welcome.command(
+			name="config",
+			description="The config for the welcome module",
+	)
+	@has_permissions(manage_channels=True)
+	@bot_has_guild_permissions(manage_messages=True)
+	@guild_only()
+	async def welcomeconfig(self, ctx: StealContext):
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS welcome(guildid INTEGER, channelid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), script TEXT)"
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM welcome WHERE guildid = $1",
+					ctx.guild.id,
+				)
+
+				row = await cur.fetchone()
+
+				if not row:
+					return await ctx.warn("There is no **welcome** config set for this guild.")
+				
+				channelid = row[1]
+				try:
+					channel = self.bot.get_channel(channelid)
+					channel = channel.mention
+				except:
+					channel = "Invalid channel"
+
+				toggle_converter = {
+					1 : "enabled",
+					0 : "disabled",
+				}
+
+				toggle = toggle_converter.get(row[2], "❓")
+
+				script = row[3]
+
+				await ctx.reply(
+					embed=discord.Embed(
+						title="Welcome config",
+						color=Colors.BASE_COLOR
+					).add_field(
+						name="Channel",
+						value=f"{channel}"
+					).add_field(
+						name="Toggle",
+						value=f"{toggle.capitalize()}"
+					).add_field(
+						name="Script",
+						value=f"```{script}```",
+						inline=False
+					).set_author(
+						name=ctx.guild.name,
+						icon_url=ctx.guild.icon.url if ctx.guild.icon else None
+					)
+				)
+
+	@welcome.command(
+			name="clear",
+			description="Clears the welcome module",
+	)
+	@has_permissions(manage_channels=True)
+	@bot_has_guild_permissions(manage_messages=True)
+	@guild_only()
+	async def welcomeclear(self, ctx: StealContext):
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS welcome(guildid INTEGER, channelid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), script TEXT)"
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM welcome WHERE guildid = $1",
+					ctx.guild.id,
+				)
+
+				row = await cur.fetchone()
+
+				if not row:
+					return await ctx.warn("There is no **welcome** config set for this guild.")
+				
+				await cursor.execute(
+					"DELETE FROM welcome WHERE guildid = $1",
+					ctx.guild.id,
+				)
+
+				await db.commit()
+
+				await ctx.approve("Cleared **welcome** module config.")
+				
 async def setup(bot):
 	await bot.add_cog(Channels(bot))
