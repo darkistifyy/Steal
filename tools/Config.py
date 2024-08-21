@@ -4,7 +4,7 @@ class Auth:
     invite = "https://discord.com/oauth2/authorize?client_id=1264225716799799427&permissions=8&integration_type=0&scope=bot"
 
 class Colors:
-    BASE_COLOR = 0xFF8FAB
+    BASE_COLOR = 0x2b2b2b
     DENY_COLOR = Color.red()
     NEUTRAL_COLOR = BASE_COLOR
     WARN_COLOR = Color.yellow()

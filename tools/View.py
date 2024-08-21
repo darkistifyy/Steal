@@ -138,10 +138,11 @@ class MarryView(View):
 
 
 class DivorceView(discord.ui.View):
-	def __init__(self, ctx: StealContext, member: discord.User):
+	def __init__(self, ctx: StealContext, member: discord.User, time):
 		super().__init__()
 		self.ctx = ctx
 		self.member = member
+		self.time = time
 
 	async def interaction_check(self, interaction: PatchedInteraction):
 		if interaction.user != self.ctx.message.author:
@@ -168,7 +169,7 @@ class DivorceView(discord.ui.View):
 				
 				try:
 					await member.send(
-						f"💔 It seems like your partner **{interaction.user}** decided to divorce :(. Your relationship with them lasted **{humanize.precisedelta(datetime.datetime.fromtimestamp(int(check['time'])), format=f'%0.0f')}**"
+						f"💔 It seems like your partner **{interaction.user}** decided to divorce :(. Your relationship with them lasted **{humanize.precisedelta(datetime.datetime.fromtimestamp(int(self.time)), format=f'%0.0f')}**"
 					)
 				except:
 					pass
