@@ -3,8 +3,11 @@ from __future__ import annotations
 import sys, os, discord
 from discord.ext import commands
 from typing import Union
+import validators
 from tools.Config import Colors
 
+class MyException(Exception):
+    pass
 
 class EmbedBuilder:
  def ordinal(self, num: int) -> str:
@@ -102,14 +105,14 @@ class EmbedBuilder:
             for field in embed["fields"]:
                 to_return += (
                     "{field: "
-                    + f"name: {field['name']} && value: {field['value']}{' && inline' if field['inline'] else ''}"
+                    + f"{field['name']} && {field['value']}{' && inline' if field['inline'] else ''}"
                     + "}"
                 )
         if embed.get("footer"):
             to_return += "{footer: "
             footer = embed["footer"]
             if footer.get("text"):
-                to_return += f"text: {footer.get('text')}"
+                to_return += f"{footer.get('text')}"
             if footer.get("icon_url"):
                 to_return += f" && icon: {footer.get('icon_url')}"
             to_return += "}"
@@ -143,10 +146,14 @@ class EmbedBuilder:
                 x['color']=Colors.BASECOLOR
 
         if part.startswith('image:'):
-            x['image']={'url': part[len('image:'):]}
+            if validators.url(part[len('image:'):].strip()):
+                x['image']={'url': part[len('image:'):].strip()}
+            else: raise MyException("The embed image is not a well formed url.")
 
         if part.startswith('thumbnail:'):
-            x['thumbnail']={'url': part[len('thumbnail:'):]}
+            if validators.url(part[len('thumbnail:'):].strip()):
+                x['thumbnail']={'url': part[len('thumbnail:'):].strip()}
+            else: raise MyException("The embed thumbnail is not a well formed url.")
         
         if part.startswith('author:'):
             z=part[len('author:'):].split(' && ')
@@ -165,13 +172,17 @@ class EmbedBuilder:
 
             x['author']={'name': name}
             if icon_url:
-                x['author']['icon_url']=icon_url
+                if validators.url(icon_url.strip("icon:").strip()):
+                    x['author']['icon_url']=icon_url.strip("icon:").strip()
+                else:raise MyException("The embed author_icon_url is not a well formed url.")
             if url:
-                x['author']['url']=url
+                if validators.url(icon_url.strip("icon:").strip()):
+                    x['author']['url']=url.strip("url:").strip()
+                else:raise MyException("The embed author_url is not a well formed url.")
 
-        if x:
-            if "color" not in EmbedBuilder.get_parts(params):
-                x['color']=Colors.BASE_COLOR
+    if x:
+        if "color" not in x:
+            x['color']=Colors.BASE_COLOR
 
         if part.startswith('field:'):
             z=part[len('field:'):].split(' && ')
@@ -209,7 +220,8 @@ class EmbedBuilder:
                 icon_url=None
             x['footer']={'text': text}
             if icon_url:
-                x['footer']['icon_url']=icon_url
+                if validators.url(icon_url.strip("icon:").strip()):
+                    x['footer']['icon_url']=icon_url.strip("icon:").strip()
                 
         if part.startswith('button:'):
             z=part[len('button:'):].split(' && ')
