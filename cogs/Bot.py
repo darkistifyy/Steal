@@ -14,6 +14,9 @@ from discord.ext.commands import *
 from tools.Config import Auth
 from tools.View import UrlView
 
+from tools.EmbedBuilder import EmbedBuilder, EmbedScript
+from tools.EmbedBuilderUi import EmbedEditor, Embed
+
 from tools.Steal import Steal
 from managers.context import StealContext
 
@@ -338,6 +341,31 @@ class BotManagement(commands.Cog):
 		
 		await ctx.paginate(embeds)
 
+	@command(
+			name="notice",
+			description="Sends a notice to all bot guilds."
+	)
+	async def notice(self, ctx: StealContext, *, script:str) -> None:
+
+		if not ctx.author.id in self.bot.owner_ids: return
+
+		count = 0	
+
+		parsed = EmbedBuilder.embed_replacement(ctx.author, script)
+		content, embed, view = await EmbedBuilder.to_object(parsed)
+
+		for guild in self.bot.guilds:
+
+			if guild.system_channel:
+
+				try:
+					await guild.system_channel.send(content=content, embed=embed, view=view)
+					count += 1
+				except:
+					return
+		
+		await ctx.approve(f"Successfully notified {count} guilds with this script:")
+		await ctx.send(content=content, embed=embed, view=view)
 
 async def setup(bot):
 	await bot.add_cog(BotManagement(bot))

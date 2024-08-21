@@ -195,10 +195,10 @@ class Roles(commands.Cog):
 	async def hoistrole(self, ctx: StealContext, role:discord.Role) -> None:
 		if role.hoist is True:
 			await role.edit(hoist=False, reason=f'Executed by {ctx.author}')
-			await ctx.approve(f"Dehoisted {role.mention}.")
+			await ctx.approve(f"Dehoisted role - {role.mention}.")
 		else:
 			await role.edit(hoist=True, reason=f'Executed by {ctx.author}')
-			await ctx.approve(f"Hoisted {role.mention}.")		
+			await ctx.approve(f"Hoisted role - {role.mention}.")		
 
 	@userrole.command(
 			name='color',
@@ -313,7 +313,7 @@ class Roles(commands.Cog):
 			return await ctx.deny(f'You do not have permission to manage {role.mention}.')
 
 		await role.delete(reason=f'Executed by {ctx.author}')
-		return await ctx.approve(f"Deleted  {role.name}")	
+		return await ctx.approve(f"Deleted role - **{role.name}**")	
 
 	@userrole.command(
 			name='create',
@@ -336,7 +336,7 @@ class Roles(commands.Cog):
 				rgb = None
 
 		role = await ctx.guild.create_role(name=name if name else "new role", hoist=hoist, color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2]) if rgb else None, reason = f"Executed by {ctx.author}")
-		await ctx.approve(f"Created role {role.mention}.")
+		await ctx.approve(f"Created role - {role.mention}.")
 
 	@group(
 			name="autorole",
@@ -374,7 +374,7 @@ class Roles(commands.Cog):
 				if roleid:
 					await cursor.execute(
 						"""
-						UPSERT INTO roleid (guildid, roleid) VALUES ($1, $2)
+						UPDATE roleid SET roleid = $1 WHERE guildid = $2
 						""", ctx.guild.id, role.id, 
 					)
 					await conn.commit()
@@ -382,7 +382,7 @@ class Roles(commands.Cog):
 				
 				await cursor.execute(
 					"""
-					INSERT INTO autorole () VALUES ($1, $2)
+					INSERT INTO autorole (guildid, roleid) VALUES ($1, $2)
 					""", ctx.guild.id, role.id, 
 				)
 				await conn.commit()
