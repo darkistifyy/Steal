@@ -545,7 +545,7 @@ class Automod(commands.Cog):
 
 				await cursor.execute(
 					"""
-					CREATE TABLE IF NOT EXISTS wordssautomod(guildid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), words)
+					CREATE TABLE IF NOT EXISTS wordsautomod(guildid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), words)
 					""",				
 				)
 
