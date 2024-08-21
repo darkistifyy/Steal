@@ -178,7 +178,7 @@ class Messages(commands.Cog):
 							if message.author.id == userid: return
 							self.status = True
 							user = self.bot.get_user(userid)
-							if user.mention in message.content:
+							if user.mentioned_in(message):
 								cur1 = await cursor.execute(
 									"SELECT status FROM afk WHERE guildid = $1 AND userid = $2", message.guild.id, userid,
 								)
@@ -188,7 +188,8 @@ class Messages(commands.Cog):
 
 								await message.reply(
 									embed=discord.Embed(
-										description=f"{user.mention} is AFK with the status - **{status[0] if status else "Unretriveable status"}**"
+										description=f"{user.mention} is AFK with the status - **{status[0] if status else "Unretriveable status"}**",
+										color=Colors.BASE_COLOR
 									)
 								)
 				self.status = False
