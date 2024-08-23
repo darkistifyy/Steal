@@ -43,6 +43,14 @@ def caption_image(image_file, caption, font="impact.ttf"):
 		img.save(img_bytes, format=img.format)
 		return img_bytes.getvalue()
 
+def compress_image(image_file):
+	mybytes = BytesIO(image_file)
+	mybytes.seek(0)
+	img = Image.open(mybytes)
+	with BytesIO() as img_bytes:
+		img = img.save(img_bytes, format=img.format, quality=15, optimize=True)
+		return img_bytes.getvalue()
+
 NUM_CLUSTERS = 5
 
 def dom_color(img):

@@ -32,6 +32,7 @@ from humanize import precisedelta
 from discord.ext import commands
 from discord import Message, Embed
 
+from managers.cache import Cache
 from managers.help import StealHelp
 from tools.Session import Session
 from managers.context import StealContext
@@ -48,6 +49,7 @@ class Steal(commands.Bot):
 		self.errors = Dict[str, commands.CommandError]
 		self._uptime = time.time()
 		self.session = Session()
+		self.cache = Cache()
 
 		super().__init__(
 			command_prefix=[';', 'sudo ', 'await '],
@@ -86,7 +88,7 @@ class Steal(commands.Bot):
 		await self.load_modules('cogs')
 		await self.load_modules('events')
 
-		from cogs.Tickets import TicketModPanel, TicketClose, TicketCreate
+		from archived.Tickets import TicketModPanel, TicketClose, TicketCreate
 
 		self.add_view(TicketClose())
 		self.add_view(TicketCreate())
