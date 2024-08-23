@@ -31,7 +31,8 @@ class Members(commands.Cog):
 						role = member.guild.get_role(roleid[0])
 					except:
 						return
-					await member.add_roles(role, reason="Autorole Add")
+					if role is not None:
+						await member.add_roles(role, reason="Autorole Add")
 
 	@Cog.listener("on_member_join")
 	async def on_join_welcome_event(self, member:discord.Member) -> None:
@@ -57,7 +58,8 @@ class Members(commands.Cog):
 						parsed = EmbedBuilder.embed_replacement(member, row[3])
 						content, embed, view = await EmbedBuilder.to_object(parsed)
 
-						await channel.send(content=content, embed=embed, view=None)	
+						if channel:
+							await channel.send(content=content, embed=embed, view=None)	
 						
 
 async def setup(bot):
