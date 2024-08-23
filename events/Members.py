@@ -18,26 +18,37 @@ class Members(commands.Cog):
 	async def on_join_autorole_event(self, member:discord.Member) -> None:
 		async with asqlite.connect("main.db") as conn:
 			async with conn.cursor() as cursor:
+
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS autorole(guildid INTEGER, roleid INTEGER)"
+				)
+
 				cur = await cursor.execute(
 					"""
-					SELECT roleid FROM autorole WHERE guildid = $1 
+					SELECT * FROM autorole WHERE guildid = $1 
 					""", member.guild.id
 				)
 
-				roleid = await cur.fetchone()
+				row = await cur.fetchone()
 
-				if roleid:
-					try:
-						role = member.guild.get_role(roleid[0])
-					except:
-						return
-					if role is not None:
-						await member.add_roles(role, reason="Autorole Add")
+				if row:
+					if row[1]:
+						try:
+							role = member.guild.get_role(row[1])
+						except:
+							return
+						if role is not None:
+							await member.add_roles(role, reason="Autorole Add")
 
 	@Cog.listener("on_member_join")
 	async def on_join_welcome_event(self, member:discord.Member) -> None:
 		async with asqlite.connect("main.db") as conn:
 			async with conn.cursor() as cursor:
+
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS welcome(guildid INTEGER, channelid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), script TEXT)"
+				)
+
 				cur = await cursor.execute(
 					"""
 					SELECT * FROM welcome WHERE guildid = $1 
