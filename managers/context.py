@@ -16,7 +16,7 @@ class StealContext(Context):
     async def approve(self, message: str, **kwargs) -> Message:
         embed=Embed(
             color = Colors.BASE_COLOR,
-            description = f'{Emojis.APPROVE} {self.author.mention}: {message}'
+            description = f'> {Emojis.APPROVE} {self.author.mention}: {message}'
         )
         await self.reply(
             embed=embed,
@@ -26,7 +26,7 @@ class StealContext(Context):
     async def warn(self, message: str, **kwargs) -> Message:
             embed=Embed(
                 color = Colors.WARN_COLOR,
-                description = f'{Emojis.WARN} {self.author.mention}: {message}'
+                description = f'> {Emojis.WARN} {self.author.mention}: {message}'
             )
             await self.reply(
                 embed=embed,
@@ -37,7 +37,7 @@ class StealContext(Context):
         return await self.reply(
             embed=Embed(
                 color = Colors.DENY_COLOR,
-                description = f'{Emojis.DENY} {self.author.mention}: {message}'
+                description = f'> {Emojis.DENY} {self.author.mention}: {message}'
             ),
             **kwargs
         )
@@ -46,7 +46,7 @@ class StealContext(Context):
         return await self.reply(
             embed=Embed(
                 color = Colors.NEUTRAL_COLOR,
-                description = f'{message}'
+                description = f'> {message}'
             ),
             **kwargs
         )
