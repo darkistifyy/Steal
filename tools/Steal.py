@@ -88,7 +88,7 @@ class Steal(commands.Bot):
 		await self.load_modules('cogs')
 		await self.load_modules('events')
 
-		from archived.Tickets import TicketModPanel, TicketClose, TicketCreate
+		from cogs.Tickets import TicketModPanel, TicketClose, TicketCreate
 
 		self.add_view(TicketClose())
 		self.add_view(TicketCreate())
