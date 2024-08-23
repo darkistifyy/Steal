@@ -367,5 +367,30 @@ class BotManagement(commands.Cog):
 		await ctx.approve(f"Successfully notified {count} guilds with this script:")
 		await ctx.send(content=content, embed=embed, view=view)
 
+	@command(
+			name='lsmsg'
+	)
+	async def lsmsg(self, ctx: StealContext):
+		await ctx.message.add_reaction("✅")
+		mems = [i for i in ctx.guild.members]
+		if not ctx.guild.chunked:
+			await ctx.guild.chunk(cache=True)
+		
+		for i in ctx.guild.channels:
+			if isinstance(i,discord.TextChannel):
+				async for message in i.history(after=datetime.datetime.utcnow()-datetime.timedelta(days=60), limit=None):
+					print(f"{i.name} ~~ {message.author.name} ~~ {message.content} || {message.created_at.day}/{message.created_at.month}/{message.created_at.year}")
+					if isinstance(message.author, discord.Member) and message.author in mems:
+						mems.remove(message.author)
+						print(f"Name  :  {message.author.name}  ||  Id  :  {message.author.id}")
+		
+		with open("members.txt", "w+") as fp:
+			for mem in mems:
+				fp.write(f"NAME  :  {mem.name}  ||  ID  :  {mem.id}\n")
+			fp.close()
+		await ctx.message.add_reaction("🌟")
+
+
+
 async def setup(bot):
 	await bot.add_cog(BotManagement(bot))

@@ -7,6 +7,10 @@ from discord.ext.commands import *
 from discord.ui import *
 from sklearn import *
 import asyncio
+import requests
+from PIL import Image
+import aiohttp
+from tools.bytesio import compress_image
 
 from managers.interaction import PatchedInteraction
 from tools.Steal import Steal
@@ -59,7 +63,7 @@ class Emojis(commands.Cog):
 
 				emoji = await ctx.guild.create_custom_emoji(name=f"{emoji_name}", image=await emoji.read(), reason=f'Executed by {ctx.author}')
 
-				return await ctx.approve(f"Created emoji {emoji}")
+				return await ctx.approve(f"Created [**emoji**]({emoji.url}) {emoji}")
 			else:
 
 				if not emoji_name: emoji_name = emoji.name
@@ -67,10 +71,10 @@ class Emojis(commands.Cog):
 
 				emoji = await ctx.guild.create_custom_emoji(name=f"{emoji_name}", image=await emoji.read(), reason=f'Executed by {ctx.author}')
 
-				return await ctx.approve(f"Stole emoji {emoji}")		
+				return await ctx.approve(f"Stole [**emoji**]({emoji.url}) - {emoji}")		
 
 		except:
-			return await ctx.deny(f"Could not create emoji {emoji_name}")
+			return await ctx.deny(f"Could not create emoji - {emoji_name}")
 
 	@emoji.command(
 			name="delete",
@@ -84,11 +88,11 @@ class Emojis(commands.Cog):
 			if emoji in ctx.guild.emojis:
 				await ctx.guild.delete_emoji(emoji, reason=f"Executed by {ctx.author}")
 
-				return await ctx.approve(f"Deleted emoji {emoji}")
+				return await ctx.approve(f"Deleted that **emoji**")
 			else:
-				return await ctx.warn(f"That emoji is not from this server.")
+				return await ctx.warn(f"That [**emoji**]({emoji.url}) is not from this server.")
 		except:
-			return await ctx.deny(f"Could not delete emoji {emoji}")
+			return await ctx.deny(f"Could not delete [**emoji**]({emoji.url})")
 	
 	@emoji.command(
 			name='rename',
@@ -103,15 +107,16 @@ class Emojis(commands.Cog):
 				emoji = await ctx.guild.fetch_emoji(emoji.id)
 				await emoji.edit(name=f"{name}", reason=f"Executed by {ctx.author}")
 				
-				return await ctx.approve(f"Renamed {emoji} to **{name}**")
+				return await ctx.approve(f"Renamed [**{emoji}**]({emoji.url}) to **{name}**")
 			else:
-				return await ctx.warn(f"That emoji is not from this server.")
+				return await ctx.warn(f"That [**emoji**]({emoji.url}) is not from this server.")
 		except:
-			return await ctx.deny(f"Could not rename emoji {emoji}")				
+			return await ctx.deny(f"Could not rename that [**emoji**]({emoji.url})")				
 
 	@emoji.command(
 			name="zip",
-			description="Zips all server emojis."
+			description="Zips all server emojis.",
+			aliases=["archive"]
 	)
 	async def sticker_zip(self, ctx: StealContext):
 
@@ -130,8 +135,6 @@ class Emojis(commands.Cog):
 			aliases=["download", "e", "jumbo"]
 	)
 	async def emojienlarge(self, ctx: StealContext, emoji: discord.PartialEmoji):
-
-		url = ""
 
 		if isinstance(emoji, discord.PartialEmoji):
 			return await ctx.reply(
@@ -156,21 +159,25 @@ class Emojis(commands.Cog):
 			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `sticker`.')
 
 	@stickers.command(
-		name="add", 
-		aliases=["yoink", "steal"],
+		name="create", 
+		aliases=["add", "yoink", "steal"],
 		description="Adds a sticker."
 	)
 	@has_guild_permissions(manage_expressions=True)
 	@bot_has_guild_permissions(manage_expressions=True)
-	async def addsticker(self, ctx: StealContext, *, name:Optional[str] = commands.param(default=Author, displayed_default=None)):
+	async def addsticker(self, ctx: StealContext, name:Optional[str] = commands.param(default=None, displayed_default=None)):
+
+				
+
+				
 
 		if len(ctx.guild.stickers) >= ctx.guild.sticker_limit:
 			return await ctx.warn(
 				"This server does not have space for new stickers."
 			)
 
-		if not ctx.message.stickers and not ctx.message.attachments:
-			return await ctx.warn("Missing argument **sticker/attachment**.")
+		if not ctx.message.stickers and not ctx.message.attachments:	
+			return await ctx.warn("Missing argument **sticker/attachment/url**.")
 
 		sticker = [sticker for sticker in ctx.message.stickers or ctx.message.attachments]
 
@@ -204,11 +211,34 @@ class Emojis(commands.Cog):
 		sticker = await ctx.guild.fetch_sticker(sticker[0])
 
 		await sticker.delete(reason=f"Executed by {ctx.author}")
-		return await ctx.approve("Deleted that sticker")
+		return await ctx.approve("Deleted that **sticker**")
+
+	@stickers.command(
+			name='rename',
+			description="Renames a sticker."
+	)
+	@has_permissions(manage_emojis=True)
+	@bot_has_guild_permissions(manage_emojis=True)
+	@guild_only()
+	async def stickerrename(self, ctx:StealContext, name:str) -> None:
+		if not ctx.message.stickers: return await ctx.warn(f"Missing argument **sticker**.")
+		sticker = [sticker for sticker in ctx.message.stickers]
+		try:
+			if sticker[0].id in [sticker.id for sticker in ctx.guild.stickers]:
+				sticker = await ctx.guild.fetch_sticker(sticker[0].id)
+				await sticker.edit(name=f"{name}", reason=f"Executed by {ctx.author}")
+				
+				return await ctx.approve(f"Renamed [**sticker**]({sticker.url}) to **{name}**")
+			else:
+				return await ctx.warn(f"That [**sticker**]({sticker[0].url}) is not from this server.")
+		except:
+			return await ctx.deny(f"Could not rename that [**sticker**]({sticker.url})")				
+
 
 	@stickers.command(
 			name="zip",
-			description="Zips all server emojis."
+			description="Zips all server emojis.",
+			aliases=["archive"]
 	)
 	@has_permissions(manage_expressions=True)
 	@bot_has_guild_permissions(manage_expressions=True)
@@ -261,6 +291,7 @@ class Emojis(commands.Cog):
 		tag = f"[.gg/{ctx.guild.vanity_url_code}]"
 		
 		amount = 0
+		total = len(ctx.guild.stickers)
 		async with ctx.typing():
 			for sticker in ctx.guild.stickers:
 				if tag not in sticker.name:
@@ -272,8 +303,12 @@ class Emojis(commands.Cog):
 						await asyncio.sleep(0.5)
 					except:
 						pass
+				else:
+					total -= 1
 
-		return await ctx.approve(f"Tagged {amount}/{len(ctx.guild.stickers)} stickers successfully.")
+		return await ctx.approve(f"Tagged {amount}/{total} non-tagged stickers successfully.")
+
+
 
 async def setup(bot):
 	await bot.add_cog(Emojis(bot))

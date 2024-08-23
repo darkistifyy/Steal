@@ -202,24 +202,23 @@ class Fun(commands.Cog):
 
 				cur = await cursor.execute(
 					"""
-					SELECT hits FROM VAPE WHERE userid = $1
-					""", (ctx.author.id, )
+					SELECT * FROM VAPE WHERE userid = $1
+					""", ctx.author.id, 
 				)
 
-				hits = await cur.fetchone()
+				row = await cur.fetchone()
 
-				if not hits:
+				if not row:
 
 					await cursor.execute(
 						"""
 						INSERT INTO vape VALUES ($1, $2)
-						""", (ctx.author.id, 1, )
+						""", ctx.author.id, 1, 
 					)
 					await conn.commit()
 					await conn.close()
 					message = await ctx.send("Hitting the **vape**...")
 			
-					await conn.commit()
 					await asyncio.sleep(4)
 
 					await message.edit(
@@ -230,13 +229,13 @@ class Fun(commands.Cog):
 							)
 					)
 
-				hitsint = hits[0]
+				hitsint = row[1]
 				hitsint += 1
 
 				await cursor.execute(
 					"""
 					UPDATE vape SET hits = $1 WHERE userid = $2
-					""", (hitsint, ctx.author.id, )
+					""", hitsint, ctx.author.id, 
 				)
 
 				await conn.commit()
@@ -269,18 +268,16 @@ class Fun(commands.Cog):
 
 				cur = await cursor.execute(
 					"""
-					SELECT hits FROM VAPE WHERE userid = $1
+					SELECT * FROM VAPE WHERE userid = $1
 					""", (user.id, )
 				)	
 
-				hits = await cur.fetchone()
+				row = await cur.fetchone()
 
-				if not hits:
+				if not row:
 					return await ctx.warn(f"{user.mention} has not hit the **vape** yet.")
 
-				hitsint = hits[0]
-
-				await ctx.neutral(f"{user.mention} has hit the **vape** `{hitsint}` times.")
+				await ctx.neutral(f"{user.mention} has hit the **vape** `{row[1]}` times.")
 
 
 	@command(

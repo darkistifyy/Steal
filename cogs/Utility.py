@@ -13,6 +13,8 @@ import zlib
 import asqlite
 import math
 import datetime
+import sys
+from isHex import isHex
 
 from tools.Steal import Steal
 from tools.rtfm import fuzzy
@@ -27,7 +29,7 @@ from typing import Optional
 
 time_convert = {"s": 1, "m": 60, "h": 3600, "d": 86400}
 
-from tools.bytesio import dom_color, caption_image
+from tools.bytesio import dom_color, caption_image, compress_image
 import re
 from typing import Generator, Union, Optional
 
@@ -623,7 +625,7 @@ class Utility(commands.Cog):
 	@command(
 			name="embedui",
 			description="Sends embed builder Ui",
-			aliases=["uembed", "uem"]
+			aliases=["uembed", "uem", "ems", "embedsetup"]
 	)
 	@has_permissions(administrator=True)
 	@bot_has_guild_permissions(send_messages=True)
@@ -789,15 +791,163 @@ class Utility(commands.Cog):
 				await ctx.approve(f"You are now AFK with the status - **{status}**")
 
 	@command(
-			name="temp",
+			name="compress",
+			description="Compresses an image"
 	)
-	async def temp(self, ctx: StealContext):
-		async with asqlite.connect("main.db") as conn:
-			async with conn.cursor() as cursor:
-				await cursor.execute(
-					"DROP TABLE afk"
+	@cooldown(1,15, BucketType.user)
+	async def compress(self, ctx: StealContext, image: discord.Attachment):
+		bytes = await image.read()
+		size = sys.getsizeof(bytes)
+		print(size)
+		compbytes = compress_image(bytes)
+		newsize = sys.getsizeof(compbytes)
+		print(newsize)
+
+		file = discord.File(io.BytesIO(compbytes), filename=f"compressed-{image.filename.split(".")[0]}.png")
+
+		dominant_color = dom_color(compbytes)
+
+		if isHex(dominant_color):
+			rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
+
+		embed=discord.Embed(
+			title=f"Compressed {image.filename.split('.')[0]}",
+			color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2]),
+		).set_image(
+				url=f"attachment://compressed-{image.filename.split(".")[0]}.png"
+		).set_footer(
+			text=f"{math.floor(newsize/1000)}kb - saved {math.floor(size/1000 - newsize/1000)}kb"
+		)
+		
+
+		await ctx.send(
+			file = file,
+			embed=embed
+		)
+
+
+
+	@commands.command(
+			name="snipe",
+			aliases=["s"],
+			description="Get the most recent deleted messages in the channel."
+	)
+	async def snipe(self, ctx: StealContext, index: int = 1):
+
+		try:
+			if not self.bot.cache.get("snipe"):
+				return await ctx.warn("I could not find any **snipes** in this channel.")
+			snipes = [
+				s for s in self.bot.cache.get("snipe") if s["channel"] == ctx.channel.id
+			]
+			if len(snipes) == 0:
+				return await ctx.warn("I could not find any **snipes** in this channel.")
+			if index > len(snipes):
+				return await ctx.warn(
+					f"There are only `{len(snipes)}` **snipes** in this channel"
 				)
-				await conn.commit()
+			result = snipes[::-1][index - 1]
+			embed = (
+				discord.Embed(
+					color=Colors.BASE_COLOR,
+					description=f"> {result['message']}",
+					timestamp=datetime.datetime.fromtimestamp(
+						result["created_at"]
+					).replace(tzinfo=None),
+				)
+				.set_author(name=result["name"], icon_url=result["avatar"])
+				.set_footer(text=f"{index}/{len(snipes)}")
+			)
+
+			if len(result["stickers"]) > 0:
+				sticker: discord.StickerItem = result["stickers"][0]
+				embed.set_image(url=sticker.url)
+			else:
+				if len(result["attachments"]) > 0:
+					attachment: discord.Attachment = result["attachments"][0]
+					if ".mp4" in attachment.filename or ".mov" in attachment.filename:
+						file = discord.File(
+							io.BytesIO(await attachment.read()),
+							filename=attachment.filename,
+						)
+						return await ctx.send(embed=embed, file=file)
+					else:
+						embed.set_image(url=attachment.url)
+
+			return await ctx.send(embed=embed)
+		except Exception as e:
+			return await ctx.warn("An error occured when fetching **snipes**.")
+
+	@command(
+			name="editsnipe",
+			description="Get the most recent edited messages.",
+			aliases=["es"]
+	)
+	async def editsnipe(self, ctx: StealContext, index: int = 1):
+		try:
+
+			if not self.bot.cache.get("edit_snipe"):
+				return await ctx.warn("I could not find any **edit snipes** in this channel")
+
+			snipes = [
+				s
+				for s in self.bot.cache.get("edit_snipe")
+				if s["channel"] == ctx.channel.id
+			]
+
+			if len(snipes) == 0:
+				return await ctx.warn("I could not find any **edit snipes** in this channel")
+
+			if index > len(snipes):
+				return await ctx.warn(
+					f"There are only `{len(snipes)}` **edit snipes** in this channel"
+				)
+
+			result = snipes[::-1][index - 1]
+			embed = (
+				discord.Embed(
+						color=Colors.BASE_COLOR,
+						timestamp=datetime.datetime.fromtimestamp(
+							result["edited_at"]
+						).replace(tzinfo=None),
+				)
+				.set_author(name=result["name"], icon_url=result["avatar"])
+				.set_footer(text=f"{index}/{len(snipes)}")
+			)
+
+			for m in ["before", "after"]:
+				embed.add_field(name=m.capitalize(), value=f"> **{result[m]}**", inline=False)
+
+			return await ctx.send(embed=embed)
+		except Exception as e:
+			return await ctx.warn("An error occured when fetching **edit snipes**.")
+
+	@command(
+			name="clearsnipes",
+			aliases=["cs"],
+			description="Clears all sniped messages for this channel."
+	)
+	@has_guild_permissions(manage_messages=True)
+	async def clearsnipes(self, ctx: StealContext):
+		"""
+		Clear the snipes from the channel
+		"""
+
+		for i in ["snipe", "edit_snipe", "reaction_snipe"]:
+			snipes = self.bot.cache.get(i)
+
+			if snipes:
+				
+				sdata = [m for m in snipes if m["channel"] == ctx.channel.id]
+
+				if not sdata:
+					return await ctx.warn("There are no **snipes** in this channel.")
+
+				for s in sdata:
+					snipes.remove(s)
+				await self.bot.cache.set(i, snipes)
+
+		await ctx.approve("Cleared all snipes from this channel")
 
 async def setup(bot):
 	await bot.add_cog(Utility(bot))

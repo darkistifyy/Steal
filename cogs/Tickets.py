@@ -32,7 +32,7 @@ class TicketModPanel(discord.ui.View):
 
 		await interaction.message.edit(view=self)
 
-		await interaction.followup.send(embed=discord.Embed(description=f'{Emojis.WARN} Deleting ticket in 5 seconds.', color=Colors.WARN_COLOR))
+		await interaction.followup.send(embed=discord.Embed(description=f'{Emojis.WARN} Deleting **ticket** in 5 seconds.', color=Colors.WARN_COLOR))
 
 		await asyncio.sleep(5)
 
@@ -55,7 +55,7 @@ class TicketModPanel(discord.ui.View):
 
 		await interaction.message.edit(view=self)
 
-		status = await interaction.followup.send(embed=discord.Embed(description=f'{Emojis.WARN} Opening Ticket. . .', color=Colors.WARN_COLOR))
+		status = await interaction.followup.send(embed=discord.Embed(description=f'{Emojis.WARN} **Opening** Ticket. . .', color=Colors.WARN_COLOR))
 
 		overwrites = {
 			interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False, view_channel = False),
@@ -70,7 +70,7 @@ class TicketModPanel(discord.ui.View):
 		except Exception as e:
 			print(e)
 
-		await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} Ticket opened successfully!', color=Colors.BASE_COLOR), view=TicketClose())
+		await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} **Opened** ticket.', color=Colors.BASE_COLOR), view=TicketClose())
 		await status.pin()
 
 class TicketClose(discord.ui.View):
@@ -87,7 +87,7 @@ class TicketClose(discord.ui.View):
 		if "Closed - " in interaction.channel.topic:
 			return
 
-		status = await interaction.followup.send(embed=discord.Embed(description=f'{Emojis.WARN} Locking ticket. . .', color=Colors.WARN_COLOR))
+		status = await interaction.followup.send(embed=discord.Embed(description=f'{Emojis.WARN} **Locking** ticket. . .', color=Colors.WARN_COLOR))
 
 		tpic = interaction.channel.topic
 		tpic1 = tpic.replace("Closed - ", "")
@@ -108,7 +108,7 @@ class TicketClose(discord.ui.View):
 		except Exception as e:
 			print(e)
 
-		await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} Ticket locked successfully!', color=Colors.BASE_COLOR), view=TicketModPanel())
+		await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} **Locked** ticket.', color=Colors.BASE_COLOR), view=TicketModPanel())
 		
 class TicketCreate(discord.ui.View):
 	def __init__(self):
@@ -118,11 +118,11 @@ class TicketCreate(discord.ui.View):
 	async def ticketcreate(self, interaction:discord.Interaction, button:Button):
 		await interaction.response.defer(ephemeral=True)
 
-		status = await interaction.followup.send(embed=discord.Embed(description=f'{Emojis.WARN} Creating ticket. . .', color=Colors.WARN_COLOR), ephemeral=True)
+		status = await interaction.followup.send(embed=discord.Embed(description=f'{Emojis.WARN} **Creating** ticket. . .', color=Colors.WARN_COLOR), ephemeral=True)
 
 		for ch in interaction.guild.text_channels:
 			if f"Open - {interaction.user.id}" in ch.topic if ch.topic else False:
-				await status.edit(embed=discord.Embed(description=f'{Emojis.WARN} You already have a ticket open in {ch.mention}.', color=Colors.WARN_COLOR))
+				await status.edit(embed=discord.Embed(description=f'{Emojis.WARN} You already have a **ticket** open in {ch.mention}.', color=Colors.WARN_COLOR))
 				return
 
 		overwrites = {
@@ -136,20 +136,20 @@ class TicketCreate(discord.ui.View):
 			async with conn.cursor() as cursor:
 				cur = await cursor.execute(
 					"""
-					SELECT categoryid, supportroleid, openscript FROM tickets WHERE guildid = $1
+					SELECT * FROM tickets WHERE guildid = $1
 					""", interaction.guild.id
 				) 
 
-				items = await cur.fetchmany()
+				row = await cur.fetchone()
 
-				supportroleid = None
-				categoryid = None
-				openscript = None
-
-				for item in items:
-					supportroleid = item[1] or None
-					categoryid = item[0] or None
-					openscript = item[2] or None
+				if row:
+					supportroleid = row[3] 
+					categoryid = row[1] 
+					openscript = row[2] 
+				else:
+					supportroleid = None
+					categoryid = None
+					openscript = None
 
 				if supportroleid is not None:
 					sup = interaction.guild.get_role(supportroleid)
@@ -161,115 +161,46 @@ class TicketCreate(discord.ui.View):
 						sup: discord.PermissionOverwrite(read_messages=True, send_messages=True)
 					}
 
-				
-					if categoryid is not None:
-						cat = interaction.guild.get_channel(categoryid)
-						tc = await cat.create_text_channel(
-							name=f"{interaction.user.name}",
-							topic=f"Open - {interaction.user.id}",
-							overwrites=overwrites
-						)
-
-						if openscript is not None:
-							parsed = EmbedBuilder.embed_replacement(interaction.user, openscript)
-							content, embed, view = await EmbedBuilder.to_object(parsed)
-							out = await tc.send(content=content, embed=embed, view=TicketClose())
-							await out.pin()
-							return await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} Ticket opened successfully: {tc.mention}', color=Colors.BASE_COLOR))
-
-						top = await tc.send(embed=discord.Embed(
-							title='__Ticket opened.__',
-							description='﹒Please explain why you opened this ticket\n﹒Be patient for a response.',
-							color=Colors.BASE_COLOR
-						).set_author(
-							icon_url=interaction.guild.icon.url if interaction.guild.icon else None,
-							name=interaction.guild.name
-						),view=TicketClose())
-						await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} Ticket opened successfully: {tc.mention}', color=Colors.BASE_COLOR))
-						await top.pin()
-					else:
-
-						tc = await interaction.guild.create_text_channel(
-								name=f'{interaction.user.name}',
-								topic=f'Open - {interaction.user.id}',
-								overwrites=overwrites
-						)
-						if openscript is not None:
-							parsed = EmbedBuilder.embed_replacement(interaction.user, openscript)
-							content, embed, view = await EmbedBuilder.to_object(parsed)
-							out = await tc.send(content=content, embed=embed, view=TicketClose())
-							await out.pin()
-							return await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} Ticket opened successfully: {tc.mention}', color=Colors.BASE_COLOR))
-						
-						top = await tc.send(embed=discord.Embed(
-							title='__Ticket opened.__',
-							description='﹒Explain why you opened this ticket\n﹒Be patient for a response.',
-							color=Colors.BASE_COLOR
-						).set_author(
-							icon_url=interaction.guild.icon.url if interaction.guild.icon else None,
-							name=interaction.guild.name
-						),view=TicketClose()
-						)
-						await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} Ticket opened successfully: {tc.mention}', color=Colors.BASE_COLOR))
-						await top.pin()
 				else:
-
 					overwrites = {
 						interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False, view_channel=False),
 						interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True, view_channel = True),
 						interaction.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
-					}
+					}                    
 
-					if categoryid is not None:
-						cat = interaction.guild.get_channel(categoryid)
-						tc = await cat.create_text_channel(
-							name=f"{interaction.user.name}",
-							topic=f"Open - {interaction.user.id}",
+				
+				if categoryid is not None:
+					cat = interaction.guild.get_channel(categoryid)
+					tc = await cat.create_text_channel(
+						name=f"{interaction.user.name}",
+						topic=f"Open - {interaction.user.id}",
+						overwrites=overwrites
+					)
+
+				else:
+					tc = await interaction.guild.create_text_channel(
+							name=f'{interaction.user.name}',
+							topic=f'Open - {interaction.user.id}',
 							overwrites=overwrites
-						)
+					)
 
-						if openscript is not None:
-							parsed = EmbedBuilder.embed_replacement(interaction.user, openscript)
-							content, embed, view = await EmbedBuilder.to_object(parsed)
-							out = await tc.send(content=content, embed=embed, view=TicketClose())
-							await out.pin()
-							return await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} Ticket opened successfully: {tc.mention}', color=Colors.BASE_COLOR))
-
-						top = await tc.send(embed=discord.Embed(
-							title='__Ticket opened.__',
-							description='﹒Please explain why you opened this ticket\n﹒Be patient for a response.',
-							color=Colors.BASE_COLOR
-						).set_author(
-							icon_url=interaction.guild.icon.url if interaction.guild.icon else None,
-							name=interaction.guild.name
-						),view=TicketClose())
-						await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} Ticket opened successfully: {tc.mention}', color=Colors.BASE_COLOR))
-						await top.pin()
-					else:
-
-						tc = await interaction.guild.create_text_channel(
-								name=f'{interaction.user.name}',
-								topic=f'Open - {interaction.user.id}',
-								overwrites=overwrites
-						)
-						if openscript is not None:
-							parsed = EmbedBuilder.embed_replacement(interaction.user, openscript)
-							content, embed, view = await EmbedBuilder.to_object(parsed)
-							out = await tc.send(content=content, embed=embed, view=TicketClose())
-							await out.pin()
-							return await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} Ticket opened successfully: {tc.mention}', color=Colors.BASE_COLOR))
-						
-						top = await tc.send(embed=discord.Embed(
-							title='__Ticket opened.__',
-							description='﹒Explain why you opened this ticket\n﹒Be patient for a response.',
-							color=Colors.BASE_COLOR
-						).set_author(
-							icon_url=interaction.guild.icon.url if interaction.guild.icon else None,
-							name=interaction.guild.name
-						),view=TicketClose()
-						)
-						await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} Ticket opened successfully: {tc.mention}', color=Colors.BASE_COLOR))
-						await top.pin()
+				if openscript is not None:
+					parsed = EmbedBuilder.embed_replacement(interaction.user, openscript)
+					content, embed, view = await EmbedBuilder.to_object(parsed)
+					out = await tc.send(content=content, embed=embed, view=TicketClose())
+					await out.pin()
+					return await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} **Ticket** opened: {tc.mention}', color=Colors.BASE_COLOR))
+				top = await tc.send(embed=discord.Embed(
+					title='__Ticket opened.__',
+					description='﹒Please explain why you opened this ticket\n﹒Be patient for a response.',
+					color=Colors.BASE_COLOR
+				).set_author(
+					icon_url=interaction.guild.icon.url if interaction.guild.icon else None,
+					name=interaction.guild.name
+				),view=TicketClose())
+				await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} Ticket opened successfully: {tc.mention}', color=Colors.BASE_COLOR))
+				await top.pin()
+					
 
 
 
@@ -298,23 +229,21 @@ class Tickets(commands.Cog):
 
 			panelembed = discord.Embed(
 				title='__Open a ticket!__',
-				description='﹒Click on the button below to create a ticket\n﹒Explain why you opened the ticket\n﹒Be patient for a response.',
-				color=Color.pink(),
+				description='﹒Click on the **button** below to create a **ticket**\n﹒**Explain** why you opened the **ticket**\n﹒Be **patient** for a **response**.',
+				color=Colors.BASE_COLOR,
 			).set_author(
 				name=ctx.guild.name,
 				icon_url=ctx.guild.icon.url if ctx.guild.icon else None
-			).set_image(
-				url=embedgif
 			)
 
 			await channel.send(embed=panelembed, view=TicketCreate())
-			return await ctx.approve(f'Sent ticket panel to {channel.mention}.')
+			return await ctx.approve(f'Sent default **ticket** panel to {channel.mention}.')
 		
 		processed_message = EmbedBuilder.embed_replacement(ctx.author, script)
 		content, embed, view = await EmbedBuilder.to_object(processed_message)
 
 		await channel.send(content=content, embed=embed, view=TicketCreate())
-		return await ctx.approve(f'Sent ticket panel to {channel.mention}.')
+		return await ctx.approve(f'Sent **ticket** panel to {channel.mention}.')
 
 		"""
 		tcg = await ctx.guild.create_category(name='◜ 🎫 ◞ @ TICKETS')
@@ -336,7 +265,8 @@ class Tickets(commands.Cog):
 
 	@ticket.command(
 			name="opened",
-			description="The script that sends when a ticket is opened."
+			description="The script that sends when a ticket is opened.",
+			aliases=["script"]
 	)
 	@has_permissions(administrator=True)
 	@bot_has_guild_permissions(manage_channels=True)
@@ -352,47 +282,46 @@ class Tickets(commands.Cog):
 
 				cur = await cursor.execute(
 					"""
-					SELECT openscript FROM tickets WHERE guildid = $1
+					SELECT * FROM tickets WHERE guildid = $1
 					""", ctx.guild.id, 
 				)
 
-				openscript = await cur.fetchone()
+				row = await cur.fetchone()
 
-				if openscript:
-					if not script:
-						script = """{embed}{color: #ff8fab}{title: __Ticket opened.__}{description: ﹒Please explain why you opened this ticket
-								﹒Be patient for a response.}{author: Test Server}"""
-						
+				if not script:
+					default = """{embed}{color: #ff8fab}{title: __Ticket opened.__}{description: ﹒Please explain why you opened this ticket
+							﹒Be patient for a response.}{author: Test Server}"""
+
+				if row:
+					if row[2]:
+						if not script:
+							await cursor.execute(
+								"""
+								UPDATE tickets SET openscript = $1 WHERE guildid = $2
+								""", default, ctx.guild.id, 
+							)
+							await conn.commit()
+							return await ctx.approve(f"Set script to default ```{default}```")
+
 						await cursor.execute(
 							"""
 							UPDATE tickets SET openscript = $1 WHERE guildid = $2
 							""", script, ctx.guild.id, 
 						)
+
 						await conn.commit()
-						await ctx.approve(f"Set script to default ```{script}```")
-						return
 
-					await cursor.execute(
-						"""
-						UPDATE tickets SET openscript = $1 WHERE guildid = $2
-						""", script, ctx.guild.id, 
-					)
-
-					await conn.commit()
-
-					return await ctx.approve(f"Overwrote ticket opening message to ```{script}```")
+						return await ctx.approve(f"Overwrote **ticket** opening script to ```{script}```")
 				
 				if not script:
-					script = """{embed}{color: #ff8fab}{title: __Ticket opened.__}{description: ﹒Please explain why you opened this ticket
-							﹒Be patient for a response.}{author: Test Server}"""
 					
 					await cursor.execute(
 						"""
 						INSERT INTO tickets (guildid, openscript) VALUES ($1, $2)
-						""", ctx.guild.id, script, 
+						""", ctx.guild.id, default, 
 					)
 					await conn.commit()
-					await ctx.approve(f"Set script to default ```{script}```")
+					await ctx.approve(f"Set **ticket** opening script to default ```{default}```")
 					return
 
 				await cursor.execute(
@@ -401,7 +330,7 @@ class Tickets(commands.Cog):
 					""", ctx.guild.id, script, 
 				)
 				await conn.commit()
-				return await ctx.approve(f"Set ticket opening message to ```{script}```")
+				return await ctx.approve(f"Set **ticket** opening script to ```{script}```")
 
 	@ticket.command(
 			name="support",
@@ -421,21 +350,22 @@ class Tickets(commands.Cog):
 
 				cur = await cursor.execute(
 					"""
-					SELECT supportroleid FROM tickets WHERE guildid = $1
+					SELECT * FROM tickets WHERE guildid = $1
 					""", ctx.guild.id, 
 				)
 
-				support = await cur.fetchone()
+				row = await cur.fetchone()
 
-				if support:
-					await cursor.execute(
-						"""
-						UPDATE tickets SET supportroleid = $1 WHERE guildid = $2
-						""", role.id, ctx.guild.id, 
-					)
-					await conn.commit()
-					await ctx.approve(f"Set ticket support role to {role.mention}")
-					return
+				if row:
+					if row[3]:
+						await cursor.execute(
+							"""
+							UPDATE tickets SET supportroleid = $1 WHERE guildid = $2
+							""", role.id, ctx.guild.id, 
+						)
+						await conn.commit()
+						await ctx.approve(f"Overwrote **ticket** support role to {role.mention}")
+						return
 				
 			await cursor.execute(
 				"""
@@ -443,7 +373,7 @@ class Tickets(commands.Cog):
 				""", ctx.guild.id, role.id, 
 			)
 			await conn.commit()
-			return await ctx.approve(f"Set ticket support role to {role.mention}")
+			return await ctx.approve(f"Set **ticket** support role to {role.mention}")
 
 	@ticket.command(
 			name="category",
@@ -463,21 +393,22 @@ class Tickets(commands.Cog):
 
 				cur = await cursor.execute(
 					"""
-					SELECT categoryid FROM tickets WHERE guildid = $1
+					SELECT * FROM tickets WHERE guildid = $1
 					""", ctx.guild.id, 
 				)
 
-				categoryid = await cur.fetchone()
+				row = await cur.fetchone()
 
-				if categoryid:
-					await cursor.execute(
-						"""
-						UPDATE tickets SET categoryid = $1 WHERE guildid = $2
-						""", category.id, ctx.guild.id, 
-					)
-					await conn.commit()
-					await ctx.approve(f"Set ticket category to {category}")
-					return
+				if row:
+					if row[1]:
+						await cursor.execute(
+							"""
+							UPDATE tickets SET categoryid = $1 WHERE guildid = $2
+							""", category.id, ctx.guild.id, 
+						)
+						await conn.commit()
+						await ctx.approve(f"Overwrote **ticket** category to **{category}**")
+						return
 				
 				await cursor.execute(
 					"""
@@ -485,7 +416,7 @@ class Tickets(commands.Cog):
 					""", ctx.guild.id, category.id, 
 				)
 				await conn.commit()
-				return await ctx.approve(f"Set ticket category to {category}")
+				return await ctx.approve(f"Set **ticket** category to **{category}**")
 
 	@ticket.command(
 			name="config",
@@ -502,47 +433,28 @@ class Tickets(commands.Cog):
 					"""
 				)
 
-				cur1 = await cursor.execute(
+				cur = await cursor.execute(
 					"""
-					SELECT categoryid FROM tickets WHERE guildid = $1
+					SELECT * FROM tickets WHERE guildid = $1
 					""", ctx.guild.id
 				)
 
-				catid = await cur1.fetchone()
+				row = await cur.fetchone()
 
-				if not catid:
-					category = "None"
-
-				cur2 = await cursor.execute(
-					"""
-					SELECT openscript FROM tickets WHERE guildid = $1
-					""", ctx.guild.id
-				)
-
-				oscript = await cur2.fetchone()
-
-
-				cur3 = await cursor.execute(
-					"""
-					SELECT supportroleid FROM tickets WHERE guildid = $1
-					""", ctx.guild.id
-				)
-
-				sroleid = await cur3.fetchone()
-
-				if not catid and not oscript and not sroleid:
+				if not row:
 					return await ctx.warn("There is no **ticket** config set for this guild.")
 				
-				if catid:
+				if row[1]:
 					try:
-						category = ctx.guild.get_channel(catid[0])
+						category = ctx.guild.get_channel(row[1])
 					except:
 						category = "Invalid category"
 				else:
 					category = "None"
-				if sroleid:
+
+				if row[3]:
 					try:
-						role = ctx.guild.get_role(sroleid[0])
+						role = ctx.guild.get_role(row[3])
 						rolemention = role.mention
 					except:
 						rolemention = "Invalid role"
@@ -557,13 +469,13 @@ class Tickets(commands.Cog):
 						icon_url=ctx.guild.icon.url if ctx.guild.icon else None
 					).add_field(
 						name="Category",
-						value=f"> {category if catid else "None"}"
+						value=f"> {category if row[1] else "None"}"
 					).add_field(
 						name="Support role",
-						value=f"> {rolemention if sroleid else "None"}",
+						value=f"> {rolemention if row[3] else "None"}",
 					).add_field(
 						name="Opening ticket embed",
-						value=f"```{oscript[0] if oscript else "None"}```",
+						value=f"```{row[2]}```",
 						inline=False
 					)
 				)
@@ -622,7 +534,7 @@ class Tickets(commands.Cog):
 				await ctx.channel.delete()
 				return
 		
-		await ctx.deny('This channel is not a ticket.')
+		await ctx.deny('This **channel** is not a **ticket**.')
 
 	@ticket.command(
 			name='close', 
@@ -640,7 +552,16 @@ class Tickets(commands.Cog):
 
 		if ctx.channel.topic and "Closed - " or "Open - " in ctx.channel.topic:
 			if op in ctx.channel.members:
-					status = await ctx.send(embed=discord.Embed(description=f'{Emojis.WARN} Locking ticket. . .', color=Colors.WARN_COLOR))
+
+					status = await ctx.send(embed=discord.Embed(description=f'{Emojis.WARN} **Locking** ticket. . .', color=Colors.WARN_COLOR))
+
+					async for message in ctx.channel.history():
+						if message.author.id == self.bot.user.id:
+							if message.components:
+								view = discord.ui.View.from_message(message)
+								for child in view.children:
+									child.disabled = True
+								await message.edit(view=view)
 
 					overwrites = {
 						ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False, view_channel = False),
@@ -656,14 +577,14 @@ class Tickets(commands.Cog):
 					except Exception as e:
 						print(e)
 
-					return await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} Ticket locked successfully!', color=Colors.BASE_COLOR), view=TicketModPanel())
+					return await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} **Locked** ticket.', color=Colors.BASE_COLOR), view=TicketModPanel())
 					
 		
 			else:
-				return await ctx.deny('This ticket is already locked.')
+				return await ctx.deny('This **ticket** is already **locked**.')
 						
 		else:	
-			return await ctx.deny('This channel is not a ticket.')		
+			return await ctx.deny('This **channel** is not a **ticket**.')		
 
 	@ticket.command(
 			name='open', 
@@ -681,7 +602,16 @@ class Tickets(commands.Cog):
 
 		if ctx.channel.topic and "Closed - " or "Open - " in ctx.channel.topic:
 			if op in ctx.channel.members:
-					status = await ctx.send(embed=discord.Embed(description=f'{Emojis.WARN} Opening ticket. . .', color=Colors.WARN_COLOR))
+					status = await ctx.send(embed=discord.Embed(description=f'{Emojis.WARN} **Opening** ticket. . .', color=Colors.WARN_COLOR))
+
+					async for message in ctx.channel.history():
+						if message.author.id == self.bot.user.id:
+							if message.components:
+								view = discord.ui.View.from_message(message)
+								for child in view.children:
+									child.disabled = True
+								await message.edit(view=view)
+
 
 					overwrites = {
 					ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False, view_channel = False),
@@ -694,18 +624,18 @@ class Tickets(commands.Cog):
 					try:
 						await asyncio.wait_for(ctx.channel.edit(name=f"{op.name}"),timeout=2)
 					except asyncio.TimeoutError:
-						await ctx.channel.send(embed=discord.Embed(description=f"{Emojis.WARN} Rate limited. Skipping channel name change.",color=Colors.WARN_COLOR()))
+						await ctx.channel.send(embed=discord.Embed(description=f"{Emojis.WARN} Rate limited. Skipping channel name change.",color=Colors.WARN_COLOR))
 					except Exception as e:
 						print(e)
 
-					await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} Opened ticket.', color=Colors.BASE_COLOR), view=TicketClose())
+					await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} **Opened** ticket.', color=Colors.BASE_COLOR), view=TicketClose())
 					return
 		
 			if op in ctx.channel.members:
-				return await ctx.warn('This ticket is already open.')
+				return await ctx.warn('This **ticket** is already **open**.')
 				
 		else:
-			return await ctx.warn('This channel is not a ticket.')	
+			return await ctx.warn('This **channel** is not a **ticket**.')	
 
 async def setup(bot):
 	await bot.add_cog(Tickets(bot))
