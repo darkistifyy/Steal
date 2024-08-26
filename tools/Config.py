@@ -10,9 +10,9 @@ class Colors:
     WARN_COLOR = Color.yellow()
 
 class Emojis:
-    APPROVE = "✅"
-    WARN = "⚠️"
-    DENY = "❌"
+    APPROVE = "<:confirm:1276652226496041012>"
+    WARN = "<:warn:1276652908095602838> "
+    DENY = "<:deny:1276653138635395142>"
     LEFT_PAGINATOR = "<:back:1273146500351918113> "
     RIGHT_PAGINATOR = "<:next:1273146501757014098>"
     NAVIGATE_PAGINATOR = "<:index:1273146499248951307> "
