@@ -38,6 +38,7 @@ from managers.context import StealContext
 class Emojis(commands.Cog):
 	def __init__(self, bot: Steal):
 		self.bot = bot
+		self.description = "Manage server emojis + stickers."
 		
 	@group(
 			name='emoji',

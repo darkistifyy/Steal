@@ -25,6 +25,7 @@ from managers.context import StealContext
 class Roles(commands.Cog):
 	def __init__(self, bot: Steal):
 		self.bot = bot
+		self.description = "Server role commands."
 		
 	@group(name="role", description="Manage roles.")
 	async def userrole(self, ctx: StealContext):
@@ -238,14 +239,8 @@ class Roles(commands.Cog):
 			if role.display_icon:
 				if not isinstance(role.display_icon, str):
 					avatarbytes = await role.display_icon.read()
-					dominant_color = dom_color(avatarbytes)
-
-					from isHex import isHex
-
-					if isHex(dominant_color):
-						rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
-
-						return await ctx.reply(embed=discord.Embed(title=f"{role.name}'s icon", url=role.display_icon.url, color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])).set_image(url=role.display_icon.url))
+					
+					return await ctx.reply(embed=discord.Embed(title=f"{role.name}'s icon", url=role.display_icon.url, color=await self.bot.dominant_color(avatarbytes)).set_image(url=role.display_icon.url))
 				return await ctx.reply(embed=discord.Embed(title=f"{role.name}'s icon: {role.display_icon}", color=Colors.BASE_COLOR))
 			else: 
 				return await ctx.deny(f"Missing argument `image`")
@@ -274,14 +269,8 @@ class Roles(commands.Cog):
 			if role.display_icon:
 				if not isinstance(role.display_icon, str):
 					avatarbytes = await role.display_icon.read()
-					dominant_color = dom_color(avatarbytes)
 
-					from isHex import isHex
-
-					if isHex(dominant_color):
-						rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
-
-						return await ctx.reply(embed=discord.Embed(title=f"{role.name}'s icon", url=role.display_icon.url, color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])).set_image(url=role.display_icon.url))
+					return await ctx.reply(embed=discord.Embed(title=f"{role.name}'s emoji", url=role.display_icon.url, color=await self.bot.dominant_color(avatarbytes)).set_image(url=role.display_icon.url))
 				return await ctx.reply(embed=discord.Embed(title=f"{role.name}'s icon: {role.display_icon}", color=Colors.BASE_COLOR))
 			else: 
 				return await ctx.deny(f"Missing argument `emoji`")

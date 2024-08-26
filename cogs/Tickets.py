@@ -207,6 +207,7 @@ class TicketCreate(discord.ui.View):
 class Tickets(commands.Cog):
 	def __init__(self, bot: Steal):
 		self.bot = bot
+		self.description = "Server ticket commands."
 	
 	@group(name="ticket", description='Tickets n stuff.')
 	async def ticket(self, ctx: StealContext):

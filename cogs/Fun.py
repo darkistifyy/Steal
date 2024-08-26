@@ -173,8 +173,17 @@ class TicTacToe(discord.ui.View):
 class Fun(commands.Cog):
 	def __init__(self, bot:Steal):
 		self.bot = bot
+		self.description = "Random fun commands."
 		self.MatchStart = {}
 		self.lifes = {}
+
+	def human_format(self, number: int) -> str:
+
+		if number > 999:
+			return humanize.naturalsize(number, False, True)
+
+		return number.__str__()
+
 
 	@group(
 			name="vape",
@@ -928,6 +937,21 @@ class Fun(commands.Cog):
 			)
 		return await ctx.neutral(f"{joke['attachments'][0]['text']}")
 
+	@command(
+			name="image",
+			aliases=['img']
+	)
+	async def image(self, ctx: StealContext, *, query: str):
+		try:
+			async with ctx.typing():
+				async with aiohttp.ClientSession() as session:
+					async with session.post("https://vile.bot/api/browser/images", data=query, params={"colors": "true"}, headers={"Content-Type": "application/json"}) as response:
+						response = await response.json()
+						embeds = [discord.Embed(title=res.get('title', 'Untitled'), url="https://" + res.get('domain', ''), color=res.get('color', discord.Color.default())).set_image(url=res.get('url', '')) for res in response]
+						if len(embeds) == 0: return await ctx.warn("Nothing found.")
+						return await ctx.paginate(embeds=embeds)
+		except Exception:
+			return await ctx.warn(f"Could not find anything with this query")
 
 async def setup(bot):
 	await bot.add_cog(Fun(bot))

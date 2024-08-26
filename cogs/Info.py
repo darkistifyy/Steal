@@ -25,6 +25,7 @@ import math
 class Info(commands.Cog):
 	def __init__(self, bot: Steal):
 		self.bot = bot
+		self.description = "Discord info commands."
 
 	@command(
 			name="invite",
@@ -222,14 +223,11 @@ class Info(commands.Cog):
 		
 		avatarbytes = await ctx.guild.icon.read() if ctx.guild.icon else None
 		if avatarbytes is not None:
-			dominant_color = dom_color(avatarbytes)
-			from isHex import isHex
-			if isHex(dominant_color):
-				rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
+			dominant_color = await self.bot.dominant_color(avatarbytes)
 
 		embed = discord.Embed(
 			description=f'{server_creation} ({server_creation_relative})',
-			color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2]) if avatarbytes else Colors.BASE_COLOR
+			color=dominant_color if dominant_color else Colors.BASE_COLOR
 		).add_field(
 			name='Information',
 			value=f'>>> Owner: {server_owner}\nVerification level: {str(server_verification)}\nNitro boosts: {str(server_boosts)} (`Level {str(server_boost_level)}`)',
@@ -330,14 +328,11 @@ class Info(commands.Cog):
 
 		avatarbytes = await invite.guild.icon.read() if invite.guild.icon else None
 		if avatarbytes is not None:
-			dominant_color = dom_color(avatarbytes)
-			from isHex import isHex
-			if isHex(dominant_color):
-				rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
+			dominant_color = await self.bot.dominant_color(avatarbytes)
 
 		embed = discord.Embed(
 			description=f'{invite_server_creation} ({invite_server_creation_relative})',
-			color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2]) if avatarbytes else Colors.BASE_COLOR
+			color=dominant_color if dominant_color else Colors.BASE_COLOR
 		).add_field(
 			name='Information',
 			value=f'>>> Inviter: {invite_inviter}\nChannel: {invite_channel}\nCreated: {invite_creation_relative}',
@@ -400,16 +395,13 @@ class Info(commands.Cog):
 					response = requests.get(activity.album_cover_url)
 					bytes = response.content
 					if bytes is not None:
-						dominant_color = dom_color(bytes)
-						from isHex import isHex
-						if isHex(dominant_color):
-							rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
+						dominant_color = await self.bot.dominant_color(bytes)
 
 					info = discord.Embed(
 						title=f"{activity.title}",
 						url=f"{activity.track_url}",
 						description=f"🎵 {member} is **listening to** [{activity.title}]({activity.track_url})",
-						color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])
+						color=dominant_color if dominant_color else Colors.BASE_COLOR
 					).add_field(
 						name="Lyricist/Artist",
 						value=f"{activity.artist}"
@@ -442,15 +434,12 @@ class Info(commands.Cog):
 					response = requests.get(member.display_avatar.url)
 					bytes = response.content
 					if bytes is not None:
-						dominant_color = dom_color(bytes)
-						from isHex import isHex
-						if isHex(dominant_color):
-							rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
+						dominant_color = await self.bot.dominant_color(bytes)
 
 					info = discord.Embed(
 						title=f"{activity.name}",
 						description=f"🎮 {member} is **playing** {activity.name}",
-						color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])
+						color=dominant_color if dominant_color else Colors.BASE_COLOR
 					).add_field(
 						name="Platform",
 						value=f"{activity.platform}"
@@ -484,16 +473,13 @@ class Info(commands.Cog):
 					response = requests.get(activity.album_cover_url)
 					bytes = response.content
 					if bytes is not None:
-						dominant_color = dom_color(bytes)
-						from isHex import isHex
-						if isHex(dominant_color):
-							rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
+						dominant_color = await self.bot.dominant_color(bytes)
 
 					info = discord.Embed(
 						title=f"{activity.title}",
 						url=f"{activity.track_url}",
 						description=f"🎵 {member} is **{str(activity.type).split('.')[1].capitalize()} to** [{activity.title}]({activity.track_url})",
-						color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])
+						color=dominant_color if dominant_color else Colors.BASE_COLOR
 					).add_field(
 						name="Lyricist/Artist",
 						value=f"{activity.artist}"
@@ -512,15 +498,12 @@ class Info(commands.Cog):
 					response = requests.get(activity.large_image_url)
 					bytes = response.content
 					if bytes is not None:
-						dominant_color = dom_color(bytes)
-						from isHex import isHex
-						if isHex(dominant_color):
-							rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
+						dominant_color = await self.bot.dominant_color(bytes)
 
 					info = discord.Embed(
 						title=f"{activity.name}",
 						description=f"🎮 {member} is **{str(activity.type).split('.')[1].capitalize()}** {activity.name}",
-						color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])
+						color=dominant_color if dominant_color else Colors.BASE_COLOR
 					).add_field(
 						name="Platform",
 						value=f"{activity.platform if activity.platform else 'Not avaliable.'}"
@@ -539,16 +522,13 @@ class Info(commands.Cog):
 					response = requests.get(activity.large_image_url)
 					bytes = response.content
 					if bytes is not None:
-						dominant_color = dom_color(bytes)
-						from isHex import isHex
-						if isHex(dominant_color):
-							rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
+						dominant_color = await self.bot.dominant_color(bytes)
 
 					info = discord.Embed(
 						title=f"{activity.name}",
 						url=activity.url,
 						description=f"🖥️ {member} is **{str(activity.type).split('.')[1].capitalize()}** {activity.game}",
-						color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])
+						color=dominant_color if dominant_color else Colors.BASE_COLOR
 					).add_field(
 						name="Platform",
 						value=f"{activity.platform if activity.platform else 'Not avaliable.'}"
@@ -828,15 +808,11 @@ class Info(commands.Cog):
 		elif ctx.guild.icon:
 
 			avatarbytes = await ctx.guild.icon.read()
-			dominant_color = dom_color(avatarbytes)
-			from isHex import isHex
-			if isHex(dominant_color):
-				rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
 
 			return await ctx.reply(embed=discord.Embed(
 				title=f"{ctx.guild}'s icon",
 				url=ctx.guild.icon.url,
-				color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])
+				color=await self.bot.dominant_color(avatarbytes)
 			).set_image(
 				url=ctx.guild.icon.url
 				).set_author(
@@ -865,15 +841,11 @@ class Info(commands.Cog):
 		elif ctx.guild.splash:
 
 			avatarbytes = await ctx.guild.splash.read()
-			dominant_color = dom_color(avatarbytes)
-			from isHex import isHex
-			if isHex(dominant_color):
-				rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
 
 			return await ctx.reply(embed=discord.Embed(
 				title=f"{ctx.guild}'s splash",
 				url=ctx.guild.splash.url,
-				color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])
+				color=await self.bot.dominant_color(avatarbytes)
 			).set_image(
 				url=ctx.guild.splash.url
 				).set_author(
@@ -903,15 +875,11 @@ class Info(commands.Cog):
 		elif ctx.guild.banner:
 
 			avatarbytes = await ctx.guild.banner.read()
-			dominant_color = dom_color(avatarbytes)
-			from isHex import isHex
-			if isHex(dominant_color):
-				rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
 
 			return await ctx.reply(embed=discord.Embed(
 				title=f"{ctx.guild}'s banner",
 				url=ctx.guild.banner.url,
-				color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])
+				color=await self.bot.dominant_color(avatarbytes)
 			).set_image(
 				url=ctx.guild.banner.url
 				).set_author(

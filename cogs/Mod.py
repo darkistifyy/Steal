@@ -27,6 +27,7 @@ time_convert = {"s": 1, "m": 60, "h": 3600, "d": 86400}
 class Mod(commands.Cog):
 	def __init__(self, bot: Steal):
 		self.bot = bot
+		self.description = "Server moderation commands."
 
 	@group(
 			name='nickname',

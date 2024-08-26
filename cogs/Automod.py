@@ -20,6 +20,7 @@ from tools.Config import Colors, Emojis
 class Automod(commands.Cog):
 	def __init__(self, bot: Steal):
 		self.bot = bot
+		self.description = "Manage server automod filters."
 
 
 	@group(

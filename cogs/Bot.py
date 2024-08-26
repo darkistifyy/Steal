@@ -28,6 +28,7 @@ from tools.Config import Colors, Emojis
 class BotManagement(commands.Cog):
 	def __init__(self, bot: Steal):
 		self.bot = bot
+		self.description = f"Manage {self.bot.user}."
 		self.startTime = time.time()
 
 	@group(

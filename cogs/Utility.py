@@ -294,6 +294,7 @@ class ChannelDeleteConfirm(discord.ui.View):
 class Utility(commands.Cog):
 	def __init__(self, bot: Steal):
 		self.bot = bot
+		self.description = "Random utility commands lol."
 
 	def parse_object_inv(self, stream: SphinxObjectFileReader, url: str) -> dict[str, str]:
 		# key: URL
@@ -714,7 +715,7 @@ class Utility(commands.Cog):
 	)
 	async def dominant(self, ctx: StealContext, image: discord.Attachment):
 
-		color = hex(await self.bot.dominant_color(image.url))[2:]
+		color = hex(await self.bot.dominant_color_url(image.url))[2:]
 		hex_info = await self.bot.session.get_json(
 			"https://www.thecolorapi.com/id", params={"hex": color}
 		)
@@ -739,15 +740,16 @@ class Utility(commands.Cog):
 		if not member.display_avatar:
 			return await ctx.deny(f"**{member}** does not have an avatar.")
 
-		avatarbytes = await member.display_avatar.read()
-		dominant_color = dom_color(avatarbytes)
+		await ctx.reply(
+				embed=discord.Embed(
+					title=f"{member.display_name}'s avatar",
+					url=member.display_avatar.url, 
+					color=await self.bot.dominant_color_url(member.display_avatar.url),
+				).set_image(
+					url=member.display_avatar.url
+				)
+		)
 
-		from isHex import isHex
-
-		if isHex(dominant_color):
-			rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
-			await ctx.reply(embed=discord.Embed(title=f"{member.display_name}'s avatar", url=member.display_avatar.url, color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])).set_image(url=member.display_avatar.url))
-		
 
 	@command(
 			name="banner",
@@ -757,15 +759,15 @@ class Utility(commands.Cog):
 		if not member:member=ctx.author
 		user = await self.bot.fetch_user(member.id)
 		if user.banner:
-
-			bannerbytes = await user.banner.read()
-			dominant_color = dom_color(bannerbytes)
-
-			from isHex import isHex
-
-			if isHex(dominant_color):
-				rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
-				await ctx.reply(embed=discord.Embed(title=f"{user.display_name}'s banner", url=user.banner.url, color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2])).set_image(url=user.banner))
+			await ctx.reply(
+					embed=discord.Embed(
+						title=f"{user.display_name}'s banner", 
+						url=user.banner.url, 
+						color=await self.bot.dominant_color_url(user.banner.url)
+					).set_image(
+						url=user.banner
+					)
+			)
 		else:
 			return await ctx.reply(embed=discord.Embed(
 				title=f"{member.display_name}'s banner color: {user.accent_color}", color=user.accent_color
@@ -798,34 +800,32 @@ class Utility(commands.Cog):
 	async def compress(self, ctx: StealContext, image: discord.Attachment):
 		bytes = await image.read()
 		size = sys.getsizeof(bytes)
-		print(size)
 		compbytes = compress_image(bytes)
 		newsize = sys.getsizeof(compbytes)
-		print(newsize)
 
 		file = discord.File(io.BytesIO(compbytes), filename=f"compressed-{image.filename.split(".")[0]}.png")
 
-		dominant_color = dom_color(compbytes)
-
-		if isHex(dominant_color):
-			rgb = tuple(int(dominant_color[i:i+2], 16) for i in (0, 2, 4))
+		name = list(image.filename.split('.')[0])
+		print(len(name))
+		if len(name) > 14:
+			i = len(name) - 14
+			for l in range(0, i):
+				name.pop()
+			name.append('...')
 
 		embed=discord.Embed(
-			title=f"Compressed {image.filename.split('.')[0]}",
-			color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2]),
+			title=f"Compressed {''.join(name)}",
+			color=await self.bot.dominant_color(compbytes),
 		).set_image(
 				url=f"attachment://compressed-{image.filename.split(".")[0]}.png"
 		).set_footer(
 			text=f"{math.floor(newsize/1000)}kb - saved {math.floor(size/1000 - newsize/1000)}kb"
 		)
 		
-
 		await ctx.send(
 			file = file,
 			embed=embed
 		)
-
-
 
 	@commands.command(
 			name="snipe",
@@ -948,6 +948,18 @@ class Utility(commands.Cog):
 				await self.bot.cache.set(i, snipes)
 
 		await ctx.approve("Cleared all snipes from this channel")
+
+	@command(
+			name="firstmessage",
+			aliases=["firstmsg"],
+			description="Get the first message in a channel."
+	)
+	async def firstmessage(self, ctx: StealContext, *, channel: discord.TextChannel = commands.CurrentChannel):
+
+		message = [mes async for mes in channel.history(limit=1, oldest_first=True)][0]
+		await ctx.approve(
+			f"The first [**message**]({message.jump_url}) sent in {channel.mention}"
+		)
 
 async def setup(bot):
 	await bot.add_cog(Utility(bot))

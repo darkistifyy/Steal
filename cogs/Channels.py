@@ -93,6 +93,7 @@ class ChannelNukeConfirm(discord.ui.View):
 class Channels(commands.Cog):
 	def __init__(self, bot: Steal):
 		self.bot = bot
+		self.description = "Manage server channels."
 
 	@group(
 			name="channel",
@@ -647,15 +648,6 @@ class Channels(commands.Cog):
 				await db.commit()
 
 				await ctx.approve("Cleared **welcome** module config.")
-				
-
-
-
-
-
-
-
-
 
 	@group(
 			name = "boost",
