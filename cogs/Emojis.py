@@ -165,11 +165,7 @@ class Emojis(commands.Cog):
 	)
 	@has_guild_permissions(manage_expressions=True)
 	@bot_has_guild_permissions(manage_expressions=True)
-	async def addsticker(self, ctx: StealContext, name:Optional[str] = commands.param(default=None, displayed_default=None)):
-
-				
-
-				
+	async def addsticker(self, ctx: StealContext, *, name:Optional[str] = commands.param(default=None, displayed_default=None)):
 
 		if len(ctx.guild.stickers) >= ctx.guild.sticker_limit:
 			return await ctx.warn(
