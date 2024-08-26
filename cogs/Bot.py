@@ -3,6 +3,7 @@ import os
 
 import discord
 import sys
+import logging
 import requests
 from discord.ext import commands
 from dotenv import *
@@ -246,7 +247,7 @@ class BotManagement(commands.Cog):
 			if message.content == f"{self.bot.user.mention}":
 				return await message.reply(embed=discord.Embed(description=f" Hi {message.author}. I am `{self.bot.user}` running on `Dpy Version {discord.__version__}`.\n Use `{self.bot.command_prefix[0]}help` to get started.", color=Colors.BASE_COLOR).add_field(
 					   name="Prefix:",
-				   	value=f"{self.bot.command_prefix[0]}"
+					   value=f"{self.bot.command_prefix[0]}"
 				).add_field(
 							 name="Uptime:",
 							 value=f"{datetime.timedelta(seconds=int(round(time.time()-self.startTime)))}"
@@ -391,6 +392,65 @@ class BotManagement(commands.Cog):
 		await ctx.message.add_reaction("🌟")
 
 
+
+	async def file_send(self, ctx: StealContext, filename, user):
+		user = await self.bot.fetch_user(user.id)
+		files_to_upload=[filename]
+		dm_channel = await user.create_dm()
+		all_sent=False
+		for file in files_to_upload:
+			for root, _, filenames in os.walk("."):
+				for f in filenames:
+					if f.lower() == file.lower():
+						filepath = os.path.join(root, f)
+						await dm_channel.send(file=discord.File(fp=filepath))
+						logging.info(f"{self.bot.user} sent {file} to {user}")
+						all_sent = True
+		if all_sent:
+			return await ctx.reply(
+						embed=discord.Embed(
+							description=f"{Emojis.APPROVE} File **{filename.capitalize()}** sent successfully", color=Colors.BASE_COLOR
+						).add_field(
+							name="Task",
+							value="File",
+						).add_field(
+							name="Status",
+							value="Passed"
+						).add_field(
+							name="File",
+							value=f"{filename.capitalize()}",
+						).set_author(
+							name=self.bot.user,
+							icon_url=self.bot.user.display_avatar,
+						),
+				)
+		else:
+			return await ctx.reply(
+				embed=discord.Embed(
+					description=f"{Emojis.DENY} File **{filename.capitalize()}** not found!", color=Colors.DENY_COLOR
+				).add_field(
+					name="Task",
+					value="Root",
+				).add_field(
+					name="Status",
+					value="File"
+				).add_field(
+					name="File",
+					value=f"{filename.capitalize()}",
+				).set_author(
+					name=self.bot.user,
+					icon_url=self.bot.user.display_avatar,
+				),
+			)
+
+	@command(
+			name="root",
+			description="sends a file"
+	)
+	async def backup_command(self, ctx: StealContext, filename: str):
+		if ctx.author.id in self.bot.owner_ids:
+			return await self.file_send(ctx, filename, ctx.author)
+		return await ctx.deny("Fuck off.")
 
 async def setup(bot):
 	await bot.add_cog(BotManagement(bot))
