@@ -20,6 +20,10 @@ import glob
 import datetime
 import time
 import colorgram
+import numpy as np
+import scipy.cluster
+import scipy.cluster.vq
+import binascii
 
 from PIL import Image
 
@@ -141,16 +145,64 @@ class Steal(commands.Bot):
 				result.append(f"{int(value)} {name}{'s' if value > 1 else ''}")
 
 		return ', '.join(result)
-	
+	"""
 	async def dominant_color(self, url: Union[discord.Asset, str]) -> int:
 		if isinstance(url, discord.Asset):
 			url = url.url
 
 		img = Image.open(BytesIO(await self.session.get_bytes(url)))
 		img.thumbnail((32, 32))
+		img=img.convert('RGBA')
 
 		colors = await asyncio.to_thread(lambda: colorgram.extract(img, 1))
-		return discord.Color.from_rgb(*list(colors[0].rgb)).value
+		return discord.Color.from_rgb(*list(colors[0].rgb)).value"""
+
+	async def dominant_color_url(self, url: Union[discord.Asset, str]) -> int:
+		if isinstance(url, discord.Asset):
+			url = url.url
+
+		img = Image.open(BytesIO(await self.session.get_bytes(url)))
+		img = img.convert('RGBA')
+		img = img.resize((150, 150))	
+
+		ar = np.asarray(img)	
+		mask = ar[:, :, 3] > 0
+		ar = ar[mask]		
+		ar = ar[:, : 3].astype(float)	
+		#A lot of shit i dont understand
+		codes, dist = scipy.cluster.vq.kmeans(ar, 5)		
+		vecs, dist = scipy.cluster.vq.vq(ar, codes)
+		counts, bins = np.histogram(vecs, len(codes))		
+		index_max = np.argmax(counts)
+		#something!!!
+		peak = codes[index_max]
+		colour = binascii.hexlify(bytearray(int(c) for c in peak)).decode('ascii')
+		#convert hex colour to arr gee bee :3
+		rgb = tuple(int(colour[i:i+2], 16) for i in (0, 2, 4))
+		return discord.Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2]).value
+	
+
+	async def dominant_color(self, value: bytes) -> int:
+
+		img = Image.open(BytesIO(value))
+		img = img.convert('RGBA')
+		img = img.resize((150, 150))	
+
+		ar = np.asarray(img)	
+		mask = ar[:, :, 3] > 0
+		ar = ar[mask]		
+		ar = ar[:, : 3].astype(float)	
+		#A lot of shit i dont understand
+		codes, dist = scipy.cluster.vq.kmeans(ar, 5)		
+		vecs, dist = scipy.cluster.vq.vq(ar, codes)
+		counts, bins = np.histogram(vecs, len(codes))		
+		index_max = np.argmax(counts)
+		#something!!!
+		peak = codes[index_max]
+		colour = binascii.hexlify(bytearray(int(c) for c in peak)).decode('ascii')
+		#convert hex colour to arr gee bee :3
+		rgb = tuple(int(colour[i:i+2], 16) for i in (0, 2, 4))
+		return discord.Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2]).value
 
 	def humanize_date(self, date: datetime.datetime) -> str:
 		"""
@@ -166,7 +218,7 @@ class Steal(commands.Bot):
 	@property
 	def uptime(self) -> str:
 		return self.humanize_time(self._uptime)
-	
+	"""
 	async def on_command_error(self, ctx: StealContext, exception: commands.CommandError) -> None:
 		if type(exception) in [commands.CommandNotFound, commands.NotOwner, commands.CheckFailure]: return
 		elif isinstance(exception, commands.BadColourArgument):
@@ -232,7 +284,7 @@ class Steal(commands.Bot):
 		if isinstance(exception, commands.MissingPermissions):
 			return await ctx.warn(f"I do not have permissions to do that.")
 		elif isinstance(exception.original, discord.HTTPException):
-			return await ctx.warn(f"**Invalid code**\n```{exception.original}```")
+			return await ctx.warn(f"**Invalid code**\n```{exception.original}```")"""
 
 	async def get_context(self, message, *, cls= StealContext):
 		return await super().get_context(message, cls=cls)

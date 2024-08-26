@@ -19,6 +19,7 @@ class Emojis:
     CANCEL_PAGINATOR = "<:pause:1273146497848049664>"
     INFO = "<:info:1273230766255509627>"
     MARRY = "💍"
+    MUSIC = "🎵"
 
 class Flags:
     MODERATOR = "<:certified_moderator:1273709147636105258>"
