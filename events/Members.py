@@ -73,5 +73,45 @@ class Members(commands.Cog):
 							await channel.send(content=content, embed=embed, view=None)	
 						
 
+	@Cog.listener("on_member_update")
+	async def on_boost_event(self, before:discord.Member, after:discord.Member) -> None:
+		async with asqlite.connect("main.db") as conn:
+			async with conn.cursor() as cursor:
+
+				def check(before, after):
+					if not before.guild.premium_subscriber_role:
+						if after.guild.premium_subscriber_role:
+							return True
+					return False
+					
+				if not check(before, after): return
+
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS boostresponse(guildid INTEGER, channelid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), script TEXT)"
+				)
+
+				cur = await cursor.execute(
+					"""
+					SELECT * FROM boostresponse WHERE guildid = $1 
+					""", before.guild.id
+				)
+
+				row = await cur.fetchone()
+
+				if row:
+					toggle = row[2]
+					if toggle == 1:
+						channelid = row[1]
+						try:
+							channel = self.bot.get_channel(channelid)
+						except:
+							return
+
+						parsed = EmbedBuilder.embed_replacement(after, row[3])
+						content, embed, view = await EmbedBuilder.to_object(parsed)
+
+						if channel:
+							await channel.send(content=content, embed=embed, view=None)	
+						
 async def setup(bot):
 	await bot.add_cog(Members(bot))
