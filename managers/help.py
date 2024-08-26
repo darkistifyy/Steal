@@ -122,8 +122,8 @@ class CategorySelector(discord.ui.Select):
         super().__init__(
             placeholder='Select a Category',    
             options=[
-                discord.SelectOption(label = 'Home', description = 'Beginning Embed', value = 'home'),
-                *[discord.SelectOption(label = key, description = category.__doc__, value = key) for key, category in categories.items()]
+                discord.SelectOption(label = 'Home', description = 'Beginning help page.', value = 'home'),
+                *[discord.SelectOption(label = key, description = category.description, value = key) for key, category in categories.items()]
             ]
         )
         

@@ -51,6 +51,13 @@ class StealContext(Context):
             **kwargs
         )
 
+    async def music(self, message: str, **kwargs) -> Message:
+        return await self.reply(
+            embed = Embed(
+                color=Colors.BASE_COLOR, description=f"{Emojis.MUSIC} {self.author.mention}: {message}"
+            )
+        )
+
     async def paginate(self, embeds: List[discord.Embed], **kwargs) -> Message:
 
         view  = Paginator(self, embeds)
@@ -62,3 +69,5 @@ class StealContext(Context):
         )
         
         view.response = out
+
+
