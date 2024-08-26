@@ -1,6 +1,7 @@
 import discord
 
 from discord.ext.commands import HelpCommand
+import discord.ext.commands
 from discord.ext.commands.cog import Cog
 from discord.ext.commands.core import Command, Group
 from discord.ext import commands
@@ -8,6 +9,7 @@ from discord.ext.commands import *
 
 from typing import Any, Callable, Dict, List, Mapping
 
+import discord.ext
 from tools.Config import Colors, Guild
 from managers.interaction import PatchedInteraction
 
@@ -49,7 +51,7 @@ class StealHelp(HelpCommand):
         
         view.interaction_check = interaction_check
         
-        view.add_item(CategorySelector({key.__cog_name__: key for key, _ in mapping.items() if key is not None and key.__cog_name__ not in ["BotManagement", "Auth", "Bs", "Help", "Profile", "Messages", "Members"]}, embed))
+        view.add_item(CategorySelector({key.__cog_name__: key for key, _ in mapping.items() if key is not None and key.__cog_name__ not in ["BotManagement", "Auth", "Bs", "Help", "Profile", "Messages", "Members", "Jishaku"]}, embed))
         
         return await self.context.send(
             embed = embed,
@@ -118,7 +120,7 @@ class CategorySelector(discord.ui.Select):
         self.embed = embed
         self.categories = categories
         super().__init__(
-            placeholder='Select a Category', 
+            placeholder='Select a Category',    
             options=[
                 discord.SelectOption(label = 'Home', description = 'Beginning Embed', value = 'home'),
                 *[discord.SelectOption(label = key, description = category.__doc__, value = key) for key, category in categories.items()]
@@ -132,12 +134,20 @@ class CategorySelector(discord.ui.Select):
             )
             
         category: Cog = self.categories[self.values[0]]
+        #commands = [command for command in list(category.walk_commands()) if not command.parent]
         commands = [command for command in list(category.walk_commands()) if not command.parent]
+        subcommands = [sub for sub in list(category.walk_commands()) if sub.parent]
+        
+        description = f'```{", ".join(f"{sub.qualified_name}" for sub in subcommands)}'
 
+        description = f"{description}\n\n{', '.join(f'{cmd.name}*' for cmd in commands if isinstance(cmd, discord.ext.commands.Group))}"
+
+        description = f"{description}, {', '.join(f'{cmd.qualified_name}' for cmd in commands if not isinstance(cmd, discord.ext.commands.Group))}```"
 
         embed = self.embed.copy()
         embed.title = f'Category: {category.__cog_name__}'
-        embed.description = f'\nCommands:\n```{", ".join([f"{command.qualified_name}" if not isinstance(command, discord.ext.commands.Group) else f"{command.qualified_name}*" for command in list(category.walk_commands()) if not command.hidden and not command.parent])}```'
+        #embed.description = f'\nCommands:\n```{", ".join([f"{command.name}" if not isinstance(command, discord.ext.commands.Group) else f"{command.qualified_name}*" for command in list(category.walk_commands()) if not command.hidden])}```'
+        embed.description = description
         embed.set_footer(
                 text=f"{len(commands)} commands."
         ).set_author(
