@@ -415,10 +415,10 @@ class Channels(commands.Cog):
 
 					return await ctx.reply(
 						embed=discord.Embed(
-							description=f"{ctx.author.mention}: Set welcome channel to {channel.mention} with the script ```{script}```",
+							description=f"{ctx.author.mention}: Set the **welcome** channel to {channel.mention} with the script ```{script}```",
 							color=Colors.BASE_COLOR
 						).set_footer(
-							text=f"Use '{self.bot.command_prefix[0]}welcome code <script>' to update the script.",
+							text=f"Use '{self.bot.command_prefix[0]}welcome script <script>' to update the script.",
 							icon_url=self.bot.user.display_avatar.url
 						)
 					)
@@ -435,7 +435,7 @@ class Channels(commands.Cog):
 
 				await db.commit()
 
-				await ctx.approve(f"Set **welcome** channel to {channel.mention}.")
+				await ctx.approve(f"Set the **welcome** channel to {channel.mention}.")
 
 	@welcome.command(
 			name="disable",
@@ -524,7 +524,8 @@ class Channels(commands.Cog):
 	@bot_has_guild_permissions(manage_messages=True)
 	@guild_only()
 	async def welcomescript(self, ctx: StealContext, *, script: Optional[str] = None):
-		if not script: script = "{content:sup {user.mention}}"
+		if not script:
+			default = "{content:sup {user.mention}}"
 
 		async with asqlite.connect("main.db") as db:
 			async with db.cursor() as cursor:
@@ -540,19 +541,19 @@ class Channels(commands.Cog):
 				row = await cur.fetchone()
 
 				if not row:
-					return await ctx.warn("The **welcome channel** has not been configured for this guild.")
+					return await ctx.warn("The **welcome** channel has not been configured for this guild.")
 				
-				if str(row[2]) == str(script):
+				if str(row[3]) == str(script if script else default):
 					return await ctx.warn("That is the same script as before, not updating.")
 				
 				await cursor.execute(
 					"UPDATE welcome SET script = $1",
-					script,
+					script if script else default,
 				)
 
 				await db.commit()
 
-				await ctx.approve(f"Set **channel** module script to ```{script}```")
+				await ctx.approve(f"Set **channel** module script to {'default' if not script else ''} ```{script if script else default}```")
 
 	@welcome.command(
 			name="config",
@@ -647,5 +648,289 @@ class Channels(commands.Cog):
 
 				await ctx.approve("Cleared **welcome** module config.")
 				
+
+
+
+
+
+
+
+
+
+	@group(
+			name = "boost",
+			description="The boost response module.",
+	)
+	async def boost(self, ctx: StealContext):
+		if not ctx.invoked_subcommand:
+			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `boost`.')
+	
+
+	@boost.command(
+			name="channel",
+			description="The channel to send boost response messages to.",
+	)
+	@has_permissions(manage_channels=True)
+	@bot_has_guild_permissions(manage_messages=True)
+	@guild_only()
+	async def boostchannel(self, ctx: StealContext, channel:discord.TextChannel = None):
+		if not channel: channel = ctx.channel
+
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS boostresponse(guildid INTEGER, channelid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), script TEXT)"
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM boostresponse WHERE guildid = $1",
+					ctx.guild.id,
+				)
+
+				row = await cur.fetchone()
+
+				if not row:
+					script = "{content:thanks for the boost {user.mention}}"
+					await cursor.execute(
+						"INSERT INTO boostresponse (guildid, channelid, toggle, script) VALUES ($1, $2, $3, $4)",
+						ctx.guild.id, channel.id, 1.0, script,
+					)
+
+					await db.commit()
+
+					return await ctx.reply(
+						embed=discord.Embed(
+							description=f"{ctx.author.mention}: Set **boost response** channel to {channel.mention} with the script ```{script}```",
+							color=Colors.BASE_COLOR
+						).set_footer(
+							text=f"Use '{self.bot.command_prefix[0]}boost script <script>' to update the script.",
+							icon_url=self.bot.user.display_avatar.url
+						)
+					)
+
+				await cursor.execute(
+					"UPDATE boostresponse SET channelid = $1 WHERE guildid = $2",
+					channel.id, ctx.guild.id, 
+				)
+
+				await db.commit()
+
+				await ctx.approve(f"Set **boost response** channel to {channel.mention}.")
+
+	@boost.command(
+			name="disable",
+			description="Disables the boost response module",
+			aliases=["off"],
+	)
+	@has_permissions(manage_channels=True)
+	@bot_has_guild_permissions(manage_messages=True)
+	@guild_only()
+	async def boostdisable(self, ctx: StealContext):
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS boostresponse(guildid INTEGER, channelid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), script TEXT)"
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM boostresponse WHERE guildid = $1",
+					ctx.guild.id,
+				)
+
+				row = await cur.fetchone()
+
+				if not row:
+					return await ctx.warn("There is no **boost response** config set for this guild.")
+				
+				toggle = row[2]
+
+				if toggle != 1:
+					return await ctx.warn("The **boost response** module is already **disabled**")
+				
+				await cursor.execute(
+					"UPDATE boostresponse SET toggle = $1 WHERE guildid = $2",
+					0, ctx.guild.id, 
+				)
+
+				await db.commit()
+
+				await ctx.approve("**Disabled** the **boost response** module.")
+
+	@boost.command(
+			name="enable",
+			description="Enables the boost response module",
+			aliases=["on"],
+	)
+	@has_permissions(manage_channels=True)
+	@bot_has_guild_permissions(manage_messages=True)
+	@guild_only()
+	async def boostenable(self, ctx: StealContext):
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS boostresponse(guildid INTEGER, channelid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), script TEXT)"
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM boostresponse WHERE guildid = $1",
+					ctx.guild.id,
+				)
+
+				row = await cur.fetchone()
+
+				if not row:
+					return await ctx.warn("There is no **boost response** config set for this guild.")
+				
+				toggle = row[2]
+
+				if toggle != 0:
+					return await ctx.warn("The **boost response** module is already **enabled**")
+				
+				await cursor.execute(
+					"UPDATE boostresponse SET toggle = $1 WHERE guildid = $2",
+					1, ctx.guild.id, 
+				)
+				
+				await db.commit()
+
+				await ctx.approve("**Enabled** the **boost response** module.")
+
+	@boost.command(
+			name="script",
+			description="The script for the welcome message.",
+			aliases=["code", "message"]
+	)
+	@has_permissions(manage_channels=True)
+	@bot_has_guild_permissions(manage_messages=True)
+	@guild_only()
+	async def boostscript(self, ctx: StealContext, *, script: Optional[str]):
+		if not script: default = "{content:thanks for the boost {user.mention}}"
+
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS boostresponse(guildid INTEGER, channelid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), script TEXT)"
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM boostresponse WHERE guildid = $1",
+					ctx.guild.id, 
+				)
+
+				row = await cur.fetchone()
+
+				if not row:
+					return await ctx.warn("The **boost response** channel has not been configured for this guild.")
+				
+				if str(row[3]) == str(script if script else default):
+					return await ctx.warn("That is the same script as before, not updating.")
+				
+				await cursor.execute(
+					"UPDATE boostresponse SET script = $1",
+					script if script else default,
+				)
+
+				await db.commit()
+
+				await ctx.approve(f"Set **boost response** module script to {'default' if not script else ''} ```{default if not script else script}```")
+
+	@boost.command(
+			name="config",
+			description="The config for the welcome module",
+	)
+	@has_permissions(manage_channels=True)
+	@bot_has_guild_permissions(manage_messages=True)
+	@guild_only()
+	async def boostconfig(self, ctx: StealContext):
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS boostresponse(guildid INTEGER, channelid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), script TEXT)"
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM boostresponse WHERE guildid = $1",
+					ctx.guild.id,
+				)
+
+				row = await cur.fetchone()
+
+				if not row:
+					return await ctx.warn("There is no **boost response** config set for this guild.")
+				
+				channelid = row[1]
+				try:
+					channel = self.bot.get_channel(channelid)
+					channel = channel.mention
+				except:
+					channel = "Invalid channel"
+
+				toggle_converter = {
+					1 : "enabled",
+					0 : "disabled",
+				}
+
+				toggle = toggle_converter.get(row[2], "❓")
+
+				script = row[3]
+
+				await ctx.reply(
+					embed=discord.Embed(
+						title="Boost response config",
+						color=Colors.BASE_COLOR
+					).add_field(
+						name="Channel",
+						value=f"{channel}"
+					).add_field(
+						name="Toggle",
+						value=f"{toggle.capitalize()}"
+					).add_field(
+						name="Script",
+						value=f"```{script}```",
+						inline=False
+					).set_author(
+						name=ctx.guild.name,
+						icon_url=ctx.guild.icon.url if ctx.guild.icon else None
+					)
+				)
+
+	@boost.command(
+			name="clear",
+			description="Clears the welcome module",
+	)
+	@has_permissions(manage_channels=True)
+	@bot_has_guild_permissions(manage_messages=True)
+	@guild_only()
+	async def boostclear(self, ctx: StealContext):
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS boostresponse(guildid INTEGER, channelid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), script TEXT)"
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM boostresponse WHERE guildid = $1",
+					ctx.guild.id,
+				)
+
+				row = await cur.fetchone()
+
+				if not row:
+					return await ctx.warn("There is no **boost response** config set for this guild.")
+				
+				await cursor.execute(
+					"DELETE FROM boostresponse WHERE guildid = $1",
+					ctx.guild.id,
+				)
+
+				await db.commit()
+
+				await ctx.approve("Cleared **boost response** module config.")
+
+
+
+
+
 async def setup(bot):
 	await bot.add_cog(Channels(bot))

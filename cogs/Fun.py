@@ -683,7 +683,7 @@ class Fun(commands.Cog):
 	async def pp(self, ctx: StealContext, *, member: Optional[discord.Member] = commands.param(default=Author, displayed_default=None)):
 	
 		length = "===================="
-		return await ctx.neutral(f"{member.mention}'s penis\n> 8{length[random.randint(1, 20):]}D")
+		return await ctx.neutral(f"{member.mention}'s penis\n\n8{length[random.randint(1, 20):]}D")
 
 	@command(
 			name="kiss",
