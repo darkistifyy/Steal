@@ -24,6 +24,9 @@ import numpy as np
 import scipy.cluster
 import scipy.cluster.vq
 import binascii
+from discord.ext import tasks, commands
+import random
+from events.Loops import snipe_delete, reminder_task, change_status
 
 from PIL import Image
 
@@ -59,7 +62,6 @@ class Steal(commands.Bot):
 			command_prefix=[';', 'sudo ', 'await '],
 			help_command=StealHelp(),
 			intents=intents,
-			activity=discord.Activity(type=discord.ActivityType.listening, name=f";help"),
 			allowed_mentions=discord.AllowedMentions(
 				everyone=False,
 				users=True,
@@ -83,10 +85,24 @@ class Steal(commands.Bot):
 			except Exception as e:
 				log.error(f'Error loading module {module}: {e}')
 
+	async def start_loops(self) -> None:
+		snipe_delete.start(self)
+		reminder_task.start(self)
+		change_status.start(self)
+
+	async def __chunk_guilds(self):
+		for guild in self.guilds:
+			await asyncio.sleep(2)
+			await guild.chunk(cache=True)
+
 	async def on_ready(self) -> None:
 		log.info(f'Logged in as {self.user.name}#{self.user.discriminator} ({self.user.id})')
 		log.info(f'Connected to {len(self.guilds)} guilds')
 		log.info(f'Connected to {len(self.users)} users')
+
+		asyncio.ensure_future(self.__chunk_guilds())
+
+		await self.start_loops()
 
 	async def setup_hook(self) -> None:
 		await self.load_modules('cogs')
@@ -213,7 +229,6 @@ class Steal(commands.Bot):
 			return f"{(precisedelta(date, format='%0.0f').replace('and', ',')).split(', ')[0]} ago"
 		else:
 			return f"in {(precisedelta(date, format='%0.0f').replace('and', ',')).split(', ')[0]}"
-
 
 	@property
 	def uptime(self) -> str:

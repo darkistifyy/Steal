@@ -43,8 +43,8 @@ def caption_image(image_file, caption, font="impact.ttf"):
 		img.save(img_bytes, format=img.format)
 		return img_bytes.getvalue()
 
-def compress_image(image_file):
-	mybytes = BytesIO(image_file)
+def compress_image(img):
+	mybytes = BytesIO(img)
 	mybytes.seek(0)
 	img = Image.open(mybytes)
 	with BytesIO() as img_bytes:
