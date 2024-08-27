@@ -54,7 +54,7 @@ class StealContext(Context):
     async def music(self, message: str, **kwargs) -> Message:
         return await self.reply(
             embed = Embed(
-                color=Colors.BASE_COLOR, description=f"{Emojis.MUSIC} {self.author.mention}: {message}"
+                color=Colors.BASE_COLOR, description=f"> {Emojis.MUSIC} {self.author.mention}: {message}"
             )
         )
 
