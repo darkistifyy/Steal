@@ -5,7 +5,8 @@ import discord
 import sys
 import logging
 import requests
-from discord.ext import commands
+from discord.ext import commands, tasks
+import random
 from dotenv import *
 from discord import Color
 import datetime
@@ -14,6 +15,7 @@ import math
 from discord.ext.commands import *
 from tools.Config import Auth
 from tools.View import UrlView
+import asyncio
 
 from tools.EmbedBuilder import EmbedBuilder, EmbedScript
 from tools.EmbedBuilderUi import EmbedEditor, Embed

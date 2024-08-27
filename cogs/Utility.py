@@ -15,6 +15,9 @@ import math
 import datetime
 import sys
 from isHex import isHex
+from tools.Validators import ValidTime
+import humanfriendly
+import humanize
 
 from tools.Steal import Steal
 from tools.rtfm import fuzzy
@@ -797,7 +800,7 @@ class Utility(commands.Cog):
 			description="Compresses an image"
 	)
 	@cooldown(1,15, BucketType.user)
-	async def compress(self, ctx: StealContext, image: discord.Attachment):
+	async def imgcompress(self, ctx: StealContext, image: discord.Attachment):
 		bytes = await image.read()
 		size = sys.getsizeof(bytes)
 		compbytes = compress_image(bytes)
@@ -827,7 +830,29 @@ class Utility(commands.Cog):
 			embed=embed
 		)
 
-	@commands.command(
+	@command(
+			name="bytes",
+			description="Sends the image bytes of a link"
+	)
+	@cooldown(1,15, BucketType.user)
+	async def bytes(self, ctx: StealContext, url: str): 
+		bytes = await self.bot.session.get_bytes(url)
+
+		file = discord.File(io.BytesIO(bytes), filename=f"bytes.png")
+
+		embed=discord.Embed(
+			title=f"Image Bytes",
+			color=await self.bot.dominant_color(bytes),
+		).set_image(
+				url=f"attachment://bytes.png"
+		)
+		
+		await ctx.send(
+			file = file,
+			embed=embed
+		)	
+
+	@command(
 			name="snipe",
 			aliases=["s"],
 			description="Get the most recent deleted messages in the channel."
@@ -890,9 +915,7 @@ class Utility(commands.Cog):
 				return await ctx.warn("I could not find any **edit snipes** in this channel")
 
 			snipes = [
-				s
-				for s in self.bot.cache.get("edit_snipe")
-				if s["channel"] == ctx.channel.id
+				s for s in self.bot.cache.get("edit_snipe") if s["channel"] == ctx.channel.id
 			]
 
 			if len(snipes) == 0:
@@ -958,8 +981,88 @@ class Utility(commands.Cog):
 
 		message = [mes async for mes in channel.history(limit=1, oldest_first=True)][0]
 		await ctx.approve(
-			f"The first [**message**]({message.jump_url}) sent in {channel.mention}"
+			f"The first [**message**]({message.jump_url}) sent in {channel.mention if not isinstance(channel, discord.DMChannel) else "this dm."}"
 		)
+
+
+	@group(
+			name="reminder",
+			aliases=["r"],
+			description="The reminder module."
+	)
+	async def reminder(self, ctx: StealContext):
+		if ctx.invoked_subcommand is None:		
+			pass
+	
+	@reminder.command(
+			name="set",
+			description="Set a reminder for yourself."
+	)
+	async def reminderset(self, ctx: StealContext, time:ValidTime, *, task:Optional[str] = "Nothing ig?"):
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+				
+				if time < 60:
+					return await ctx.warn("You can't have a **reminder** set for **less** than a minute.")
+
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS reminder(guildid INTEGER, userid INTEGER, channelid INTEGER, time INTEGER, task TEXT)"
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM reminder WHERE userid = $1 AND guildid = $2 AND channelid = $3",
+					ctx.author.id, ctx.guild.id, ctx.channel.id, 
+				)
+
+				results = await cur.fetchone()
+
+				if results:
+					return await ctx.warn(f"You already have a **reminder** in this **channel** - **{results[4]}** in {humanize.precisedelta(datetime.datetime.fromtimestamp(results[3]), format=f'%0.0f')}.")
+				
+				await db.execute(
+					"INSERT INTO reminder VALUES ($1, $2, $3, $4, $5)",
+					ctx.guild.id, ctx.author.id, ctx.channel.id, (datetime.datetime.now() + datetime.timedelta(seconds=time)).timestamp(), task,
+				)
+				await db.commit()
+
+				await ctx.reply(
+					embed=discord.Embed(
+						description=f"> {Emojis.TIME} {ctx.author.mention}: I will remind you in {humanfriendly.format_timespan(time)} about **{task}**",
+						color=Colors.BASE_COLOR
+					)
+				)
+
+	@reminder.command(
+			name="stop",
+			description="Deletes the reminder you have in the current channel.",
+			aliases=["delete", "remove"]
+	)
+	async def reminderstop(self, ctx: StealContext):
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS reminder(guildid INTEGER, userid INTEGER, channelid INTEGER, time INTEGER, task TEXT)"
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM reminder WHERE userid = $1 AND guildid = $2 AND channelid = $3",
+					ctx.author.id, ctx.guild.id, ctx.channel.id
+				)
+
+				results = await cur.fetchone()
+
+				if not results:
+					return await ctx.warn("You don't have a **reminder** set in this **channel**.")	
+
+				await db.execute(
+					"DELETE FROM reminder WHERE userid = $1 AND channelid = $2",
+					ctx.author.id, ctx.channel.id
+				)	
+				await db.commit()
+
+				await ctx.approve(f"Deleted **reminder** - **{results[4]}** in {humanize.precisedelta(datetime.datetime.fromtimestamp(results[3]), format=f'%0.0f')}")
+
 
 async def setup(bot):
 	await bot.add_cog(Utility(bot))

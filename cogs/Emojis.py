@@ -55,10 +55,10 @@ class Emojis(commands.Cog):
 	@has_permissions(manage_emojis=True)
 	@bot_has_guild_permissions(manage_emojis=True)
 	@guild_only()
-	async def emojiadd(self, ctx: StealContext, emoji:Union[discord.Attachment, discord.PartialEmoji], *, emoji_name:Optional[str]=commands.param(default=Author, displayed_default=None)) -> None:
+	async def emojiadd(self, ctx: StealContext, emoji:Optional[discord.PartialEmoji], *, emoji_name:Optional[str]=commands.param(default=Author, displayed_default=None)) -> None:
 		try:
-			if isinstance(emoji, discord.Attachment):
-
+			if ctx.message.attachments:
+				emoji = ctx.message.attachments[0]
 				if not emoji_name: emoji_name = emoji.filename.split(".")[0]
 
 
@@ -166,11 +166,7 @@ class Emojis(commands.Cog):
 	)
 	@has_guild_permissions(manage_expressions=True)
 	@bot_has_guild_permissions(manage_expressions=True)
-	async def addsticker(self, ctx: StealContext, name:Optional[str] = commands.param(default=None, displayed_default=None)):
-
-				
-
-				
+	async def addsticker(self, ctx: StealContext, *, name:Optional[str] = commands.param(default=None, displayed_default=None)):				
 
 		if len(ctx.guild.stickers) >= ctx.guild.sticker_limit:
 			return await ctx.warn(
@@ -178,7 +174,33 @@ class Emojis(commands.Cog):
 			)
 
 		if not ctx.message.stickers and not ctx.message.attachments:	
-			return await ctx.warn("Missing argument **sticker/attachment/url**.")
+			if ctx.message.reference:
+				msg = ctx.message.reference.resolved
+				if not msg.stickers and not msg.attachments:
+					return await ctx.warn("Reference message has no **sticker/attachment**.")
+				
+				sticker = [sticker for sticker in msg.stickers or msg.attachments]
+				if name is None: name = sticker[0].name if msg.stickers else sticker[0].filename.split(".")[0]
+
+				stickerbytes = await sticker[0].read()
+				comp = compress_image(stickerbytes)
+				
+
+				file = discord.File(fp=BytesIO(comp))
+				stick = await ctx.guild.create_sticker(
+					name=name,
+					description=name,
+					emoji="skull",
+					file=file,
+					reason=f"Executed by {ctx.author}",
+				)
+
+				return await ctx.approve(
+					f"Added [**sticker**]({stick.url}) with the name - **{name}**"
+				)
+
+			return await ctx.warn("Missing argument **sticker/attachment**.")
+				
 
 		sticker = [sticker for sticker in ctx.message.stickers or ctx.message.attachments]
 
@@ -202,10 +224,18 @@ class Emojis(commands.Cog):
 	)
 	@has_guild_permissions(manage_expressions=True)
 	@bot_has_guild_permissions(manage_expressions=True)
-	async def stickerdelete(self, ctx: StealContext):
+	async def stickerdelete(self, ctx: StealContext, *, name:Optional[str] = None):
 
 		if not ctx.message.stickers:
+			if name:
+
+				for sticker in ctx.guild.stickers:
+					if sticker.name == name:
+						await sticker.delete(reason=f"Executed by {ctx.author}")
+						return await ctx.approve("Deleted that **sticker**")
+				await ctx.warn(f"There are no **stickers** with that name - {name}")
 			return await ctx.warn("Missing argument **sticker**.")
+			
 		
 		sticker = [sticker.id for sticker in ctx.message.stickers]
 
