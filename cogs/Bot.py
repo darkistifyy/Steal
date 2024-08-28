@@ -16,6 +16,8 @@ from discord.ext.commands import *
 from tools.Config import Auth
 from tools.View import UrlView
 import asyncio
+import psutil
+import humanize
 
 from tools.EmbedBuilder import EmbedBuilder, EmbedScript
 from tools.EmbedBuilderUi import EmbedEditor, Embed
@@ -31,7 +33,6 @@ class BotManagement(commands.Cog):
 	def __init__(self, bot: Steal):
 		self.bot = bot
 		self.description = f"Manage {self.bot.user}."
-		self.startTime = time.time()
 
 	@group(
 			name='profile',
@@ -248,19 +249,23 @@ class BotManagement(commands.Cog):
 			if message.author.bot:
 				return
 			if message.content == f"{self.bot.user.mention}":
-				return await message.reply(embed=discord.Embed(description=f" Hi {message.author}. I am `{self.bot.user}` running on `Dpy Version {discord.__version__}`.\n Use `{self.bot.command_prefix[0]}help` to get started.", color=Colors.BASE_COLOR).add_field(
-					   name="Prefix:",
-					   value=f"{self.bot.command_prefix[0]}"
-				).add_field(
-							 name="Uptime:",
-							 value=f"{datetime.timedelta(seconds=int(round(time.time()-self.startTime)))}"
-				).add_field(
-					name=f'Owner:',
-					value=f'<@{self.bot.owner_ids[0]}>'
+				commands = [command for command in set(self.bot.walk_commands())] #if command.cog_name not in ['BotManagement', 'Auth', 'Profile', 'Bs
+
+				embed = discord.Embed(
+					color = Colors.BASE_COLOR,
+					description=f"[**{self.bot.user.name.split("#")[0]}**]({Auth.invite}) info\n>>> **Commands:** `{len(commands)}`\n**Lines:**`{humanize.intcomma(self.bot.lines)}`\n**Guilds:**`{len(self.bot.guilds):,}`\n**Users:**`{len(self.bot.users):,}`\n**Command prefix:** `{self.bot.command_prefix[0]}`"
+				)
+				embed.add_field(
+					name="Uptime",
+					value=f"`{humanize.naturaldelta(datetime.timedelta(seconds=int(round(time.time()-self.bot.startTime))))}`"
 				).set_author(
-					name=f'{message.author}',
-					icon_url=f'{message.author.display_avatar.url if message.author.display_avatar else None}'
-				))
+					name=message.author,
+					icon_url=message.author.display_avatar.url
+				)
+				embed.set_thumbnail(url=self.bot.user.display_avatar.url)
+
+				await message.reply(embed=embed)
+
 			elif "steal" in message.content.lower() and not message.content.startswith(";"):
 				return await message.reply("Love steal 😩")
 

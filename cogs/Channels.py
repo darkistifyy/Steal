@@ -7,9 +7,15 @@ from discord.ext.commands import *
 import asyncio
 import asqlite
 from discord.ui import *
+import humanize.number
+import humanize.time
 from sklearn import *
 from tools.Steal import Steal
 from managers.context import StealContext
+from tools.Validators import ValidTime
+from tools.EmbedBuilder import EmbedBuilder
+import humanize
+import datetime
 
 from typing import List, Optional, Union
 from tools.Config import Colors, Emojis
@@ -124,7 +130,7 @@ class Channels(commands.Cog):
 		await ctx.warn(f'{channel} is not a valid channel.')
 
 
-	@managechannels.command(
+	@command(
 			name='nuke',
 			description='Nukes a channel.',
 	)
@@ -133,6 +139,17 @@ class Channels(commands.Cog):
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
 	async def nukechannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = commands.param(default=None, displayed_default=None)) -> None:
+		await self.managenukechannel(ctx,channel)
+
+	@managechannels.command(
+			name='nuke',
+			description='Nukes a channel.',
+	)
+	@cooldown(2,5, commands.BucketType.guild)
+	@has_permissions(manage_channels=True)
+	@bot_has_guild_permissions(manage_channels=True)
+	@guild_only()
+	async def managenukechannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = commands.param(default=None, displayed_default=None)) -> None:
 		if not channel: channel = ctx.channel
 		return await ctx.warn(f'Are you sure you want to nuke {channel.mention}?', view=ChannelNukeConfirm(ctx, channel, self.bot))
 
@@ -148,7 +165,9 @@ class Channels(commands.Cog):
 		channel = await ctx.guild.create_text_channel(name=name if name else "channel", reason=f'Executed by {ctx.author}')
 		await ctx.approve(f'Created {channel.mention}.')
 
-	@managechannels.command(
+
+
+	@command(
 			name='hide',
 			description='Hides a channel from a user/role.',
 			aliases=["remove"]
@@ -158,6 +177,19 @@ class Channels(commands.Cog):
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
 	async def hidechannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = commands.param(default=None, displayed_default=None), target:Optional[Union[discord.Role, discord.Member]] = commands.param(default=None, displayed_default=None)):
+		await self.managehidechannel(ctx,channel,target)	
+
+
+	@managechannels.command(
+			name='hide',
+			description='Hides a channel from a user/role.',
+			aliases=["remove"]
+	)
+	@cooldown(2,5, BucketType.guild)
+	@has_permissions(manage_channels=True)
+	@bot_has_guild_permissions(manage_channels=True)
+	@guild_only()
+	async def managehidechannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = commands.param(default=None, displayed_default=None), target:Optional[Union[discord.Role, discord.Member]] = commands.param(default=None, displayed_default=None)):
 		if channel is None: channel = ctx.channel	
 		if target is None: target = ctx.guild.default_role
 		perms = channel.overwrites_for(target)
@@ -190,7 +222,7 @@ class Channels(commands.Cog):
 		else:
 			await ctx.deny(f"{channel.mention} is already hidden for {target.mention}.")
 
-	@managechannels.command(
+	@command(
 			name='reveal',
 			description='Reveals a channel to a user/role.',
 			aliases=["add", "show"]
@@ -200,12 +232,24 @@ class Channels(commands.Cog):
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
 	async def revealchannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = commands.param(default=None, displayed_default=None), target: Optional[Union[discord.Member, discord.Role]] = commands.param(default=None, displayed_default=None)):
+		await self.managerevealchannel(ctx, channel, target)
+
+	@managechannels.command(
+			name='reveal',
+			description='Reveals a channel to a user/role.',
+			aliases=["add", "show"]
+	)
+	@cooldown(2,5, BucketType.guild)
+	@has_permissions(manage_channels=True)
+	@bot_has_guild_permissions(manage_channels=True)
+	@guild_only()
+	async def managerevealchannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = commands.param(default=None, displayed_default=None), target: Optional[Union[discord.Member, discord.Role]] = commands.param(default=None, displayed_default=None)):
 		if channel is None: channel = ctx.channel	
 		if target is None: target = ctx.guild.default_role
 		perms = channel.overwrites_for(target)
 		if perms.view_channel is False:
-			perms = target.guild_permissions
 			if isinstance(target, discord.Role):
+				perms = target.permissions
 				if target.position > ctx.guild.me.top_role.position:
 					return await ctx.warn(f"I cannot manage {target.mention}.")
 				if perms.manage_channels:
@@ -215,6 +259,7 @@ class Channels(commands.Cog):
 							return await ctx.warn(f"You cannot manage {target.mention}")								
 
 			if isinstance(target, discord.Member):
+				perms = target.guild_permissions
 				if target == ctx.guild.owner:
 					return await ctx.warn("You cannot manage the server owner.")
 				if target.top_role.position > ctx.guild.me.top_role.position:
@@ -240,12 +285,14 @@ class Channels(commands.Cog):
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
-	async def renamechannel(self, ctx: StealContext, name:str, channel:Optional[discord.abc.GuildChannel] = commands.param(default=None, displayed_default=None)) -> None:
+	async def renamechannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = commands.param(default=None, displayed_default=None), *, name:str) -> None:
 		if not channel:channel=ctx.channel
+		if channel.name == name:
+			return await ctx.warn("That's the same name.")
 		try:
 			await asyncio.wait_for(channel.edit(name=name, reason=f'Executed by {ctx.author}'), timeout=2)
 			channel = await ctx.guild.fetch_channel(channel.id)
-			return await ctx.approve(f'Renamed {channel.mention} to `{channel.name}`.')
+			return await ctx.approve(f'Renamed {channel.mention}.')
 		except asyncio.TimeoutError:
 			return await ctx.warn(f'Could not rename {channel.mention}, bot is ratelimited.')
 
@@ -260,7 +307,18 @@ class Channels(commands.Cog):
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
-	async def lockchannel(self, ctx: StealContext,channel:Optional[discord.abc.GuildChannel] = None, target:Optional[Union[discord.Member, discord.Role]] = None, reason:Optional[str] = commands.param(default="No reason.", displayed_default=None)):
+	async def lockchannel(self, ctx: StealContext,channel:Optional[discord.abc.GuildChannel] = None, target:Optional[Union[discord.Member, discord.Role]] = None, *, reason:Optional[str] = commands.param(default="No reason.", displayed_default=None)):
+		await self.managelockchannel(ctx, channel, target, reason)
+
+	@managechannels.command(
+			name='lock',
+			description='Locks a channel.',
+	)
+	@cooldown(2,5, BucketType.guild)
+	@has_permissions(manage_channels=True)
+	@bot_has_guild_permissions(manage_channels=True)
+	@guild_only()
+	async def managelockchannel(self, ctx: StealContext,channel:Optional[discord.abc.GuildChannel] = None, target:Optional[Union[discord.Member, discord.Role]] = None, reason:Optional[str] = commands.param(default="No reason.", displayed_default=None)):
 		reason += ' | Executed by {}'.format(ctx.author)
 		if channel is None: channel = ctx.channel
 		if target is None: target = ctx.guild.default_role
@@ -310,7 +368,18 @@ class Channels(commands.Cog):
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
-	async def unlockchannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = None, target:Optional[Union[discord.Member, discord.Role]] = None, reason:Optional[str] = commands.param(default="No reason.", displayed_default=None)):
+	async def unlockchannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = None, target:Optional[Union[discord.Member, discord.Role]] = None, *, reason:Optional[str] = commands.param(default="No reason.", displayed_default=None)):
+		await self.manageunlockchannel(ctx, channel, target, reason)
+
+	@managechannels.command(
+			name='unlock',
+			description='Unlocks a channel.',
+	)
+	@cooldown(2,5, BucketType.guild)
+	@has_permissions(manage_channels=True)
+	@bot_has_guild_permissions(manage_channels=True)
+	@guild_only()
+	async def manageunlockchannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = None, target:Optional[Union[discord.Member, discord.Role]] = None, reason:Optional[str] = commands.param(default="No reason.", displayed_default=None)):
 		reason += ' | Executed by {}'.format(ctx.author)
 		if channel is None: channel = ctx.channel	
 		if target is None: target = ctx.guild.default_role
@@ -347,9 +416,9 @@ class Channels(commands.Cog):
 			overwrite = channel.overwrites_for(target)
 			overwrite.send_messages = None
 			await channel.set_permissions(target=target, overwrite=overwrite, reason=reason)
-			await ctx.approve(f"Unlocked {channel.mention} for {target.mention} - **{reason.split(' |')[0]}**.")
+			await ctx.approve(f"**Unlocked** {channel.mention} for {target.mention} - **{reason.split(' |')[0]}**")
 		else:
-			await ctx.deny(f"{channel.mention} is already unlocked for {target.mention}.")			
+			await ctx.deny(f"{channel.mention} is already **unlocked** for {target.mention}.")			
 
 	@command(name="slowmode",
 		  description="Set a channel slowmode",
@@ -359,17 +428,22 @@ class Channels(commands.Cog):
 	@has_permissions(manage_channels=True)
 	@bot_has_permissions(manage_channels=True)
 	@guild_only()
-	async def slowmode_set(self, ctx:StealContext, time, channel:Optional[discord.abc.GuildChannel] = commands.param(default=None, displayed_default=None)) -> None:
-		if not channel:channel=ctx.channel
-		def time_conv(time):
-			try:
-				return int(time[:-1]) * time_convert[time[-1]]
-			except:
-				return time
-		seconds = time_conv(time.lower())
-		await channel.edit(slowmode_delay=seconds, reason=f'Executed by {ctx.author}')
-		await ctx.approve(f'{f"Set {channel.mention}s slowmode to `{time}`" if int(seconds) > 0 else f"Removed {channel}s slowmode."}')
+	async def slowmode_set(self, ctx:StealContext, time:ValidTime, channel:Optional[discord.abc.GuildChannel] = commands.param(default=None, displayed_default=None)) -> None:
+		await self.channel_slowmode_set(ctx, time, channel)
 
+
+	@managechannels.command(name="slowmode",
+		  description="Set a channel slowmode",
+		  aliases=['sm']
+	)
+	@cooldown(2,5, commands.BucketType.guild)
+	@has_permissions(manage_channels=True)
+	@bot_has_permissions(manage_channels=True)
+	@guild_only()
+	async def channel_slowmode_set(self, ctx:StealContext, time:ValidTime, channel:Optional[discord.abc.GuildChannel] = commands.param(default=None, displayed_default=None)) -> None:
+		if not channel:channel=ctx.channel
+		await channel.edit(slowmode_delay=time, reason=f'Executed by {ctx.author}')
+		await ctx.approve(f'{f"Set **slowmode** to **{humanize.precisedelta(datetime.timedelta(seconds=time))}** for {channel.mention}" if int(time) > 0 else f"Removed the **slowmode** for {channel.mention}."}')
 
 	@group(
 			name = "welcome",
@@ -416,11 +490,8 @@ class Channels(commands.Cog):
 
 					return await ctx.reply(
 						embed=discord.Embed(
-							description=f"{ctx.author.mention}: Set the **welcome** channel to {channel.mention} with the script ```{script}```",
-							color=Colors.BASE_COLOR
-						).set_footer(
-							text=f"Use '{self.bot.command_prefix[0]}welcome script <script>' to update the script.",
-							icon_url=self.bot.user.display_avatar.url
+							description=f"> {Emojis.APPROVE} {ctx.author.mention}: Set the **welcome** channel to {channel.mention} with the script ```ruby\n{script}```",
+							color=Colors.APPROVE_COLOR
 						)
 					)
 				
@@ -545,7 +616,7 @@ class Channels(commands.Cog):
 					return await ctx.warn("The **welcome** channel has not been configured for this guild.")
 				
 				if str(row[3]) == str(script if script else default):
-					return await ctx.warn("That is the same script as before, not updating.")
+					return await ctx.warn("That is the same **script** as before, not updating.")
 				
 				await cursor.execute(
 					"UPDATE welcome SET script = $1",
@@ -554,7 +625,7 @@ class Channels(commands.Cog):
 
 				await db.commit()
 
-				await ctx.approve(f"Set **channel** module script to {'default' if not script else ''} ```{script if script else default}```")
+				await ctx.approve(f"Set **channel** module script to {'default' if not script else ''} ```ruby\n{script if script else default}```")
 
 	@welcome.command(
 			name="config",
@@ -581,11 +652,12 @@ class Channels(commands.Cog):
 					return await ctx.warn("There is no **welcome** config set for this guild.")
 				
 				channelid = row[1]
-				try:
-					channel = self.bot.get_channel(channelid)
+				channel = self.bot.get_channel(channelid)
+
+				if channel:
 					channel = channel.mention
-				except:
-					channel = "Invalid channel"
+				else:
+					channel = "Invalid channel."
 
 				toggle_converter = {
 					1 : "enabled",
@@ -608,13 +680,47 @@ class Channels(commands.Cog):
 						value=f"{toggle.capitalize()}"
 					).add_field(
 						name="Script",
-						value=f"```{script}```",
+						value=f"```ruby\n{script}```",
 						inline=False
 					).set_author(
 						name=ctx.guild.name,
 						icon_url=ctx.guild.icon.url if ctx.guild.icon else None
 					)
 				)
+
+	@welcome.command(
+			name="test",
+			description="Test the boost response module"
+	)
+	@has_permissions(manage_channels=True)
+	@bot_has_guild_permissions(manage_messages=True)
+	@guild_only()
+	async def welcometest(self, ctx: StealContext):
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS welcome(guildid INTEGER, channelid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), script TEXT)"
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM welcome WHERE guildid = $1",
+					ctx.guild.id,
+				)
+
+				row = await cur.fetchone()
+
+				if not row:
+					return await ctx.warn("There is no **welcome** config set for this guild.")
+				
+				channel = self.bot.get_channel(row[1])
+
+				if not channel:
+					return await ctx.warn("The **welcome** channel is invalid!")
+				
+				parsed = EmbedBuilder.embed_replacement(ctx.author, row[3])
+				content, embed, view = await EmbedBuilder.to_object(parsed)
+				
+				await channel.send(content=content, embed=embed, view=None)	
 
 	@welcome.command(
 			name="clear",
@@ -693,8 +799,8 @@ class Channels(commands.Cog):
 
 					return await ctx.reply(
 						embed=discord.Embed(
-							description=f"{ctx.author.mention}: Set **boost response** channel to {channel.mention} with the script ```{script}```",
-							color=Colors.BASE_COLOR
+							description=f"{Emojis.APPROVE} {ctx.author.mention}: Set **boost response** channel to {channel.mention} with the **script** ```{script}```",
+							color=Colors.APPROVE_COLOR
 						).set_footer(
 							text=f"Use '{self.bot.command_prefix[0]}boost script <script>' to update the script.",
 							icon_url=self.bot.user.display_avatar.url
@@ -790,7 +896,7 @@ class Channels(commands.Cog):
 
 	@boost.command(
 			name="script",
-			description="The script for the welcome message.",
+			description="The script for the boost response message.",
 			aliases=["code", "message"]
 	)
 	@has_permissions(manage_channels=True)
@@ -825,11 +931,45 @@ class Channels(commands.Cog):
 
 				await db.commit()
 
-				await ctx.approve(f"Set **boost response** module script to {'default' if not script else ''} ```{default if not script else script}```")
+				await ctx.approve(f"Set **boost response** module script to {'default' if not script else ''} \n```ruby\n{default if not script else script}```")
+
+	@boost.command(
+			name="test",
+			description="Test the boost response module"
+	)
+	@has_permissions(manage_channels=True)
+	@bot_has_guild_permissions(manage_messages=True)
+	@guild_only()
+	async def boosttest(self, ctx: StealContext):
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS boostresponse(guildid INTEGER, channelid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), script TEXT)"
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM boostresponse WHERE guildid = $1",
+					ctx.guild.id,
+				)
+
+				row = await cur.fetchone()
+
+				if not row:
+					return await ctx.warn("There is no **boost response** config set for this guild.")
+				
+				channel = self.bot.get_channel(row[1])
+
+				if not channel:
+					return await ctx.warn("The **boost response** channel is invalid!")
+				
+				parsed = EmbedBuilder.embed_replacement(ctx.author, row[3])
+				content, embed, view = await EmbedBuilder.to_object(parsed)
+				
+				await channel.send(content=content, embed=embed, view=None)	
 
 	@boost.command(
 			name="config",
-			description="The config for the welcome module",
+			description="The config for the boost response module",
 	)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_messages=True)
@@ -879,7 +1019,7 @@ class Channels(commands.Cog):
 						value=f"{toggle.capitalize()}"
 					).add_field(
 						name="Script",
-						value=f"```{script}```",
+						value=f"```ruby\n{script}```",
 						inline=False
 					).set_author(
 						name=ctx.guild.name,
@@ -889,7 +1029,7 @@ class Channels(commands.Cog):
 
 	@boost.command(
 			name="clear",
-			description="Clears the welcome module",
+			description="Clears the boost response module",
 	)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_messages=True)

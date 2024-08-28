@@ -224,6 +224,25 @@ class Tickets(commands.Cog):
 	@bot_has_guild_permissions(manage_channels=True)
 	@cooldown(1,120, commands.BucketType.guild)
 	async def panelsend(self, ctx: StealContext,  *, script:Optional[str] = commands.param(default=None, displayed_default=None), channel:discord.TextChannel = None) -> None:
+		async with asqlite.connect("main.db") as conn:
+			async with conn.cursor() as cursor:
+
+				await cursor.execute(
+					"""
+					CREATE TABLE IF NOT EXISTS tickets(guildid INTEGER, categoryid INTEGER, openscript TEXT, supportroleid INTEGER)
+					"""
+				)
+
+				cur = await cursor.execute(
+					"""
+					SELECT * FROM tickets WHERE guildid = $1
+					""", ctx.guild.id, 
+				)
+
+				row = await cur.fetchone()
+
+				if not row:
+					return await ctx.warn(f"Please run the `{self.bot.command_prefix[0]}ticket opened` command before this one.")
 
 		if channel is None: channel = ctx.channel
 		if not script:
@@ -267,7 +286,7 @@ class Tickets(commands.Cog):
 	@ticket.command(
 			name="opened",
 			description="The script that sends when a ticket is opened.",
-			aliases=["script"]
+			aliases=["script", "setup"]
 	)
 	@has_permissions(administrator=True)
 	@bot_has_guild_permissions(manage_channels=True)
@@ -290,8 +309,8 @@ class Tickets(commands.Cog):
 				row = await cur.fetchone()
 
 				if not script:
-					default = """{embed}{color: #ff8fab}{title: __Ticket opened.__}{description: ﹒Please explain why you opened this ticket
-							﹒Be patient for a response.}{author: Test Server}"""
+					default = """{embed}{color: #6a6a6a}{title: __Ticket opened__}{description: ﹒Please explain why you opened this ticket
+﹒Be patient for a response.}{author: Test Server}"""
 
 				if row:
 					if row[2]:
@@ -312,7 +331,7 @@ class Tickets(commands.Cog):
 
 						await conn.commit()
 
-						return await ctx.approve(f"Overwrote **ticket** opening script to ```{script}```")
+						return await ctx.approve(f"Overwrote **ticket** opening script to\n```ruby\n{script}```")
 				
 				if not script:
 					
@@ -322,7 +341,7 @@ class Tickets(commands.Cog):
 						""", ctx.guild.id, default, 
 					)
 					await conn.commit()
-					await ctx.approve(f"Set **ticket** opening script to default ```{default}```")
+					await ctx.approve(f"Set **ticket** opening script to default\n```ruby\n{default}```")
 					return
 
 				await cursor.execute(
@@ -331,7 +350,7 @@ class Tickets(commands.Cog):
 					""", ctx.guild.id, script, 
 				)
 				await conn.commit()
-				return await ctx.approve(f"Set **ticket** opening script to ```{script}```")
+				return await ctx.approve(f"Set **ticket** opening script to \n```\n{script}```")
 
 	@ticket.command(
 			name="support",
@@ -454,13 +473,13 @@ class Tickets(commands.Cog):
 					category = "None"
 
 				if row[3]:
-					try:
-						role = ctx.guild.get_role(row[3])
-						rolemention = role.mention
-					except:
-						rolemention = "Invalid role"
+					role = ctx.guild.get_role(row[3])
+					if role:
+						role = role.mention
+					else:
+						role = "Invalid role"
 				else:
-					rolemention = "None"
+					role = "None"
 				await ctx.send(
 					embed=discord.Embed(
 						title="Ticket config",
@@ -473,10 +492,10 @@ class Tickets(commands.Cog):
 						value=f"> {category if row[1] else "None"}"
 					).add_field(
 						name="Support role",
-						value=f"> {rolemention if row[3] else "None"}",
+						value=f"> {role}",
 					).add_field(
 						name="Opening ticket embed",
-						value=f"```{row[2]}```",
+						value=f"```ruby\n{row[2]}```",
 						inline=False
 					)
 				)
@@ -554,7 +573,7 @@ class Tickets(commands.Cog):
 		if ctx.channel.topic and "Closed - " or "Open - " in ctx.channel.topic:
 			if op in ctx.channel.members:
 
-					status = await ctx.send(embed=discord.Embed(description=f'{Emojis.WARN} **Locking** ticket. . .', color=Colors.WARN_COLOR))
+					status = await ctx.send(embed=discord.Embed(description=f'> {Emojis.WARN} **Locking** ticket. . .', color=Colors.WARN_COLOR))
 
 					async for message in ctx.channel.history():
 						if message.author.id == self.bot.user.id:
@@ -603,7 +622,7 @@ class Tickets(commands.Cog):
 
 		if ctx.channel.topic and "Closed - " or "Open - " in ctx.channel.topic:
 			if op in ctx.channel.members:
-					status = await ctx.send(embed=discord.Embed(description=f'{Emojis.WARN} **Opening** ticket. . .', color=Colors.WARN_COLOR))
+					status = await ctx.send(embed=discord.Embed(description=f'> {Emojis.WARN} **Opening** ticket. . .', color=Colors.WARN_COLOR))
 
 					async for message in ctx.channel.history():
 						if message.author.id == self.bot.user.id:

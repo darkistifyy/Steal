@@ -90,7 +90,7 @@ class Roles(commands.Cog):
 		
 		try:
 			await asyncio.wait_for(role.edit(name=name, reason=f'Executed by {ctx.author}'), timeout=3)
-			return await ctx.approve(f"Renamed {role.mention} to **{name}**")
+			return await ctx.approve(f"Renamed {role.mention}")
 
 		except asyncio.TimeoutError:
 			return await ctx.warn(f'Could not rename {role.mention}, bot is ratelimited.')
@@ -100,7 +100,7 @@ class Roles(commands.Cog):
 			description='Adds role to all.',
 	)
 	@cooldown(1,120, commands.BucketType.guild)
-	@has_permissions(manage_roles=True)
+	@has_permissions(administrator=True)
 	@bot_has_guild_permissions(manage_roles=True)
 	@guild_only()
 	async def roleaddall(self, ctx: StealContext, role:discord.Role) -> None:
@@ -113,6 +113,7 @@ class Roles(commands.Cog):
 		failed = 0
 		for mem in ctx.guild.members:
 			if not role in mem.roles:
+				await asyncio.sleep(0.7)
 				try:
 					await mem.add_roles(
 						role, reason=f"Mass application | Executed by {ctx.author}"
@@ -147,7 +148,7 @@ class Roles(commands.Cog):
 			description='Removes role from all',
 	)
 	@cooldown(1,120, commands.BucketType.guild)
-	@has_permissions(manage_roles=True)
+	@has_permissions(administrator=True)
 	@bot_has_guild_permissions(manage_roles=True)
 	@guild_only()
 	async def roleremoveall(self, ctx: StealContext, role:discord.Role) -> None:
@@ -160,6 +161,7 @@ class Roles(commands.Cog):
 		failed = 0
 		for mem in ctx.guild.members:
 			if role in mem.roles:
+				await asyncio.sleep(0.7)
 				try:
 					await mem.remove_roles(
 						role, reason=f'Mass removal | Executed by {ctx.author}'
@@ -196,10 +198,10 @@ class Roles(commands.Cog):
 	async def hoistrole(self, ctx: StealContext, role:discord.Role) -> None:
 		if role.hoist is True:
 			await role.edit(hoist=False, reason=f'Executed by {ctx.author}')
-			await ctx.approve(f"Dehoisted role - {role.mention}.")
+			await ctx.approve(f"Dehoisted {role.mention}.")
 		else:
 			await role.edit(hoist=True, reason=f'Executed by {ctx.author}')
-			await ctx.approve(f"Hoisted role - {role.mention}.")		
+			await ctx.approve(f"Hoisted {role.mention}.")		
 
 	@userrole.command(
 			name='color',
@@ -222,7 +224,7 @@ class Roles(commands.Cog):
 		if isHex(hex):
 			rgb = tuple(int(hex[i:i+2], 16) for i in (0, 2, 4))
 			await role.edit(color=Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2]), reason=f'Executed by {ctx.author}')
-			return await ctx.approve(f"Set {role.mention}'s color to `{hex}`")
+			return await ctx.approve(f"Set {role.mention}'s color to **#{hex}**")
 		else:
 			return await ctx.deny(f"`{hex}` is not a valid hex code.")
 

@@ -245,7 +245,7 @@ class Mod(commands.Cog):
 	)
 	@has_permissions(manage_messages=True)
 	@bot_has_guild_permissions(manage_messages=True)
-	@cooldown(1, 30, BucketType.user)
+	@cooldown(1, 30, BucketType.channel)
 	@guild_only()
 	async def purge(self, ctx: StealContext, number: Optional[int] = commands.param(default=5, displayed_default=None)) -> None:
 		if number <= 100 and ctx.author != ctx.guild.owner or ctx.author == ctx.guild.owner and number <= 200:

@@ -5,14 +5,21 @@ from discord import Color
 from discord.ext import commands
 from discord.ext.commands import *
 from typing import Optional
+from tools.Config import Auth
 import sys
+import humanize.number
 import psutil
 import os
 from discord import Spotify
 import requests
+import humanfriendly
+import humanize
+import time
 
 from tools.View import DownloadAsset
 from tools.bytesio import dom_color
+from tools.View import CustomView
+import datetime
 
 from tools.Steal import Steal
 from managers.context import StealContext
@@ -288,13 +295,25 @@ class Info(commands.Cog):
 	)
 	@cooldown(1, 5, commands.BucketType.user)
 	async def botinfo(self, ctx: Context) -> None:
-		commands = [command for command in set(self.bot.walk_commands()) if command.cog_name not in ['BotManagement', 'Auth', 'Profile', 'Bs']]
+		commands = [command for command in set(self.bot.walk_commands())] #if command.cog_name not in ['BotManagement', 'Auth', 'Profile', 'Bs
 
 		embed = discord.Embed(
-			title = f"{self.bot.user.name.split('#')[0]}",
+			title = f"Bot information",
+			url=Auth.invite,
 			color = Colors.BASE_COLOR,
-			description=f"I am {self.bot.user}, I have `{len(commands)}` commands. I'm in `{len(self.bot.guilds):,}` guilds serving `{len(self.bot.users):,}` users. I'm using `{psutil.cpu_percent()}%` of my CPU, `{psutil.virtual_memory().percent}%` of my RAM, running on `Dpy version {discord.__version__}` and `Python Version {sys.version.split(' (')[0]}`"
+			description=f"I am [**{self.bot.user.name.split("#")[0]}**]({Auth.invite})\n>>> **Commands:** `{len(commands):,}`\n**Lines:**`{(self.bot.lines):,}`\n**Guilds:**`{len(self.bot.guilds):,}`\n**Users:**`{len(self.bot.users):,}`\n**Command prefix:** `{self.bot.command_prefix[0]}`"
 		)
+		embed.add_field(
+			name="CPU %",
+			value=f"`{psutil.cpu_percent()}%`",inline= True
+		).add_field(
+			name="RAM %",
+			value=f"`{psutil.virtual_memory().percent}%`",inline=True
+		).add_field(
+			name="Uptime",
+			value=f"`{humanize.naturaldelta(datetime.timedelta(seconds=int(round(time.time()-self.bot.startTime)))).capitalize()}`",inline=True
+		)
+
 		embed.set_thumbnail(url=self.bot.user.display_avatar.url)
 		embed.set_author(name=ctx.author.name, icon_url=ctx.author.display_avatar.url)
 
