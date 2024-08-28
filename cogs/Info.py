@@ -299,7 +299,6 @@ class Info(commands.Cog):
 
 		embed = discord.Embed(
 			title = f"Bot information",
-			url=Auth.invite,
 			color = Colors.BASE_COLOR,
 			description=f"I am [**{self.bot.user.name.split("#")[0]}**]({Auth.invite})\n>>> **Commands:** `{len(commands):,}`\n**Lines:**`{(self.bot.lines):,}`\n**Guilds:**`{len(self.bot.guilds):,}`\n**Users:**`{len(self.bot.users):,}`\n**Command prefix:** `{self.bot.command_prefix[0]}`"
 		)
