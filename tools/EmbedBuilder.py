@@ -10,7 +10,7 @@ class MyException(Exception):
     pass
 
 class EmbedBuilder:
- def ordinal(self, num: int) -> str:
+ def ordinal(num: int) -> str:
    """Convert from number to ordinal (10 - 10th)""" 
    numb = str(num) 
    if numb.startswith("0"): numb = numb.strip('0')
@@ -93,9 +93,9 @@ class EmbedBuilder:
             if author.get("name"):
                 to_return += f"{author.get('name')}"
             if author.get("icon_url"):
-                to_return += f" && icon: {author.get('icon_url')}"
+                to_return += f" && {author.get('icon_url')}"
             if author.get("url"):
-                to_return += f" && url: {author.get('url')}"
+                to_return += f" && {author.get('url')}"
             to_return += "}"
         if embed.get("thumbnail"):
             to_return += "{thumbnail: " + embed["thumbnail"]["url"]
@@ -114,7 +114,7 @@ class EmbedBuilder:
             if footer.get("text"):
                 to_return += f"{footer.get('text')}"
             if footer.get("icon_url"):
-                to_return += f" && icon: {footer.get('icon_url')}"
+                to_return += f" && {footer.get('icon_url')}"
             to_return += "}"
     if message.content:
         to_return += "{content: " + "}"
@@ -222,6 +222,7 @@ class EmbedBuilder:
             if icon_url:
                 if validators.url(icon_url.strip("icon:").strip()):
                     x['footer']['icon_url']=icon_url.strip("icon:").strip()
+                else:raise MyException("The embed author_url is not a well formed url.")
                 
         if part.startswith('button:'):
             z=part[len('button:'):].split(' && ')

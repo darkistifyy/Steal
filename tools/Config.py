@@ -4,10 +4,12 @@ class Auth:
     invite = "https://discord.com/oauth2/authorize?client_id=1264225716799799427&permissions=8&integration_type=0&scope=bot"
 
 class Colors:
-    BASE_COLOR = 0x2b2b2b
+    #BASE_COLOR = 0x7291df
+    BASE_COLOR = 0x6a6a6a
     DENY_COLOR = Color.red()
     NEUTRAL_COLOR = BASE_COLOR
     WARN_COLOR = Color.yellow()
+    APPROVE_COLOR = 0x48db01
 
 class Emojis:
     APPROVE = "<:confirm:1276652226496041012>"
@@ -37,5 +39,5 @@ class Flags:
     BOOST = "<:boost:1272410199516385304>"
 
 class Guild:
-    INVITE = "https://discord.gg/GwDf8mB5"
+    INVITE = "https://discord.gg/GDqJeqn3wq"
 

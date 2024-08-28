@@ -50,6 +50,15 @@ class UrlView(discord.ui.View):
 			child.disabled = True
 		await self.message.edit(view=self)
 
+class CustomView(discord.ui.View):
+	def __init__(self):
+		super().__init__(timeout=60)
+	
+	async def on_timeout(self):
+		for child in self.children:
+			child.disabled = True
+		await self.message.edit(view=self)
+
 
 class MarryView(View):
 	def __init__(self, ctx: Context, member: discord.User):

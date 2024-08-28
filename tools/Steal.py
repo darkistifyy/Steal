@@ -57,6 +57,7 @@ class Steal(commands.Bot):
 		self._uptime = time.time()
 		self.session = Session()
 		self.cache = Cache()
+		self.startTime = time.time()
 
 		super().__init__(
 			command_prefix=[';', 'sudo ', 'await '],
@@ -141,6 +142,22 @@ class Steal(commands.Bot):
 			('minute', 60),
 			('second', 1),
 		)
+
+	@property
+	def lines(self) -> int:
+		"""
+		Return the code's amount of lines
+		"""
+
+		lines = 0
+		for d in [x[0] for x in os.walk(".") if not ".git" in x[0]]:
+			for file in os.listdir(d):
+				if file.endswith(".py"):
+					with open(f"{d}/{file}", "r+", encoding="utf8") as fp:
+						fp = fp.read()
+						lines += len(fp.splitlines())
+	
+		return lines
 
 	def ordinal(self, number: int) -> str:
 		"""
@@ -233,7 +250,7 @@ class Steal(commands.Bot):
 	@property
 	def uptime(self) -> str:
 		return self.humanize_time(self._uptime)
-	"""
+	
 	async def on_command_error(self, ctx: StealContext, exception: commands.CommandError) -> None:
 		if type(exception) in [commands.CommandNotFound, commands.NotOwner, commands.CheckFailure]: return
 		elif isinstance(exception, commands.BadColourArgument):
@@ -299,7 +316,7 @@ class Steal(commands.Bot):
 		if isinstance(exception, commands.MissingPermissions):
 			return await ctx.warn(f"I do not have permissions to do that.")
 		elif isinstance(exception.original, discord.HTTPException):
-			return await ctx.warn(f"**Invalid code**\n```{exception.original}```")"""
+			return await ctx.warn(f"**Invalid code**\n```{exception.original}```")
 
 	async def get_context(self, message, *, cls= StealContext):
 		return await super().get_context(message, cls=cls)
