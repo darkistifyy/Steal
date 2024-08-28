@@ -75,7 +75,7 @@ class StealHelp(HelpCommand):
             .set_author(name = self.context.author.display_name, icon_url = self.context.author.display_avatar.url)
             .add_field(name = 'Aliases', value = ', '.join(command.aliases) or 'N/A', inline = True)
             .add_field(name = 'Parameters', value = ', '.join([parameter for parameter in command.params] or 'N/A'), inline = True)
-            .add_field(name = 'Usage', value = f'>>> **Syntax**: `{prefix}{command.qualified_name} {command.signature.strip("= None").replace(" (upload a file)", "")}`', inline = False)
+            .add_field(name = 'Usage', value = f'>>> ```ruby\nSyntax: {prefix}{command.qualified_name} {command.signature.strip("= None").replace(" (upload a file)", "")}```', inline = False)
             .set_footer(text = f'Module: {command.cog_name}', icon_url = self.context.bot.user.display_avatar.url)
         )
         
@@ -110,7 +110,7 @@ class StealHelp(HelpCommand):
                 .set_author(name = self.context.author.display_name, icon_url = self.context.author.display_avatar.url)
                 .add_field(name = 'Aliases', value = ', '.join(command.aliases) or 'N/A', inline = True)
                 .add_field(name = 'Parameters', value = ', '.join([parameter for parameter in command.params] if not isinstance(command, Group) else [parameter.name for parameter in group.commands]) or 'N/A', inline = True)
-                .add_field(name = 'Usage', value = f'>>> **Syntax**: `{prefix}{command.qualified_name} {command.signature.strip("= None").replace(" (upload a file)", "")}`', inline = False)
+                .add_field(name = 'Usage', value = f'>>> ```ruby\nSyntax: {prefix}{command.qualified_name} {command.signature.strip("= None").replace(" (upload a file)", "")}```', inline = False)
                 .set_footer(text = f'Page {i + 1}/{len(commands)} ({len(commands)} entries) ∙ Module: {command.cog_name}', icon_url = self.context.bot.user.display_avatar.url)
             for i, command in enumerate(commands)
         ])

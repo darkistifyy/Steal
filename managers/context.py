@@ -15,7 +15,7 @@ class StealContext(Context):
 
     async def approve(self, message: str, **kwargs) -> Message:
         embed=Embed(
-            color = Colors.BASE_COLOR,
+            color = Colors.APPROVE_COLOR,
             description = f'> {Emojis.APPROVE} {self.author.mention}: {message}'
         )
         await self.reply(
