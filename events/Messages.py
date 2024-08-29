@@ -4,13 +4,13 @@ from dotenv import *
 from discord.ext.commands import *
 import asqlite
 import humanize
+import humanfriendly
 import datetime
 
 from tools.Config import Emojis, Colors
 from tools.Steal import Steal
 
-url_prefixes = "https://discord.com/invite/", "discord.gg/", ".gg/"
-
+url_prefixes = "discord.com/invite/", "discord.gg/", "gg/",
 class Messages(commands.Cog):
 	def __init__(self, bot: Steal):
 		self.bot = bot
@@ -28,26 +28,26 @@ class Messages(commands.Cog):
 
 				await cursor.execute(
 					"""
-					CREATE TABLE IF NOT EXISTS invitesautomod(guildid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)))
+					CREATE TABLE IF NOT EXISTS invitesautomod(guildid INTEGER, punishment TEXT, duration INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)))
 					""",				
 				)
 
 				cur = await cursor.execute(
 					"""
-					SELECT toggle FROM invitesautomod WHERE guildid = $1 
+					SELECT * FROM invitesautomod WHERE guildid = $1 
 					""", message.guild.id
 				)
 
-				toggle = await cur.fetchone()
+				row = await cur.fetchone()
 				await cur.close()
 
-				if toggle:
-					if toggle[0] == 1:
+				if row:
+					if row[3] == 1:
 						for prefix in url_prefixes:
 							if prefix in message.content:
 								split1 = message.content.split(prefix)[1]
 								code = split1.split(" ")[0]
-
+								
 								try:
 									invite = await self.bot.fetch_invite(code)
 								except:
@@ -55,16 +55,55 @@ class Messages(commands.Cog):
 
 								if invite:
 									if invite.guild.id != message.guild.id:
-										await message.author.send(
-											embed=discord.Embed(
-												description=f"{Emojis.WARN} {message.author.mention}: Sending invites to other guilds is blacklisted in **{message.guild.name}**.",
-												color=Colors.WARN_COLOR
-											)
-										)
 										try:
-											return await message.delete()
+											embed=discord.Embed(
+												description=f"> {Emojis.WARN} {message.author.mention}: Your message in **{message.guild.name}** was flagged for containing an **invite**.",
+												color=Colors.WARN_COLOR
+											).add_field(
+												name = "Your message",
+												value=f"`{message.content}`",
+												inline=True
+											).add_field(
+												name="Flagged invite",
+												value=f"`{code}`",
+												inline=True
+											)
+
+											if row[1].lower() != "none":
+												embed.add_field(
+													name="Punishment",
+													value=f"`{row[1].capitalize()} - {humanfriendly.format_timespan(row[2]) if row[2] > 0 else ""}`",
+													inline=True
+												)
+
+											await message.author.send(embed=embed)
+											
+										except Exception as e:
+											print(e)
+
+										
+
+										try:
+											await message.delete()
 										except:
-											return
+											pass
+										
+										if row[1].lower() != "none":
+											if row[1].lower() == "ban":
+												try:
+													await message.guild.ban(message.author, reason=f"AUTOMOD | Sent invite, code: {code}")
+												except:
+													pass
+											if row[1].lower() == "kick":
+												try:
+													await message.guild.kick(message.author, reason=f"AUTOMOD | Sent invite, code: {code}")
+												except:
+													pass
+											if row[1].lower() == "mute":
+												try:
+													await message.author.timeout(discord.utils.utcnow() + datetime.timedelta(seconds=row[2]), reason=f"AUTOMOD | Sent invite, code: {code}")
+												except Exception as e:
+													print(e)
 	
 	@Cog.listener("on_message")
 	async def filter_message_blacklist_event(self, message: discord.Message):
@@ -105,7 +144,7 @@ class Messages(commands.Cog):
 							if thing.lower() in message.content.lower():
 								await message.author.send(
 									embed=discord.Embed(
-										description=f"{Emojis.WARN} {message.author.mention}: The word **{thing}** is blacklisted in **{message.guild.name}**.",
+										description=f"> {Emojis.WARN} {message.author.mention}: The word **{thing}** is blacklisted in **{message.guild.name}**.",
 										color=Colors.WARN_COLOR
 									)
 								)
@@ -175,7 +214,7 @@ class Messages(commands.Cog):
 							status = row[2]
 							await message.reply(
 								embed=discord.Embed(
-									description=f"{user.mention} is AFK with the status - **{status if status else "Unretriveable status"}**",
+									description=f"> {user.mention} is AFK with the status - **{status if status else "Unretriveable status"}**",
 									color=Colors.BASE_COLOR
 								)
 							)
