@@ -146,7 +146,7 @@ class CategorySelector(discord.ui.Select):
 
         embed = self.embed.copy()
         embed.title = f'Category: {category.__cog_name__}'
-        embed.description = f'\nCommands:\n```ruby\n{", ".join([f"{command.qualified_name}" if not isinstance(command, discord.ext.commands.Group) else f"{command.qualified_name}*" for command in list(category.walk_commands()) if not command.hidden])}```'
+        embed.description = f'\nCommands:\n```ruby\n{", ".join([f"{command.qualified_name}" if not isinstance(command, discord.ext.commands.Group) else f"{command.qualified_name}*" for command in list(category.walk_commands()) if not command.hidden and not command.parent])}```'
         #embed.description = description
         embed.set_footer(
                 text=f"{len(commands)} commands."
