@@ -300,14 +300,12 @@ class Filters(commands.Cog):
 			async with conn.cursor() as cursor:
 
 				await cursor.execute(
-					"""
-					CREATE TABLE IF NOT EXISTS wordsautomod(guildid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), words)
-					""",				
+					"CREATE TABLE IF NOT EXISTS wordsautomod(guildid INTEGER UNIQUE, punishment TEXT, duration INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), words TEXT)",				
 				)
 
 				cur = await cursor.execute(
 					"""
-					SELECT toggle FROM wordsautomod WHERE guildid = $1
+					SELECT * FROM wordsautomod WHERE guildid = $1
 					""", ctx.guild.id, 
 				)
 
@@ -316,16 +314,16 @@ class Filters(commands.Cog):
 				if not res:
 					await cursor.execute(
 						"""
-						INSERT INTO wordsautomod (guildid, toggle, words) VALUES ($1, $2, $3)
-						""", ctx.guild.id, 1.0, "none",
+						INSERT INTO wordsautomod (guildid, punishment, duration, toggle, words) VALUES ($1, $2, $3, $4, $5)
+						""", ctx.guild.id, "none", 0, 1.0, "none",
 					)
 
 					await conn.commit()
 
-					return await ctx.approve("Enabled the **words** automod module")
+					return await ctx.approve("Enabled the **words** filter.")
 
 				if res[0] == 1:
-					return await ctx.warn("The **words** automod module is already **enabled**.")
+					return await ctx.warn("The **words** filter is already **enabled**.")
 
 				await cursor.execute(
 					"""
@@ -335,7 +333,7 @@ class Filters(commands.Cog):
 
 				await conn.commit()
 
-				return await ctx.approve("Enabled the **words** filter module")
+				return await ctx.approve("Enabled the **words** filter.")
 
 	@words.command(
 			name="disable",
@@ -350,24 +348,22 @@ class Filters(commands.Cog):
 			async with conn.cursor() as cursor:
 
 				await cursor.execute(
-					"""
-					CREATE TABLE IF NOT EXISTS wordsautomod(guildid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), words)
-					""",				
+					"CREATE TABLE IF NOT EXISTS wordsautomod(guildid INTEGER UNIQUE, punishment TEXT, duration INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), words TEXT)",			
 				)
 
 				cur = await cursor.execute(
 					"""
-					SELECT toggle FROM wordsautomod WHERE guildid = $1
+					SELECT * FROM wordsautomod WHERE guildid = $1
 					""", ctx.guild.id, 
 				)
 
 				res = await cur.fetchone()
 
 				if not res:
-					return await ctx.warn("The **words** filter module is not configured in this guild.")
+					return await ctx.warn("The **words** filter is not configured in this guild.")
 
 				if res[0] == 0:
-					return await ctx.warn("The **words** filter module is already **disabled**.")
+					return await ctx.warn("The **words** filter  is already **disabled**.")
 
 				await cursor.execute(
 					"""
@@ -391,14 +387,12 @@ class Filters(commands.Cog):
 			async with conn.cursor() as cursor:
 
 				await cursor.execute(
-					"""
-					CREATE TABLE IF NOT EXISTS wordsautomod(guildid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), words)
-					""",				
+					"CREATE TABLE IF NOT EXISTS wordsautomod(guildid INTEGER UNIQUE, punishment TEXT, duration INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), words TEXT)",		
 				)
 
 				cur = await cursor.execute(
 					"""
-					SELECT toggle FROM wordsautomod WHERE guildid = $1
+					SELECT * FROM wordsautomod WHERE guildid = $1
 					""", ctx.guild.id, 
 				)
 
@@ -419,7 +413,6 @@ class Filters(commands.Cog):
 				words = await cur.fetchone()
 
 				if words[0] == "none":
-					print("AAAAAAAAAAAAAHHHH")
 					formatted_word = word.strip().lower()
 					formatted_word = "," + formatted_word + ","
 
@@ -466,44 +459,92 @@ class Filters(commands.Cog):
 			async with conn.cursor() as cursor:
 
 				await cursor.execute(
-					"""
-					CREATE TABLE IF NOT EXISTS wordsautomod(guildid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), words)
-					""",				
+					"CREATE TABLE IF NOT EXISTS wordsautomod(guildid INTEGER UNIQUE, punishment TEXT, duration INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), words TEXT)",			
 				)
 
 				cur = await cursor.execute(
 					"""
-					SELECT toggle FROM wordsautomod WHERE guildid = $1 
+					SELECT * FROM wordsautomod WHERE guildid = $1 
 					""", ctx.guild.id
 				)
 
 
 				##### I WAS HERE DOING CLOSE CURSORS
 
-				toggle = await cur.fetchone()
+				row = await cur.fetchone()
 
-				if toggle:
-					
-					cur = await cursor.execute(
-						"""
-						SELECT words FROM wordsautomod WHERE guildid = $1
-						""", ctx.guild.id
-					)
-					words = await cur.fetchone()
-					things = [word for word in words[0].split(",") if word]
+				if row:		
+
+					things = [word for word in row[4].split(",") if word]
 					if word.strip().lower() in things:
+
 						things.remove(word.strip())
-						words = "".join(thing for thing in things)
+						words = ",".join(thing for thing in things)
+
 						await cursor.execute(
 							"""
 							UPDATE wordsautomod SET words = $1 WHERE guildid = $2
 							""", words, ctx.guild.id, 
 						)
-						await cur.close()
+
 						await conn.commit()
 						return await ctx.approve(f"Removed **{word.strip()}** from the **words** filter.")
 						
 					return await ctx.warn(f"**{word}** is not in the **words** filter.")
+
+	@words.command(
+			name="punishment",
+			description="Sets the punishment for the invites filter.",
+			aliases=["consequence", "action"]
+	)
+	@has_permissions(moderate_members=True)
+	@bot_has_guild_permissions(administrator=True)
+	@guild_only()
+	async def wordspunishment(self, ctx: StealContext, punishment: ValidPunishment, time: Optional[ValidTime] = 0):
+
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS wordsautomod(guildid INTEGER UNIQUE, punishment TEXT, duration INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), words TEXT)"
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM wordsautomod WHERE guildid = $1",
+					ctx.guild.id
+				)
+
+				row = await cur.fetchone()
+
+				if not row:
+					return await ctx.warn("There is no **words filter** config for this guild.")
+				if punishment == "mute" and not time:
+					return await ctx.warn("**Mute** punishments must have an attatched **time** duration.")
+				elif punishment != "mute" and time:
+					return await ctx.warn("**Non-Mute** punishments must not have an attatched **time** duration.")
+
+				if punishment != "mute":
+					await db.execute(
+						"UPDATE wordsautomod SET punishment = $1, duration = $2 WHERE guildid = $3",
+						punishment, time, ctx.guild.id, 
+					)
+
+					await db.commit()
+
+					return await ctx.approve(f"Set the **words filter** punishment - **{punishment}**")
+			
+
+				if time >= 2332800:
+					return await ctx.warn("You cannot **mute** someone for **27 days or longer**.")
+
+				await db.execute(
+					"UPDATE wordsautomod SET punishment = $1, duration = $2 WHERE guildid = $3",
+					punishment, time, ctx.guild.id, 
+				)
+
+				await db.commit()
+
+				return await ctx.approve(f"Set the **words filter** punishment - **mute** for **{humanfriendly.format_timespan(time)}**")
 
 	@words.command(
 			name="config",
@@ -517,44 +558,33 @@ class Filters(commands.Cog):
 			async with conn.cursor() as cursor:
 
 				await cursor.execute(
-					"""
-					CREATE TABLE IF NOT EXISTS wordsautomod(guildid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), words)
-					""",				
+					"CREATE TABLE IF NOT EXISTS wordsautomod(guildid INTEGER UNIQUE, punishment TEXT, duration INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), words TEXT)",			
 				)
 
 				cur = await cursor.execute(
 					"""
-					SELECT toggle FROM wordsautomod WHERE guildid = $1
+					SELECT * FROM wordsautomod WHERE guildid = $1
 					""", ctx.guild.id, 
 				)
 
-				res = await cur.fetchone()
+				row = await cur.fetchone()
 
 				
-				if res is None:
+				if not row:
 					return await ctx.warn("The **words** filter module is not configured in this guild.")
-
-
-				cur = await cursor.execute(
-					"""
-					SELECT words  FROM wordsautomod WHERE guildid = $1
-					""", ctx.guild.id, 
-				)
 
 				toggle_converter = {
 					1 : "enabled",
 					0 : "disabled",
 				}
 
-				toggle = toggle_converter.get(res[0], "❓")
+				toggle = toggle_converter.get(row[3], "❓")
 
-				words = await cur.fetchone()
+			
+				if not row[4] or row[4] == "none":
+					return await ctx.warn(f"The **words** filter is **{toggle}** with no filtered **words**.")
 
-				if words:
-					if not words[0]:
-						return await ctx.warn(f"The **words** filter is **{toggle}** with no filtered **words**.")
-
-				wordlist = [word for word in words[0].split(",") if word]
+				wordlist = [word for word in row[4].split(",") if word]
 
 				count = 0
 				embeds = []
@@ -613,21 +643,19 @@ class Filters(commands.Cog):
 			async with conn.cursor() as cursor:
 
 				await cursor.execute(
-					"""
-					CREATE TABLE IF NOT EXISTS wordsautomod(guildid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), words)
-					""",				
+					"CREATE TABLE IF NOT EXISTS wordsautomod(guildid INTEGER UNIQUE, punishment TEXT, duration INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), words TEXT)",		
 				)
 
 				cur = await cursor.execute(
 					"""
-					SELECT toggle FROM wordsautomod WHERE guildid = $1
+					SELECT * FROM wordsautomod WHERE guildid = $1
 					""", ctx.guild.id, 
 				)
 
 				res = await cur.fetchone()
 
 				if not res:
-					return await ctx.warn("The **words** filter module is not configured in this guild.")
+					return await ctx.warn("The **words** filter is not configured in this guild.")
 
 				await cur.execute(
 					"""
@@ -637,7 +665,7 @@ class Filters(commands.Cog):
 				
 				await conn.commit()
 
-				return await ctx.approve(f"Cleared the **words** filter module.")
+				return await ctx.approve(f"Cleared the **words** filter.")
 			
 
 async def setup(bot):
