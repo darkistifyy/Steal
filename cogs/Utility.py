@@ -863,7 +863,7 @@ class Utility(commands.Cog):
         compbytes = compress_image(bytes)
         newsize = sys.getsizeof(compbytes)
 
-        file = discord.File(io.BytesIO(compbytes), filename=f"compressed-{image.filename.split(".")[0]}.png")
+        file = discord.File(io.BytesIO(compbytes), filename=f"compressed-{image.filename.split(".")[0]}.{image.filename.split(".")[1]}")
 
         name = list(image.filename.split('.')[0])
         print(len(name))
@@ -877,7 +877,7 @@ class Utility(commands.Cog):
             title=f"Compressed {''.join(name)}",
             color=await self.bot.dominant_color(compbytes),
         ).set_image(
-                url=f"attachment://compressed-{image.filename.split(".")[0]}.png"
+                url=f"attachment://compressed-{image.filename.split(".")[0]}.{image.filename.split(".")[1]}"
         ).set_footer(
             text=f"{math.floor(newsize/1000)}kb - saved {math.floor(size/1000 - newsize/1000)}kb"
         )
@@ -1128,6 +1128,36 @@ class Utility(commands.Cog):
                 await db.commit()
 
                 await ctx.approve(f"Deleted **reminder** - **{results[4]}** in {humanize.precisedelta(datetime.datetime.fromtimestamp(results[3]), format=f'%0.0f')}")
-                
+
+    @group(
+            name="fortnite",
+            description="Fortnite commands.",
+            aliases=["fn"]
+    )
+    async def fortnite(self, ctx: StealContext) -> None:
+        if not ctx.invoked_subcommand:
+            return
+
+
+    @fortnite.command(
+            name="itemshop",
+            aliases=["is", "shop", "items"],
+            description="Gets the items in the fortnite item shop.",
+    )
+    async def itemshop(self, ctx:StealContext) -> None:
+        response = await self.bot.session.get_json(
+            "https://fortnite-api.com/v2/shop"
+        )
+
+        items = response["data"]
+
+        line = [f"{itm["entries"]["layout"]} - {itm["finalPrice"]} Vbucks" for itm in items]
+
+        print("\n".join(line))
+
+        await ctx.approve("\n".join(line))
+
+
+
 async def setup(bot):
     await bot.add_cog(Utility(bot))
