@@ -17,8 +17,6 @@ from managers.context import StealContext
 from typing import List, Optional
 from tools.Config import Colors, Emojis
 
-embedgif = "https://media.discordapp.net/attachments/1243237867246063673/1262100449746485340/RainbowLine.gif?ex=66abc7a3&is=66aa7623&hm=c9256550e4b29785f6c89deb9db6ef472ee6450c82441bd39c5eaa29f74b942f&"
-
 class TicketModPanel(discord.ui.View):
 	def __init__(self):
 		super().__init__(timeout=None)
@@ -143,54 +141,40 @@ class TicketCreate(discord.ui.View):
 				row = await cur.fetchone()
 
 				if row:
-					supportroleid = row[3] 
-					categoryid = row[1] 
+					sup = interaction.guild.get_role(row[3])
+					cat = interaction.guild.get_channel(row[1])
 					openscript = row[2] 
 				else:
 					supportroleid = None
 					categoryid = None
 					openscript = None
 
-				if supportroleid is not None:
-					sup = interaction.guild.get_role(supportroleid)
-
-					overwrites = {
-						interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False, view_channel=False),
-						interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True, view_channel = True),
-						interaction.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-						sup: discord.PermissionOverwrite(read_messages=True, send_messages=True)
-					}
-
-				else:
-					overwrites = {
-						interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False, view_channel=False),
-						interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True, view_channel = True),
-						interaction.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
-					}                    
+				if sup:
+					overwrites[sup] = discord.PermissionOverwrite(read_messages=True, send_messages=True)              
 
 				
-				if categoryid is not None:
-					cat = interaction.guild.get_channel(categoryid)
+				if cat:
 					tc = await cat.create_text_channel(
 						name=f"{interaction.user.name}",
 						topic=f"Open - {interaction.user.id}",
 						overwrites=overwrites
-					)
-
-				else:
-					tc = await interaction.guild.create_text_channel(
+					) if cat else await interaction.guild.create_text_channel(
 							name=f'{interaction.user.name}',
 							topic=f'Open - {interaction.user.id}',
 							overwrites=overwrites
 					)
 
-				if openscript is not None:
-					parsed = EmbedBuilder.embed_replacement(interaction.user, openscript)
-					content, embed, view = await EmbedBuilder.to_object(parsed)
-					out = await tc.send(content=content, embed=embed, view=TicketClose())
-					await out.pin()
-					return await status.edit(embed=discord.Embed(description=f'> {Emojis.APPROVE} **Ticket** opened: {tc.mention}', color=Colors.BASE_COLOR))
-				top = await tc.send(embed=discord.Embed(
+#				if openscript is not None:
+
+				parsed = EmbedBuilder.embed_replacement(interaction.user, openscript)
+				content, embed, _ = await EmbedBuilder.to_object(parsed)
+
+				out = await tc.send(content=content, embed=embed, view=TicketClose())
+				await out.pin()
+
+				return await status.edit(embed=discord.Embed(description=f'> {Emojis.APPROVE} **Ticket** opened: {tc.mention}', color=Colors.BASE_COLOR))
+				
+"""				top = await tc.send(embed=discord.Embed(
 					title='__Ticket opened.__',
 					description='﹒Please explain why you opened this ticket\n﹒Be patient for a response.',
 					color=Colors.BASE_COLOR
@@ -199,7 +183,7 @@ class TicketCreate(discord.ui.View):
 					name=interaction.guild.name
 				),view=TicketClose())
 				await status.edit(embed=discord.Embed(description=f'> {Emojis.APPROVE} Ticket opened: {tc.mention}', color=Colors.BASE_COLOR))
-				await top.pin()
+				await top.pin()"""
 					
 
 
@@ -321,7 +305,7 @@ class Tickets(commands.Cog):
 								""", default, ctx.guild.id, 
 							)
 							await conn.commit()
-							return await ctx.approve(f"Set script to default ```{default}```")
+							return await ctx.approve(f"Set **ticket** opening script to default \n```ruby\n{default}```")
 
 						await cursor.execute(
 							"""
@@ -337,8 +321,8 @@ class Tickets(commands.Cog):
 					
 					await cursor.execute(
 						"""
-						INSERT INTO tickets (guildid, openscript) VALUES ($1, $2)
-						""", ctx.guild.id, default, 
+						INSERT INTO tickets (guildid, categoryid, openscript, supportroleid) VALUES ($1, $2, $3, $4)
+						""",ctx.guild.id, 0, default, 0, 
 					)
 					await conn.commit()
 					await ctx.approve(f"Set **ticket** opening script to default\n```ruby\n{default}```")
@@ -346,11 +330,11 @@ class Tickets(commands.Cog):
 
 				await cursor.execute(
 					"""
-					INSERT INTO tickets (guildid, openscript) VALUES ($1, $2)
-					""", ctx.guild.id, script, 
+					INSERT INTO tickets (guildid, categoryid, openscript, supportroleid) VALUES ($1, $2, $3, $4)
+					""", ctx.guild.id, 0, script, 0, 
 				)
 				await conn.commit()
-				return await ctx.approve(f"Set **ticket** opening script to \n```\n{script}```")
+				return await ctx.approve(f"Set **ticket** opening script to\n```ruby\n{script}```")
 
 	@ticket.command(
 			name="support",
@@ -377,23 +361,21 @@ class Tickets(commands.Cog):
 				row = await cur.fetchone()
 
 				if row:
-					if row[3]:
-						await cursor.execute(
-							"""
-							UPDATE tickets SET supportroleid = $1 WHERE guildid = $2
-							""", role.id, ctx.guild.id, 
-						)
-						await conn.commit()
-						await ctx.approve(f"Overwrote **ticket** support role to {role.mention}")
-						return
-				
-			await cursor.execute(
-				"""
-				INSERT INTO tickets (guildid, supportroleid) VALUES ($1, $2)
-				""", ctx.guild.id, role.id, 
-			)
-			await conn.commit()
-			return await ctx.approve(f"Set **ticket** support role to {role.mention}")
+
+					if role.id == row[3]:
+						return await ctx.warn("That is the same **script** as before, not updating.")
+
+					await cursor.execute(
+						"""
+						UPDATE tickets SET supportroleid = $1 WHERE guildid = $2
+						""", role.id, ctx.guild.id, 
+					)
+
+					await conn.commit()
+					await ctx.approve(f"Overwrote **ticket** support role to {role.mention}")
+					return
+					
+				return await ctx.warn(f"Please run the `{self.bot.command_prefix[0]}ticket opened` command before this one.")
 
 	@ticket.command(
 			name="category",
@@ -420,24 +402,16 @@ class Tickets(commands.Cog):
 				row = await cur.fetchone()
 
 				if row:
-					if row[1]:
-						await cursor.execute(
-							"""
-							UPDATE tickets SET categoryid = $1 WHERE guildid = $2
-							""", category.id, ctx.guild.id, 
-						)
-						await conn.commit()
-						await ctx.approve(f"Overwrote **ticket** category to **{category}**")
-						return
+					await cursor.execute(
+						"""
+						UPDATE tickets SET categoryid = $1 WHERE guildid = $2
+						""", category.id, ctx.guild.id, 
+					)
+					await conn.commit()
+					await ctx.approve(f"Set **ticket** category to **{category}**")
+					return
 				
-				await cursor.execute(
-					"""
-					INSERT INTO tickets (guildid, categoryid) VALUES ($1, $2)
-					""", ctx.guild.id, category.id, 
-				)
-				await conn.commit()
-				return await ctx.approve(f"Set **ticket** category to **{category}**")
-
+				return await ctx.warn(f"Please run the `{self.bot.command_prefix[0]}ticket opened` command before this one.")
 	@ticket.command(
 			name="config",
 			description="Config for the ticket module."
@@ -548,7 +522,7 @@ class Tickets(commands.Cog):
 		if ctx.channel.topic:
 			if "Open - " in ctx.channel.topic or "Closed - " in ctx.channel.topic:
 				await ctx.message.add_reaction(
-					"✅"
+					Emojis.APPROVE
 				)
 				await asyncio.sleep(5)
 				await ctx.channel.delete()
@@ -566,16 +540,19 @@ class Tickets(commands.Cog):
 	async def close_ticket(self, ctx: StealContext) -> None:
 
 		tpic = ctx.channel.topic
-		tpic1 = tpic.replace("Closed - ", "")
-		tpic2 = tpic1.replace("Open - ", "")
+		if tpic:
+			tpic1 = tpic.strip("Closed - ")
+			tpic2 = tpic1.strip("Open - ")
+		else:
+			return await ctx.deny('This **channel** is not a **ticket** or the **topic** has been changed.')
 		op = await ctx.guild.fetch_member(int(tpic2))
 
 		if ctx.channel.topic and "Closed - " or "Open - " in ctx.channel.topic:
-			if op in ctx.channel.members:
+			if op in ctx.channel.members or "Open - " in ctx.channel.topic:
 
 					status = await ctx.send(embed=discord.Embed(description=f'> {Emojis.WARN} **Locking** ticket. . .', color=Colors.WARN_COLOR))
 
-					async for message in ctx.channel.history():
+					async for message in ctx.channel.history(limit=None):
 						if message.author.id == self.bot.user.id:
 							if message.components:
 								view = discord.ui.View.from_message(message)
@@ -589,15 +566,16 @@ class Tickets(commands.Cog):
 						ctx.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
 					}
 
+					await ctx.channel.edit(topic=f"Closed - {op.id}")
 
 					try:
-						await asyncio.wait_for(ctx.channel.edit(overwrites=overwrites,name=f"closed {op.name}", topic=f"Closed - {op.id}"),timeout=2)
+						await asyncio.wait_for(ctx.channel.edit(overwrites=overwrites,name=f"closed {op.name}"),timeout=2)
 					except asyncio.TimeoutError:
 						await ctx.channel.send(embed=discord.Embed(description="Rate limited. Skipping channel name change.",color=Color.red()))
 					except Exception as e:
 						print(e)
 
-					return await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} **Locked** ticket.', color=Colors.BASE_COLOR), view=TicketModPanel())
+					return await status.edit(embed=discord.Embed(description=f'> {Emojis.APPROVE} **Locked** ticket.', color=Colors.BASE_COLOR), view=TicketModPanel())
 					
 		
 			else:
@@ -616,12 +594,15 @@ class Tickets(commands.Cog):
 	async def open_ticket(self, ctx: StealContext) -> None:
 
 		tpic = ctx.channel.topic
-		tpic1 = tpic.replace("Closed - ", "")
-		tpic2 = tpic1.replace("Open - ", "")
+		if tpic:
+			tpic1 = tpic.replace("Closed - ", "")
+			tpic2 = tpic1.replace("Open - ", "")
+		else:
+			return await ctx.deny('This **channel** is not a **ticket** or the **topic** has been changed.')
 		op = await ctx.guild.fetch_member(int(tpic2))
 
 		if ctx.channel.topic and "Closed - " or "Open - " in ctx.channel.topic:
-			if op in ctx.channel.members:
+			if not op in ctx.channel.members or "Closed - " in tpic:
 					status = await ctx.send(embed=discord.Embed(description=f'> {Emojis.WARN} **Opening** ticket. . .', color=Colors.WARN_COLOR))
 
 					async for message in ctx.channel.history():
@@ -644,11 +625,11 @@ class Tickets(commands.Cog):
 					try:
 						await asyncio.wait_for(ctx.channel.edit(name=f"{op.name}"),timeout=2)
 					except asyncio.TimeoutError:
-						await ctx.channel.send(embed=discord.Embed(description=f"{Emojis.WARN} Rate limited. Skipping channel name change.",color=Colors.WARN_COLOR))
+						await ctx.channel.send(embed=discord.Embed(description=f"> {Emojis.WARN} Rate limited. Skipping channel name change.",color=Colors.WARN_COLOR))
 					except Exception as e:
 						print(e)
 
-					await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} **Opened** ticket.', color=Colors.BASE_COLOR), view=TicketClose())
+					await status.edit(embed=discord.Embed(description=f'> {Emojis.APPROVE} **Opened** ticket.', color=Colors.BASE_COLOR), view=TicketClose())
 					return
 		
 			if op in ctx.channel.members:
