@@ -138,16 +138,16 @@ class CategorySelector(discord.ui.Select):
         commands = [command for command in list(category.walk_commands()) if not command.parent]
         subcommands = [sub for sub in list(category.walk_commands()) if sub.parent]
         
-        description = f'```{", ".join(f"{sub.qualified_name}" for sub in subcommands)}'
+        #description = f'```{", ".join(f"{sub.qualified_name}" for sub in subcommands)}'
 
-        description = f"{description}\n\n{', '.join(f'{cmd.name}*' for cmd in commands if isinstance(cmd, discord.ext.commands.Group))}"
+        #description = f"{description}\n\n{', '.join(f'{cmd.name}*' for cmd in commands if isinstance(cmd, discord.ext.commands.Group))}"
 
-        description = f"{description}, {', '.join(f'{cmd.qualified_name}' for cmd in commands if not isinstance(cmd, discord.ext.commands.Group))}```"
+        #description = f"{description}, {', '.join(f'{cmd.qualified_name}' for cmd in commands if not isinstance(cmd, discord.ext.commands.Group))}```"
 
         embed = self.embed.copy()
         embed.title = f'Category: {category.__cog_name__}'
-        #embed.description = f'\nCommands:\n```{", ".join([f"{command.name}" if not isinstance(command, discord.ext.commands.Group) else f"{command.qualified_name}*" for command in list(category.walk_commands()) if not command.hidden])}```'
-        embed.description = description
+        embed.description = f'\nCommands:\n```ruby\n{", ".join([f"{command.qualified_name}" if not isinstance(command, discord.ext.commands.Group) else f"{command.qualified_name}*" for command in list(category.walk_commands()) if not command.hidden])}```'
+        #embed.description = description
         embed.set_footer(
                 text=f"{len(commands)} commands."
         ).set_author(
