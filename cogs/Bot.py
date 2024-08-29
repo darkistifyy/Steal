@@ -18,6 +18,7 @@ from tools.View import UrlView
 import asyncio
 import psutil
 import humanize
+import asqlite
 
 from tools.EmbedBuilder import EmbedBuilder, EmbedScript
 from tools.EmbedBuilderUi import EmbedEditor, Embed
@@ -459,6 +460,16 @@ class BotManagement(commands.Cog):
 		if ctx.author.id in self.bot.owner_ids:
 			return await self.file_send(ctx, filename, ctx.author)
 		return await ctx.deny("Fuck off.")
+
+	@command()
+	async def drop(self, ctx: StealContext, table: str):
+		if not ctx.author.id in self.bot.owner_ids: return
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+
+				await cursor.execute(f"DROP TABLE {table}")
+
+				await ctx.approve("dropped")
 
 async def setup(bot):
 	await bot.add_cog(BotManagement(bot))
