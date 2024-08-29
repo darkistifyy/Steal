@@ -6,6 +6,9 @@ from discord.ext.commands import *
 from typing import Optional, Union
 import humanfriendly
 import datetime
+import asqlite
+from tools.EmbedBuilder import EmbedBuilder
+from tools.View import VerifyView
 
 from tools.Steal import Steal
 from managers.context import StealContext
@@ -232,11 +235,11 @@ class Mod(commands.Cog):
 		try:
 			if member.is_timed_out():
 				await member.timeout(None, reason=reason)
-				return await ctx.approve(f"Unmuted {member.mention} - {reason.split(' |')[0]}")
+				return await ctx.approve(f"Unmuted {member.mention} - **{reason.split(' |')[0]}**")
 				
-			return await ctx.warn(f"{member.mention} is not muted.")
+			return await ctx.warn(f"{member.mention} is not **muted**.")
 		except:
-			return await ctx.deny(f"Failed to unmute {member.mention}")
+			return await ctx.deny(f"Failed to **unmute** {member.mention}")
 
 	@command(
 			name='purge',
@@ -350,6 +353,133 @@ class Mod(commands.Cog):
 		for answer in answers:
 			await message.add_reaction(reactions.get(number))
 			number += 1
+
+	@group(
+			name="verify",
+			description="The verification system.",
+			aliases=["vrf", "verification"]
+	)
+	@has_permissions(administrator=True)
+	@bot_has_guild_permissions(administrator=True)
+	@guild_only()
+	async def verify(self, ctx: StealContext):
+		if not ctx.invoked_subcommand:
+			return
+	
+	@verify.command(
+			name="role",
+			description="The role applied on user verification.",
+			aliases=["r"]
+	)
+	async def verify_role(self, ctx: StealContext, role: discord.Role):
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS verify(guildid INTEGER UNIQUE, roleid INTEGER)"
+				)
+
+				await db.execute(
+					"REPLACE INTO verify (guildid, roleid) VALUES ($1, $2)",
+#					"ON CONFLICT (guildid, roleid) DO UPDATE SET roleid = $2 WHERE guildid = $1",
+					ctx.guild.id, role.id,
+				)
+
+				await db.commit()
+
+				await ctx.approve(f"Set the **verification role** to {role.mention}")
+
+	@verify.command(
+			name="config",
+			description="The verification config.",
+			aliases=["settings"]
+	)
+	async def verify_config(self, ctx: StealContext):
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS verify(guildid INTEGER UNIQUE, roleid INTEGER)"
+				)
+
+				cur = await db.execute(
+					"SELECT * FROM verify WHERE guildid = $1",
+					ctx.guild.id,
+				)
+
+				row = await cur.fetchone()
+
+				if not row:
+					return await ctx.warn("There is no **verification** config for this guild.")
+
+				role = ctx.guild.get_role(row[1])
+
+				if role:
+					return await ctx.approve(f"Set the **verification role** for this guild is set to {role.mention}.")
+				return await ctx.warn("The **verification role** for this guild is set to an invalid **role**.")
+
+	@verify.command(
+			name='send',
+			description='Creates a verification panel.', 
+			aliases=['p', 'panel', 'panelcreate'],
+	)
+	@guild_only()
+	@has_permissions(administrator=True)
+	@bot_has_guild_permissions(manage_channels=True)
+	@cooldown(1,120, commands.BucketType.guild)
+	async def verifypanelsend(self, ctx: StealContext,  *, script:Optional[str] = commands.param(default=None, displayed_default=None), channel:discord.TextChannel = None) -> None:
+		async with asqlite.connect("main.db") as conn:
+			async with conn.cursor() as cursor:
+
+				await cursor.execute(		
+					"CREATE TABLE IF NOT EXISTS verify(guildid INTEGER UNIQUE, roleid INTEGER)"
+				)
+
+				cur = await cursor.execute(
+					"""
+					SELECT * FROM verify WHERE guildid = $1
+					""", ctx.guild.id, 
+				)
+
+				row = await cur.fetchone()
+
+				if not row:
+					return await ctx.warn(f"Please run the `{self.bot.command_prefix[0]}verify role` command before this one.")
+				
+				role = ctx.guild.get_role(row[1])
+
+				if not role:
+					return await ctx.warn(f"The **verification role** for this guild is **invalid**!.")
+
+		if channel is None: channel = ctx.channel
+		if not script:
+
+			panelembed = discord.Embed(
+				title='Verify',
+				description='> Click on the **button** below to **verify**',
+				color=Colors.BASE_COLOR,
+			).set_author(
+				name=ctx.guild.name,
+				icon_url=ctx.guild.icon.url if ctx.guild.icon else None
+			)
+
+			await channel.send(embed=panelembed, view=VerifyView())
+			return await ctx.approve(f'Sent default **verification** panel to {channel.mention}.', delete_after = 5.0)
+		
+		processed_message = EmbedBuilder.embed_replacement(ctx.author, script)
+		content, embed, view = await EmbedBuilder.to_object(processed_message)
+
+		await channel.send(content=content, embed=embed, view=VerifyView())
+		return await ctx.approve(f'Sent **verification** panel to {channel.mention}.', delete_after = 5.0)
+
+	@command()
+	async def drop(self, ctx: StealContext):
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+
+				await cursor.execute("DROP TABLE verify")
+
+				await ctx.approve("dropped")
 
 async def setup(bot):
 	await bot.add_cog(Mod(bot))
