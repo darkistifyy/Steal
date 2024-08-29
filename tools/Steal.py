@@ -24,6 +24,8 @@ import numpy as np
 import scipy.cluster
 import scipy.cluster.vq
 import binascii
+import asqlite
+import uuid
 from discord.ext import tasks, commands
 import random
 from events.Loops import snipe_delete, reminder_task, change_status
@@ -40,12 +42,13 @@ from discord.ext import commands
 from discord import Message, Embed
 
 from managers.cache import Cache
-from managers.help import StealHelp
+from managers.help import StealHelp, HelpSelect
 from tools.Session import Session
 from managers.context import StealContext
 from tools.Config import Colors, Emojis
 from discord.ext import commands
 from tools.View import VerifyView
+from tools.Config import *
 
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -71,7 +74,7 @@ class Steal(commands.Bot):
 				replied_user=False
 			),
 			case_insensitive=True,
-			owner_ids=[1182755690071212092, 1039379534409117717],
+			owner_ids=[1182755690071212092],
 		)
 
 	async def load_modules(self, dir:str) -> None:
@@ -115,7 +118,6 @@ class Steal(commands.Bot):
 		self.add_view(TicketClose())
 		self.add_view(TicketCreate())
 		self.add_view(TicketModPanel())
-		self.add_view(VerifyView())
 
 		try:
 			print("Jishaku.")
@@ -229,6 +231,29 @@ class Steal(commands.Bot):
 		rgb = tuple(int(colour[i:i+2], 16) for i in (0, 2, 4))
 		return discord.Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2]).value
 
+	async def generate_code(self):
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS errors(code TEXT UNIQUE, guildid INTEGER, channelid INTEGER, userid INTEGER, time INTEGER, error TEXT, command TEXT)"
+				)
+
+				id = f"{uuid.uuid4()}"
+
+				cur = await cursor.execute(
+					"SELECT * FROM errors WHERE code = $1",
+					id,
+				)
+
+				row = await cur.fetchone()
+
+				if not row:
+					return id
+				else:
+					while id == row[0]:
+						await self.generate_code()
+					return id
+
 	def humanize_date(self, date: datetime.datetime) -> str:
 		"""
 		Humanize a datetime (ex: 2 days ago)
@@ -260,27 +285,27 @@ class Steal(commands.Bot):
 				return await ctx.warn(f"I was unable to find that **member** or the provided **ID** is invalid.")
 			return await ctx.warn(f"Could not convert **{exception.param.name}** to **{exception.converters}**")
 		elif isinstance(exception, commands.CommandInvokeError):
-			if isinstance(exception.original, ValueError):
-				return await ctx.warn(exception.original)
+			#if isinstance(exception.original, ValueError):
+			#	return await ctx.warn(exception.original)
 			if isinstance(exception, commands.MissingPermissions):
 				return await ctx.warn(f"I do not have permissions to do that.")
 			elif isinstance(exception.original, aiohttp.ClientConnectorError):
 				return await ctx.warn(f"**Failed** to connect to the **URL** - Possibly invalid.")
-			elif isinstance(exception.original, aiohttp.ClientResponseError): 
-				if exception.original.status == 522:
-					return await ctx.warn(f"**Timed out** while requesting data - probably the API's fault")
-				return await ctx.warn(f"**API** returned a **{exception.original.status}** status - try again later.")
+			#elif isinstance(exception.original, aiohttp.ClientResponseError): 
+			#	if exception.original.status == 522:
+			#		return await ctx.warn(f"**Timed out** while requesting data - probably the API's fault")
+			#	return await ctx.warn(f"**API** returned a **{exception.original.status}** status - try again later.")
 			elif isinstance(exception.original, discord.Forbidden):
 				return await ctx.warn(f"I do not have permission to do that.")
 			elif isinstance(exception.original, discord.NotFound):
 				return await ctx.warn(f"**Not found** - the **ID** is invalid")
-			elif isinstance(exception.original, aiohttp.ContentTypeError):
-				return await ctx.warn(f"**Invalid content** - the **API** returned an unexpected response")
+			#elif isinstance(exception.original, aiohttp.ContentTypeError):
+			#	return await ctx.warn(f"**Invalid content** - the **API** returned an unexpected response")
 			elif isinstance(exception.original, aiohttp.InvalidURL):
 				return await ctx.warn(f"The provided **url** is invalid")
 			elif isinstance(exception.original, asyncpg.StringDataRightTruncationError):
 				return await ctx.warn(f"**Data** is too **long** - try again with a shorter message")
-			return await ctx.warn(exception.original)
+			#return await ctx.warn(exception.original)
 		elif isinstance(exception, commands.UserNotFound):
 			return await ctx.warn("I was unable to find that **member** or the **ID** is invalid")
 		elif isinstance(exception, commands.MemberNotFound):
@@ -297,18 +322,37 @@ class Steal(commands.Bot):
 			return await ctx.warn(f"**Invalid Input Given**: \n`{exception}`")
 		elif isinstance(exception, commands.CommandOnCooldown):
 			return await ctx.neutral(f"Please wait **{exception.retry_after:.2f} seconds** before using this command again.")
-		if isinstance(exception, commands.errors.NotOwner):
-			return await ctx.deny(f'You are not an owner of {self.user.mention}.')
-		if isinstance(exception, commands.NoPrivateMessage):
+		elif isinstance(exception, commands.NoPrivateMessage):
 			return await ctx.deny(f'This command is not made to be run in **private messages**.')
-		if isinstance(exception, commands.ExtensionNotFound):
+		elif isinstance(exception, commands.ExtensionNotFound):
 			return await ctx.warn(f"I'm **unable** to find the cog **{exception.args}**")
-		if isinstance(exception, commands.ExtensionNotLoaded):
+		elif isinstance(exception, commands.ExtensionNotLoaded):
 			return await ctx.warn(f"**{exception.args}** is not **loaded**.")
-		if isinstance(exception, commands.MissingPermissions):
+		elif isinstance(exception, commands.MissingPermissions):
 			return await ctx.warn(f"I do not have permissions to do that.")
-		elif isinstance(exception.original, discord.HTTPException):
-			return await ctx.warn(f"**Invalid code**\n```{exception.original}```")
+		error = exception.with_traceback(exception.__traceback__)
+		code = await self.generate_code()
+		user = ctx.author
+		channel = ctx.channel
+		guild = ctx.guild
+		time = datetime.datetime.now().timestamp()
+		command = str(ctx.command)
+		
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+				await cursor.execute(
+					"INSERT INTO errors(code, guildid, channelid, userid, time, error, command) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+					str(code), guild.id, channel.id, user.id, time, str(error), command,
+				)
+				await db.commit()
+				await ctx.send(
+					content=f"`{code}`",
+					embed=discord.Embed(
+						description=f"> {Emojis.WARN} {user.mention}: I ran into an **error** with the **exception code** above. Join the [**Support Server**]({Guild.INVITE}) for assistance.",
+						color=Colors.WARN_COLOR,
+					)
+				)
+
 
 	async def get_context(self, message, *, cls= StealContext):
 		return await super().get_context(message, cls=cls)
