@@ -580,7 +580,7 @@ class Info(commands.Cog):
 		nhavers_ = [mem for mem in ctx.guild.members if guns(mem)]
 
 		if not nhavers_:
-			return await ctx.warn(f"There are no premium users in this server.")
+			return await ctx.warn(f"There are no **premium users** in this server.")
 			
 
 		count = 0
@@ -643,7 +643,7 @@ class Info(commands.Cog):
 		embeds = []
 
 		if not invites:
-			return await ctx.deny("There are no invites to this guild.")
+			return await ctx.warn("There are no **invites** to this guild.")
 
 		entries = [
 			f"`{i}` `{b.code}` ({b.inviter})"
@@ -695,7 +695,7 @@ class Info(commands.Cog):
 		boosters = [sub for sub in ctx.guild.premium_subscribers]
 
 		if not boosters:
-			return await ctx.warn(f"There are no boosters in this server.")
+			return await ctx.warn(f"There are no **boosters** in this server.")
 			
 
 		count = 0
@@ -758,7 +758,7 @@ class Info(commands.Cog):
 			return await ctx.deny("There are no users banned from this guild.")
 
 		entries = [
-			f"`{i}` **{b.user}** (`{b.user.id}`) - **{b.reason}**"
+			f"`{i}` **{b.user}** - **{b.reason}**"
 			for i, b in enumerate(bans, start=1)
 		]
 

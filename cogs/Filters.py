@@ -169,22 +169,12 @@ class Filters(commands.Cog):
 				
 				embed=discord.Embed(
 						title="Invites Config",
-						description=f"> {ctx.author.mention}: The **invites filter** is **{toggle}**.",
+						description=f">>> **Punishment**: `{res[1]}`\n{f'Duration: `{res[1].capitalize()}`\n' if res[2] > 0 or res[1] == 'mute' else ''}**Toggle**: `{toggle}`",
 						color=Colors.BASE_COLOR,
-					).add_field(
-						name="Punishment",
-						value=f"{res[1].capitalize()}",
+					).set_author(
+						name=ctx.guild.name,
+						icon_url=ctx.guild.icon.url if ctx.guild.icon else None
 					)
-				
-				if res[2] > 0 or res[1] == "mute":
-					duration = humanfriendly.format_timespan(num_seconds=res[2])
-				else:
-					duration = "Not applicable."
-
-				embed.add_field(
-					name="Duration",
-					value=f"{duration}"
-				)
 				await ctx.send(embed=embed)
 
 	@invites.command(
@@ -590,7 +580,7 @@ class Filters(commands.Cog):
 				embeds = []
 
 				entries = [
-						f"`{i}` **{tagname.lower()}**"
+						f"`{i}` `{tagname.lower()}`"
 						for i, tagname in enumerate(wordlist, start=1)
 					]
 
@@ -599,7 +589,7 @@ class Filters(commands.Cog):
 
 				embed = discord.Embed(
 					color=Colors.BASE_COLOR,
-					description=f"{ctx.author.mention}: The **invites** filter module is **{toggle}**\n\n**Words**\n",
+					description=f"**Toggle**: `{toggle}`\n\n**Words**\n",
 					title=f"Tags (`{len(entries)}`)",
 				).set_footer(
 							icon_url=self.bot.user.display_avatar.url or None,

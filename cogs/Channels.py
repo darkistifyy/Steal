@@ -176,7 +176,7 @@ class Channels(commands.Cog):
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
-	async def hidechannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = commands.param(default=None, displayed_default=None), target:Optional[Union[discord.Role, discord.Member]] = commands.param(default=None, displayed_default=None)):
+	async def hidechannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = None, target:Optional[Union[discord.Role, discord.Member]] = None):
 		await self.managehidechannel(ctx,channel,target)	
 
 
@@ -243,7 +243,7 @@ class Channels(commands.Cog):
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
-	async def managerevealchannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = commands.param(default=None, displayed_default=None), target: Optional[Union[discord.Member, discord.Role]] = commands.param(default=None, displayed_default=None)):
+	async def managerevealchannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = None, target: Optional[Union[discord.Member, discord.Role]] = None):
 		if channel is None: channel = ctx.channel	
 		if target is None: target = ctx.guild.default_role
 		perms = channel.overwrites_for(target)
@@ -307,8 +307,8 @@ class Channels(commands.Cog):
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
-	async def lockchannel(self, ctx: StealContext,channel:Optional[discord.abc.GuildChannel] = None, target:Optional[Union[discord.Member, discord.Role]] = None, *, reason:Optional[str] = commands.param(default="No reason.", displayed_default=None)):
-		await self.managelockchannel(ctx, channel, target, reason)
+	async def lockchannel(self, ctx: StealContext,channel:Optional[discord.abc.GuildChannel] = None, target:Optional[Union[discord.Member, discord.Role]] = None, *, reason:Optional[str] = None):
+		await self.managelockchannel(ctx, channel=channel, target=target, reason=reason)
 
 	@managechannels.command(
 			name='lock',
@@ -318,7 +318,7 @@ class Channels(commands.Cog):
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
-	async def managelockchannel(self, ctx: StealContext,channel:Optional[discord.abc.GuildChannel] = None, target:Optional[Union[discord.Member, discord.Role]] = None, reason:Optional[str] = commands.param(default="No reason.", displayed_default=None)):
+	async def managelockchannel(self, ctx: StealContext,channel:Optional[discord.abc.GuildChannel] = None, target:Optional[Union[discord.Member, discord.Role]] = None, *, reason:Optional[str] = None):
 		reason += ' | Executed by {}'.format(ctx.author)
 		if channel is None: channel = ctx.channel
 		if target is None: target = ctx.guild.default_role
@@ -369,7 +369,7 @@ class Channels(commands.Cog):
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
 	async def unlockchannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = None, target:Optional[Union[discord.Member, discord.Role]] = None, *, reason:Optional[str] = commands.param(default="No reason.", displayed_default=None)):
-		await self.manageunlockchannel(ctx, channel, target, reason)
+		await self.manageunlockchannel(ctx, channel=channel, target=target, reason=reason)
 
 	@managechannels.command(
 			name='unlock',
@@ -671,13 +671,8 @@ class Channels(commands.Cog):
 				await ctx.reply(
 					embed=discord.Embed(
 						title="Welcome config",
-						color=Colors.BASE_COLOR
-					).add_field(
-						name="Channel",
-						value=f"{channel}"
-					).add_field(
-						name="Toggle",
-						value=f"{toggle.capitalize()}"
+						color=Colors.BASE_COLOR,
+						description=f">>> **Channel**: `{channel}`\n**Toggle**: `{toggle.capitalize()}`",
 					).add_field(
 						name="Script",
 						value=f"```ruby\n{script}```",
@@ -1010,17 +1005,11 @@ class Channels(commands.Cog):
 				await ctx.reply(
 					embed=discord.Embed(
 						title="Boost response config",
-						color=Colors.BASE_COLOR
-					).add_field(
-						name="Channel",
-						value=f"{channel}"
-					).add_field(
-						name="Toggle",
-						value=f"{toggle.capitalize()}"
+						color=Colors.BASE_COLOR,
+						description=f">>> **Channel**: `{channel}`\n**Toggle**: `{toggle.capitalize()}`"
 					).add_field(
 						name="Script",
 						value=f"```ruby\n{script}```",
-						inline=False
 					).set_author(
 						name=ctx.guild.name,
 						icon_url=ctx.guild.icon.url if ctx.guild.icon else None

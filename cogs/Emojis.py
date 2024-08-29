@@ -55,7 +55,7 @@ class Emojis(commands.Cog):
 	@has_permissions(manage_emojis=True)
 	@bot_has_guild_permissions(manage_emojis=True)
 	@guild_only()
-	async def emojiadd(self, ctx: StealContext, emoji:Optional[discord.PartialEmoji], *, emoji_name:Optional[str]=commands.param(default=Author, displayed_default=None)) -> None:
+	async def emojiadd(self, ctx: StealContext, emoji:Optional[discord.PartialEmoji], *, emoji_name:Optional[str]=None) -> None:
 		try:
 			if ctx.message.attachments:
 				emoji = ctx.message.attachments[0]

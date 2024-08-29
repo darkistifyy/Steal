@@ -17,6 +17,8 @@ from managers.context import StealContext
 from typing import List, Optional
 from tools.Config import Colors, Emojis
 
+embedgif = "https://media.discordapp.net/attachments/1243237867246063673/1262100449746485340/RainbowLine.gif?ex=66abc7a3&is=66aa7623&hm=c9256550e4b29785f6c89deb9db6ef472ee6450c82441bd39c5eaa29f74b942f&"
+
 class TicketModPanel(discord.ui.View):
 	def __init__(self):
 		super().__init__(timeout=None)
@@ -439,9 +441,8 @@ class Tickets(commands.Cog):
 					return await ctx.warn("There is no **ticket** config set for this guild.")
 				
 				if row[1]:
-					try:
-						category = ctx.guild.get_channel(row[1])
-					except:
+					category = ctx.guild.get_channel(row[1])
+					if not category:
 						category = "Invalid category"
 				else:
 					category = "None"
@@ -457,20 +458,11 @@ class Tickets(commands.Cog):
 				await ctx.send(
 					embed=discord.Embed(
 						title="Ticket config",
-						color=Colors.BASE_COLOR
-					).set_author(
-						name=ctx.guild.name,
-						icon_url=ctx.guild.icon.url if ctx.guild.icon else None
-					).add_field(
-						name="Category",
-						value=f"> {category if row[1] else "None"}"
-					).add_field(
-						name="Support role",
-						value=f"> {role}",
+						color=Colors.BASE_COLOR,
+						description=f">>> **Category**: {category}\n**Support role**: {role}"
 					).add_field(
 						name="Opening ticket embed",
 						value=f"```ruby\n{row[2]}```",
-						inline=False
 					)
 				)
 

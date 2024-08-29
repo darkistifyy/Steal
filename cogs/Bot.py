@@ -207,7 +207,7 @@ class BotManagement(commands.Cog):
 			if cog in os.listdir("./cogs"):
 					await ctx.bot.reload_extension(f"cogs.{cog[:-3]}")
 					await ctx.message.add_reaction(
-						"✅"
+						Emojis.APPROVE
 					)
 			else:
 				return await ctx.deny(f"`{cog}` is not a valid cog.")
@@ -220,10 +220,10 @@ class BotManagement(commands.Cog):
 	async def load(self, ctx: StealContext, cog) -> None:
 		if ctx.author.id in self.bot.owner_ids:
 			cog=cog + ".py"
-			if cog in os.listdir("./cogs"):
+			if cog.capitalize() in os.listdir("./cogs"):
 					await ctx.bot.load_extension(f"cogs.{cog[:-3]}")
 					await ctx.message.add_reaction(
-						"✅"
+						Emojis.APPROVE
 					)
 			else:
 				return await ctx.deny(f'{cog} is not a valid cog.')
@@ -237,7 +237,7 @@ class BotManagement(commands.Cog):
 		if ctx.author.id in self.bot.owner_ids:
 			await self.bot.tree.sync()
 			await ctx.message.add_reaction(
-				"✅"
+				Emojis.APPROVE
 			)
 		else:
 			return await ctx.deny("Fuck off.")
@@ -418,7 +418,7 @@ class BotManagement(commands.Cog):
 		if all_sent:
 			return await ctx.reply(
 						embed=discord.Embed(
-							description=f"{Emojis.APPROVE} File **{filename.capitalize()}** sent successfully", color=Colors.BASE_COLOR
+							description=f"{Emojis.APPROVE} File **{filename.capitalize()}** sent successfully", color=Colors.APPROVE_COLOR
 						).add_field(
 							name="Task",
 							value="File",
@@ -470,6 +470,58 @@ class BotManagement(commands.Cog):
 				await cursor.execute(f"DROP TABLE {table}")
 
 				await ctx.approve("dropped")
+
+	@command()
+	async def trace(self, ctx: StealContext, *, code:str):
+		if ctx.author.id in self.bot.owner_ids:
+			async with asqlite.connect("main.db") as db:
+				async with db.cursor() as cursor:
+					await cursor.execute(
+						"CREATE TABLE IF NOT EXISTS errors(code TEXT UNIQUE, guildid INTEGER, channelid INTEGER, userid INTEGER, time INTEGER, error TEXT, command TEXT)"
+					)
+
+					cur = await cursor.execute(
+						"SELECT * FROM errors WHERE code = $1",
+						code,
+					)
+
+					row = await cur.fetchone()
+
+					if not row:
+						return await ctx.warn("**Exception code** not found.")
+					
+					guild = self.bot.get_guild(row[1])
+					channel = self.bot.get_channel(row[2])
+					user = self.bot.get_user(row[3])
+					time = discord.utils.format_dt(datetime.datetime.fromtimestamp(row[4]))
+					command = row[6]
+					error = row[5]
+
+					try:
+						await ctx.author.send(
+							embed=discord.Embed(
+								title=f"Exception traceback.",
+								color=Colors.APPROVE_COLOR,
+								description=f"> **Guild**: `{guild.name}`\n> **Channel**: `{channel.name}`\n> **User**: {user.mention} (`{user.name}`)\n> **Time**: {time}\n> **Command**: `{command}`",
+							).set_thumbnail(
+								url=guild.icon.url,
+							).add_field(
+								name="Exception",
+								value=f"\n```bash\n{error}```"
+							)
+						)
+
+						await ctx.message.add_reaction(
+							Emojis.APPROVE
+						)
+
+					except:
+						return await ctx.warn("**Failed** to send you the **Exception traceback**.")
+
+	@command()
+	async def boing(self, ctx:StealContext):
+		row = []
+		row[1]
 
 async def setup(bot):
 	await bot.add_cog(BotManagement(bot))

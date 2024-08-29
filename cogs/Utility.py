@@ -18,6 +18,8 @@ from isHex import isHex
 from tools.Validators import ValidTime
 import humanfriendly
 import humanize
+from PIL import Image, ImageDraw, ImageFont
+from io import BytesIO
 
 from tools.Steal import Steal
 from tools.rtfm import fuzzy

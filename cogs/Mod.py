@@ -415,7 +415,7 @@ class Mod(commands.Cog):
 				role = ctx.guild.get_role(row[1])
 
 				if role:
-					return await ctx.approve(f"Set the **verification role** for this guild is set to {role.mention}.")
+					return await ctx.reply(f"The **verification role** for this guild is set to {role.mention}.")
 				return await ctx.warn("The **verification role** for this guild is set to an invalid **role**.")
 
 	@verify.command(
