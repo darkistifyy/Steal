@@ -118,11 +118,11 @@ class TicketCreate(discord.ui.View):
 	async def ticketcreate(self, interaction:discord.Interaction, button:Button):
 		await interaction.response.defer(ephemeral=True)
 
-		status = await interaction.followup.send(embed=discord.Embed(description=f'{Emojis.WARN} **Creating** ticket. . .', color=Colors.WARN_COLOR), ephemeral=True)
+		status = await interaction.followup.send(embed=discord.Embed(description=f'> {Emojis.WARN} **Creating** ticket. . .', color=Colors.WARN_COLOR), ephemeral=True)
 
 		for ch in interaction.guild.text_channels:
 			if f"Open - {interaction.user.id}" in ch.topic if ch.topic else False:
-				await status.edit(embed=discord.Embed(description=f'{Emojis.WARN} You already have a **ticket** open in {ch.mention}.', color=Colors.WARN_COLOR))
+				await status.edit(embed=discord.Embed(description=f'> {Emojis.WARN} You already have a **ticket** open in {ch.mention}.', color=Colors.WARN_COLOR))
 				return
 
 		overwrites = {
@@ -189,7 +189,7 @@ class TicketCreate(discord.ui.View):
 					content, embed, view = await EmbedBuilder.to_object(parsed)
 					out = await tc.send(content=content, embed=embed, view=TicketClose())
 					await out.pin()
-					return await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} **Ticket** opened: {tc.mention}', color=Colors.BASE_COLOR))
+					return await status.edit(embed=discord.Embed(description=f'> {Emojis.APPROVE} **Ticket** opened: {tc.mention}', color=Colors.BASE_COLOR))
 				top = await tc.send(embed=discord.Embed(
 					title='__Ticket opened.__',
 					description='﹒Please explain why you opened this ticket\n﹒Be patient for a response.',
@@ -198,7 +198,7 @@ class TicketCreate(discord.ui.View):
 					icon_url=interaction.guild.icon.url if interaction.guild.icon else None,
 					name=interaction.guild.name
 				),view=TicketClose())
-				await status.edit(embed=discord.Embed(description=f'{Emojis.APPROVE} Ticket opened successfully: {tc.mention}', color=Colors.BASE_COLOR))
+				await status.edit(embed=discord.Embed(description=f'> {Emojis.APPROVE} Ticket opened: {tc.mention}', color=Colors.BASE_COLOR))
 				await top.pin()
 					
 
