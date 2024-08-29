@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -10,7 +12,6 @@ import asyncio
 import humanize
 import asqlite
 
-from tools.Steal import Steal
 from managers.context import StealContext
 from managers.interaction import PatchedInteraction
 
@@ -198,3 +199,48 @@ class DivorceView(discord.ui.View):
 			child.disabled = True
 		await interaction.response.edit_message(content=None, embed=embe, view=self)
 		
+class VerifyView(View):
+	def __init__(self):
+		super().__init__(timeout=None)
+
+	@button(label=f'Verify', emoji=f"{Emojis.APPROVE}", style=discord.ButtonStyle.success, custom_id='verify')
+	async def verifybutton(self, interaction:PatchedInteraction, button:Button):
+		await interaction.response.defer(ephemeral=True)
+
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+				
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS verify(guildid INTEGER UNIQUE, roleid INTEGER)"
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM verify WHERE guildid = $1",
+					interaction.guild.id,
+				)
+
+				row = await cur.fetchone()
+
+				if not row:
+					for child in self.children:
+						child.disabled = True
+					await interaction.message.edit(view=self)
+					return await interaction.followup.send(embed=discord.Embed(description=f"> {Emojis.WARN} I cannot find any **role** to **grant** you! Please contact a server **admin** regarding this.", color=Colors.WARN_COLOR), ephemeral=True)
+				
+				role = interaction.guild.get_role(row[1])
+
+				if not role:
+					for child in self.children:
+						child.disabled = True
+					await interaction.message.edit(view=self)
+					return await interaction.followup.send(embed=discord.Embed(description=f"> {Emojis.WARN} The **role** I need to **grant** you is **invalid**! Please contact a server **admin** regarding this.", color=Colors.WARN_COLOR), ephemeral=True)
+
+				await interaction.message.edit(view=self)
+
+				if role in interaction.user.roles:
+					return await interaction.followup.send(embed=discord.Embed(description=f"> {Emojis.DENY} You are already verified.", color=Colors.DENY_COLOR), ephemeral=True)
+
+				await interaction.user.add_roles(role)
+
+				return await interaction.followup.send(embed=discord.Embed(description=f'> {Emojis.APPROVE} You have been granted {role.mention}.', color=Colors.APPROVE_COLOR), ephemeral=True)
+	

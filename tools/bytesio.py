@@ -48,7 +48,7 @@ def compress_image(img):
 	mybytes.seek(0)
 	img = Image.open(mybytes)
 	with BytesIO() as img_bytes:
-		img = img.save(img_bytes, format=img.format, quality=15, optimize=True)
+		img = img.save(img_bytes, save_all=True, format=img.format, quality=15, optimize=True)
 		return img_bytes.getvalue()
 
 NUM_CLUSTERS = 5

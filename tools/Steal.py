@@ -45,6 +45,7 @@ from tools.Session import Session
 from managers.context import StealContext
 from tools.Config import Colors, Emojis
 from discord.ext import commands
+from tools.View import VerifyView
 
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -114,6 +115,8 @@ class Steal(commands.Bot):
 		self.add_view(TicketClose())
 		self.add_view(TicketCreate())
 		self.add_view(TicketModPanel())
+		self.add_view(VerifyView())
+
 		try:
 			print("Jishaku.")
 			await self.load_extension("jishaku")
@@ -131,17 +134,6 @@ class Steal(commands.Bot):
 		magnitude = min(len(suffixes) - 1, (len(str(abs(number))) - 1) // 3)
 		formatted_number = '{:.1f}'.format(number / 10 ** (3 * magnitude)).rstrip('0').rstrip('.')
 		return '{}{}'.format(formatted_number, suffixes[magnitude])
-
-	def humanize_time(self, start_time: float) -> str:
-		uptime_seconds = abs(time.time() - start_time)
-		intervals = (
-			('year', 31556952),
-			('month', 2629746),
-			('day', 86400),
-			('hour', 3600),
-			('minute', 60),
-			('second', 1),
-		)
 
 	@property
 	def lines(self) -> int:
