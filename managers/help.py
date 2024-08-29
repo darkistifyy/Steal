@@ -38,7 +38,7 @@ class StealHelp(HelpCommand):
             value="> [] = optional, <> = required"
         ).add_field(
             name="Support",
-            value=f"[**Support server**]({Guild.INVITE})"
+            value=f"[**Server**]({Guild.INVITE}) • [**Owner**](https://discord.com/users/{self.context.bot.owner_ids[0]})"
         )
         
 
@@ -51,7 +51,7 @@ class StealHelp(HelpCommand):
         
         view.interaction_check = interaction_check
         
-        view.add_item(CategorySelector({key.__cog_name__: key for key, _ in mapping.items() if key is not None and key.__cog_name__ not in ["BotManagement", "Auth", "Bs", "Help", "Profile", "Messages", "Members", "Jishaku"]}, embed))
+        view.add_item(HelpSelect({key.__cog_name__: key for key, _ in mapping.items() if key is not None and key.__cog_name__ not in ["BotManagement", "Auth", "Bs", "Help", "Profile", "Messages", "Members", "Jishaku"]}, embed))
         
         return await self.context.send(
             embed = embed,
@@ -115,7 +115,7 @@ class StealHelp(HelpCommand):
             for i, command in enumerate(commands)
         ])
 
-class CategorySelector(discord.ui.Select):
+class HelpSelect(discord.ui.Select):
     def __init__(self, categories: Dict[str, Cog], embed: discord.Embed) -> None:
         self.embed = embed
         self.categories = categories
@@ -130,9 +130,15 @@ class CategorySelector(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction) -> None:
         if self.values[0] == 'home':
             return await interaction.response.edit_message(
-                embed = self.embed
-            )
-            
+                embed = self.embed.add_field(
+                                        name="Information",
+                                        value="> [] = optional, <> = required"
+                                    ).add_field(
+                                        name="Support",
+                                        value=f"[**Support server**]({Guild.INVITE})"
+                                    )
+                )
+        
         category: Cog = self.categories[self.values[0]]
         #commands = [command for command in list(category.walk_commands()) if not command.parent]
         commands = [command for command in list(category.walk_commands()) if not command.parent]
@@ -145,6 +151,9 @@ class CategorySelector(discord.ui.Select):
         #description = f"{description}, {', '.join(f'{cmd.qualified_name}' for cmd in commands if not isinstance(cmd, discord.ext.commands.Group))}```"
 
         embed = self.embed.copy()
+        for _ in embed.fields:
+            embed.remove_field(0)
+        
         embed.title = f'Category: {category.__cog_name__}'
         embed.description = f'\nCommands:\n```ruby\n{", ".join([f"{command.qualified_name}" if not isinstance(command, discord.ext.commands.Group) else f"{command.qualified_name}*" for command in list(category.walk_commands()) if not command.hidden and not command.parent])}```'
         #embed.description = description
