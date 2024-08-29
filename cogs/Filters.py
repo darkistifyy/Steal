@@ -3,24 +3,23 @@ from __future__ import annotations
 import discord
 from discord.ext import commands
 from discord.ext.commands import *
-from typing import Optional, Union
+from typing import Optional, Union, List, Literal
 import humanfriendly
 import datetime
 import asqlite
 import math
 
+from tools.Validators import ValidPunishment, ValidTime
 from tools.Steal import Steal
 from managers.context import StealContext
-
-from typing import List, Optional
 from tools.Config import Colors, Emojis
 
 
 
-class Automod(commands.Cog):
+class Filters(commands.Cog):
 	def __init__(self, bot: Steal):
 		self.bot = bot
-		self.description = "Manage server automod filters."
+		self.description = "Manage server chat filters."
 
 
 	@group(
@@ -30,8 +29,7 @@ class Automod(commands.Cog):
 	async def filter(self, ctx: StealContext):
 		if ctx.invoked_subcommand is None:
 			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `filter`.')
-		
-	
+
 	@filter.group(
 			name="invites",
 			description="The invites filter module."
@@ -42,7 +40,7 @@ class Automod(commands.Cog):
 		
 	@invites.command(
 			name="enable",
-			description="Enables the invites filter module.",
+			description="Enables the invites filter.",
 			aliases=["on"]
 	)
 	@has_permissions(manage_messages=True)
@@ -54,13 +52,13 @@ class Automod(commands.Cog):
 
 				await cursor.execute(
 					"""
-					CREATE TABLE IF NOT EXISTS invitesautomod(guildid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)))
+					CREATE TABLE IF NOT EXISTS invitesautomod(guildid INTEGER UNIQUE, punishment TEXT, duration INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)))
 					""",				
 				)
 
 				cur = await cursor.execute(
 					"""
-					SELECT toggle FROM invitesautomod WHERE guildid = $1
+					SELECT * FROM invitesautomod WHERE guildid = $1
 					""", ctx.guild.id, 
 				)
 
@@ -69,8 +67,8 @@ class Automod(commands.Cog):
 				if not res:
 					await cursor.execute(
 						"""
-						INSERT INTO invitesautomod (guildid, toggle) VALUES ($1, $2)
-						""", ctx.guild.id, 1.0, 
+						INSERT INTO invitesautomod (guildid, punishment, duration, toggle) VALUES ($1, $2, $3, $4)
+						""", ctx.guild.id, "None", 0.0, 1.0, 
 					)
 
 					await conn.commit()
@@ -88,11 +86,11 @@ class Automod(commands.Cog):
 
 				await conn.commit()
 
-				return await ctx.approve("Enabled the **invites** filter module")
+				return await ctx.approve("Enabled the **invites filter**.")
 
 	@invites.command(
 			name="disable",
-			description="Disables the invites filter module.",
+			description="Disables the invites filter.",
 			aliases=["off"]
 	)
 	@has_permissions(manage_messages=True)
@@ -104,23 +102,23 @@ class Automod(commands.Cog):
 
 				await cursor.execute(
 					"""
-					CREATE TABLE IF NOT EXISTS invitesautomod(guildid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)))
+					CREATE TABLE IF NOT EXISTS invitesautomod(guildid INTEGER UNIQUE, punishment TEXT, duration INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)))
 					""",				
 				)
 
 				cur = await cursor.execute(
 					"""
-					SELECT toggle FROM invitesautomod WHERE guildid = $1
+					SELECT * FROM invitesautomod WHERE guildid = $1
 					""", ctx.guild.id, 
 				)
 
 				res = await cur.fetchone()
 
 				if not res:
-					return await ctx.warn("The **invites** filter module is not configured in this guild.")
+					return await ctx.warn("There is no **invites filter** config for this guild.")
 
-				if res[0] == 0:
-					return await ctx.warn("The **invites** filter module is already **disabled**.")
+				if res[3] == 0:
+					return await ctx.warn("The **invites filter** is already **disabled**.")
 
 				await cursor.execute(
 					"""
@@ -130,49 +128,68 @@ class Automod(commands.Cog):
 
 				await conn.commit()
 
-				return await ctx.approve("Disabled the **invites** filter module")
+				return await ctx.approve("Disabled the **invites filter**.")
 
 
 	@invites.command(
 			name="config",
-			description="Sends the invites filter module config.",
+			description="Sends the invites filter config.",
 	)
 	@has_permissions(manage_messages=True)
 	@bot_has_guild_permissions(administrator=True)
 	@guild_only()
-	async def invitesdconfig(self, ctx: StealContext):
+	async def invitesconfig(self, ctx: StealContext):
 		async with asqlite.connect("main.db") as conn:
 			async with conn.cursor() as cursor:
 
 				await cursor.execute(
 					"""
-					CREATE TABLE IF NOT EXISTS invitesautomod(guildid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)))
+					CREATE TABLE IF NOT EXISTS invitesautomod(guildid INTEGER UNIQUE, punishment TEXT, duration INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)))
 					""",				
 				)
 
 				cur = await cursor.execute(
 					"""
-					SELECT toggle FROM invitesautomod WHERE guildid = $1
+					SELECT * FROM invitesautomod WHERE guildid = $1
 					""", ctx.guild.id, 
 				)
 
 				res = await cur.fetchone()
 
 				if not res:
-					return await ctx.warn("The **invites** filter module is not configured in this guild.")
+					return await ctx.warn("There is no **invites filter** config for this guild.")
 
 				toggle_converter = {
 					1 : "enabled",
 					0 : "disabled",
 				}
 
-				toggle = toggle_converter.get(res[0], "❓")
+				toggle = toggle_converter.get(res[3], "❓")
 
-				await ctx.neutral(f"{ctx.author.mention}: The **invites** filter module is **{toggle}**")
+				
+				embed=discord.Embed(
+						title="Invites Config",
+						description=f"> {ctx.author.mention}: The **invites filter** is **{toggle}**.",
+						color=Colors.BASE_COLOR,
+					).add_field(
+						name="Punishment",
+						value=f"{res[1].capitalize()}",
+					)
+				
+				if res[2] > 0 or res[1] == "mute":
+					duration = humanfriendly.format_timespan(num_seconds=res[2])
+				else:
+					duration = "Not applicable."
+
+				embed.add_field(
+					name="Duration",
+					value=f"{duration}"
+				)
+				await ctx.send(embed=embed)
 
 	@invites.command(
 			name="clear",
-			description="Clears the invites filter module config.",
+			description="Clears the invites filter config.",
 	)
 	@has_permissions(manage_messages=True)
 	@bot_has_guild_permissions(administrator=True)
@@ -183,20 +200,20 @@ class Automod(commands.Cog):
 
 				await cursor.execute(
 					"""
-					CREATE TABLE IF NOT EXISTS invitesautomod(guildid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)))
+					CREATE TABLE IF NOT EXISTS invitesautomod(guildid INTEGER UNIQUE, punishment TEXT, duration INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)))
 					""",				
 				)
 
 				cur = await cursor.execute(
 					"""
-					SELECT toggle FROM invitesautomod WHERE guildid = $1
+					SELECT * FROM invitesautomod WHERE guildid = $1
 					""", ctx.guild.id, 
 				)
 
 				res = await cur.fetchone()
 
 				if not res:
-					return await ctx.warn("The **invites** filter module is not configured in this guild.")
+					return await ctx.warn("There is no **invites filter** config for this guild.")
 
 				await cur.execute(
 					"""
@@ -206,11 +223,62 @@ class Automod(commands.Cog):
 				
 				await conn.commit()
 
-				return await ctx.approve(f"Cleared the **invites** filter module.")
+				return await ctx.approve(f"Cleared the **invites filter**.")
+			
+	@invites.command(
+			name="punishment",
+			description="Sets the punishment for the invites filter.",
+			aliases=["consequence", "action"]
+	)
+	@has_permissions(moderate_members=True)
+	@bot_has_guild_permissions(administrator=True)
+	@guild_only()
+	async def invitespunishment(self, ctx: StealContext, punishment: ValidPunishment, time: Optional[ValidTime] = 0):
+
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS invitesautomod(guildid INTEGER UNIQUE, punishment TEXT, duration INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)))"
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM invitesautomod WHERE guildid = $1",
+					ctx.guild.id
+				)
+
+				row = await cur.fetchone()
+
+				if not row:
+					return await ctx.warn("There is no **invites filter** config for this guild.")
+				if punishment == "mute" and not time:
+					return await ctx.warn("**Mute** punishments must have an attatched **time** duration.")
+				elif punishment != "mute" and time:
+					return await ctx.warn("**Non-Mute** punishments must not have an attatched **time** duration.")
+
+				if punishment != "mute":
+					await db.execute(
+						"UPDATE invitesautomod SET punishment = $1, duration = $2 WHERE guildid = $3",
+						punishment, time, ctx.guild.id, 
+					)
+
+					await db.commit()
+
+					return await ctx.approve(f"Set the **invites filter** punishment - **{punishment}**")
 			
 
+				if time >= 2332800:
+					return await ctx.warn("You cannot **mute** someone for **27 days or longer**.")
 
-	
+				await db.execute(
+					"UPDATE invitesautomod SET punishment = $1, duration = $2 WHERE guildid = $3",
+					punishment, time, ctx.guild.id, 
+				)
+
+				await db.commit()
+
+				return await ctx.approve(f"Set the **invites filter** punishment - **mute** for **{humanfriendly.format_timespan(time)}**")
+
 	@filter.group(
 			name="words",
 			description="The words filter module."
@@ -573,4 +641,4 @@ class Automod(commands.Cog):
 			
 
 async def setup(bot):
-	await bot.add_cog(Automod(bot))
+	await bot.add_cog(Filters(bot))
