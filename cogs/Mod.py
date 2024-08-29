@@ -472,14 +472,5 @@ class Mod(commands.Cog):
 		await channel.send(content=content, embed=embed, view=VerifyView())
 		return await ctx.approve(f'Sent **verification** panel to {channel.mention}.', delete_after = 5.0)
 
-	@command()
-	async def drop(self, ctx: StealContext):
-		async with asqlite.connect("main.db") as db:
-			async with db.cursor() as cursor:
-
-				await cursor.execute("DROP TABLE verify")
-
-				await ctx.approve("dropped")
-
 async def setup(bot):
 	await bot.add_cog(Mod(bot))
