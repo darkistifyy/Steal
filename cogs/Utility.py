@@ -1003,6 +1003,41 @@ class Utility(commands.Cog):
             return await ctx.warn("An error occured when fetching **edit snipes**.")
 
     @command(
+            name="reactionsnipe",
+            description="Get the most recent reaction.",
+            aliases=["rs"]
+    )
+    async def reactionsnipe(self, ctx: StealContext, index: int = 1):
+
+        if not self.bot.cache.get("reaction_snipe"):
+            return await ctx.warn("I could not find any **reaction snipes** in this channel")
+
+        snipes = [
+            s
+            for s in self.bot.cache.get("reaction_snipe")
+            if s["channel"] == ctx.channel.id
+        ]
+
+        if len(snipes) == 0:
+            return await ctx.warn("I could not find any **reaction snipes** in this channel")
+
+        if index > len(snipes):
+            return await ctx.warn(
+                f"There are only **{len(snipes)}** reaction snipes in this channel"
+            )
+
+        result = snipes[::-1][index - 1]
+        try:
+            message = await ctx.channel.fetch_message(result["message"])
+            return await ctx.reply(
+                f"**{result['name']}** reacted with {result['reaction']} **{self.bot.humanize_date(datetime.datetime.fromtimestamp(int(result['created_at'])))}** [**here**]({message.jump_url})"
+            )
+        except:
+            return await ctx.reply(
+                f"**{result['name']}** reacted with {result['reaction']} **{self.bot.humanize_date(datetime.datetime.fromtimestamp(int(result['created_at'])))}**"
+            )
+
+    @command(
             name="clearsnipes",
             aliases=["cs"],
             description="Clears all sniped messages for this channel."
@@ -1128,36 +1163,6 @@ class Utility(commands.Cog):
                 await db.commit()
 
                 await ctx.approve(f"Deleted **reminder** - **{results[4]}** in {humanize.precisedelta(datetime.datetime.fromtimestamp(results[3]), format=f'%0.0f')}")
-
-    @group(
-            name="fortnite",
-            description="Fortnite commands.",
-            aliases=["fn"]
-    )
-    async def fortnite(self, ctx: StealContext) -> None:
-        if not ctx.invoked_subcommand:
-            return
-
-
-    @fortnite.command(
-            name="itemshop",
-            aliases=["is", "shop", "items"],
-            description="Gets the items in the fortnite item shop.",
-    )
-    async def itemshop(self, ctx:StealContext) -> None:
-        response = await self.bot.session.get_json(
-            "https://fortnite-api.com/v2/shop"
-        )
-
-        items = response["data"]
-
-        line = [f"{itm["entries"]["layout"]} - {itm["finalPrice"]} Vbucks" for itm in items]
-
-        print("\n".join(line))
-
-        await ctx.approve("\n".join(line))
-
-
 
 async def setup(bot):
     await bot.add_cog(Utility(bot))
