@@ -94,19 +94,42 @@ class Mod(commands.Cog):
 		except:
 			return await ctx.deny(f'Failed to force a nick on {member.mention}.')
 
+	@command(
+			name = "unban",
+			aliases=["uub"],
+			description='Unbans a user.',
+	)
+	@cooldown(1, 10, BucketType.user)
+	@has_permissions(ban_members=True)
+	@bot_has_guild_permissions(ban_members=True)
+	async def unbanuser(self, ctx: StealContext, user: discord.User, *, reason: Optional[str] = "No reason.") -> None:
+		await self.banremove(ctx, user=user, reason=reason)
+
+	@command(
+			name = "userban",
+			aliases=["ub"],
+			description='Bans a user.',
+	)
+	@cooldown(1, 10, BucketType.user)
+	@has_permissions(ban_members=True)
+	@bot_has_guild_permissions(ban_members=True)
+	async def banuser(self, ctx: StealContext, user: discord.User, *, reason: Optional[str] = "No reason.") -> None:
+		await self.banadd(ctx, user=user, reason=reason)
+
+
 	@group(name='ban', description='Bans Members.')
-	async def ban(self, ctx: StealContext):
+	async def bangroup(self, ctx: StealContext):
 		if ctx.invoked_subcommand is None:
 			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `ban`.')
 		
-	@ban.command(
+	@bangroup.command(
 			name = "add",
 			description='Bans a user.',
 	)
 	@cooldown(1, 10, BucketType.user)
 	@has_permissions(ban_members=True)
 	@bot_has_guild_permissions(ban_members=True)
-	async def banadd(self, ctx: StealContext, user: discord.User, *, reason: Optional[str] = commands.param(default="No reason.", displayed_default=None)) -> None:
+	async def banadd(self, ctx: StealContext, user: discord.User, *, reason: Optional[str] = "No reason.") -> None:
 		reason += ' | Executed by {}'.format(ctx.author)
 
 		try:
@@ -127,8 +150,8 @@ class Mod(commands.Cog):
 			return await ctx.approve(f"Successfully banned {user.mention} - **{reason.split(' |')[0]}**")
 		except:
 			return await ctx.deny(f'Failed to ban {user.mention}.')
-
-	@ban.command(
+		
+	@bangroup.command(
 			name='remove',
 			description='Removes a ban.', 
 			aliases=['revoke'], 
@@ -137,7 +160,7 @@ class Mod(commands.Cog):
 	@bot_has_guild_permissions(ban_members=True)
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
-	async def banremove(self, ctx: StealContext, user:discord.User, *, reason: Optional[str] = commands.param(default="No reason.", displayed_default=None)) -> None:
+	async def banremove(self, ctx: StealContext, user:discord.User, *, reason: Optional[str] = "No reason.") -> None:
 		reason += ' | Executed by {}'.format(ctx.author)
 		try:
 			bans = [entry async for entry in ctx.guild.bans(limit=None)]

@@ -958,7 +958,7 @@ class Utility(commands.Cog):
                     else:
                         embed.set_image(url=attachment.url)
 
-            return await ctx.send(embed=embed)
+            return await ctx.reply(embed=embed)
         except Exception as e:
             return await ctx.warn("An error occured when fetching **snipes**.")
 
@@ -1000,7 +1000,7 @@ class Utility(commands.Cog):
             for m in ["before", "after"]:
                 embed.add_field(name=m.capitalize(), value=f"> **{result[m]}**", inline=False)
 
-            return await ctx.send(embed=embed)
+            return await ctx.reply(embed=embed)
         except Exception as e:
             return await ctx.warn("An error occured when fetching **edit snipes**.")
 
@@ -1029,14 +1029,29 @@ class Utility(commands.Cog):
             )
 
         result = snipes[::-1][index - 1]
+
+        embed = (
+            discord.Embed(
+                    color=Colors.BASE_COLOR,
+                    timestamp=datetime.datetime.fromtimestamp(
+                        result["removed_at"]
+                    ).replace(tzinfo=None),
+            )
+            .set_author(name=result["name"], icon_url=result["avatar"])
+            .set_footer(text=f"{index}/{len(snipes)}")
+        )
+
         try:
             message = await ctx.channel.fetch_message(result["message"])
+            embed.description = f"> **{result['name']}** reacted with {result['reaction']} [**here**]({message.jump_url})"
             return await ctx.reply(
-                f"**{result['name']}** reacted with {result['reaction']} **{self.bot.humanize_date(datetime.datetime.fromtimestamp(int(result['created_at'])))}** [**here**]({message.jump_url})"
+                embed=embed
             )
         except:
+
+            embed.description = f"> **{result['name']}** reacted with {result['reaction']}"
             return await ctx.reply(
-                f"**{result['name']}** reacted with {result['reaction']} **{self.bot.humanize_date(datetime.datetime.fromtimestamp(int(result['created_at'])))}**"
+                embed=embed
             )
 
     @command(
