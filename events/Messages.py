@@ -316,7 +316,7 @@ class Messages(commands.Cog):
 			return await self.bot.cache.set("edit_snipe", payload)
 
 	@Cog.listener("on_reaction_remove")
-	async def reaction_snipe_event(self, user: discord.Member, reaction: discord.Reaction):
+	async def reaction_snipe_event(self, reaction: discord.Reaction, user: discord.Member):
 
 		if user.bot:
 			return
@@ -326,10 +326,11 @@ class Messages(commands.Cog):
 			reaction_snipe.append(
 				{
 					"channel": reaction.message.channel.id,
+					"name": str(user),
+					"avatar": user.display_avatar.url,
 					"message": reaction.message.id,
 					"reaction": str(reaction.emoji),
-					"user": str(user),
-					"created_at": datetime.datetime.now().timestamp(),
+					"removed_at": datetime.datetime.now().timestamp(),
 				}
 			)
 			await self.bot.cache.set("reaction_snipe", reaction_snipe)
@@ -337,10 +338,11 @@ class Messages(commands.Cog):
 			payload = [
 				{
 					"channel": reaction.message.channel.id,
+					"name": str(user),
+					"avatar": user.display_avatar.url,
 					"message": reaction.message.id,
 					"reaction": str(reaction.emoji),
-					"user": str(user),
-					"created_at": datetime.datetime.now().timestamp(),
+					"removed_at": datetime.datetime.now().timestamp(),
 				}
 			]
 			await self.bot.cache.set("reaction_snipe", payload)
