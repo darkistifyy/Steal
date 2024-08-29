@@ -67,6 +67,9 @@ class Messages(commands.Cog):
 												name="Flagged invite",
 												value=f"`{code}`",
 												inline=True
+											).set_author(
+												name=message.guild.name,
+												icon_url=message.guild.icon.url if message.guild.icon else "https://none.none"
 											)
 
 											if row[1].lower() != "none":
@@ -80,13 +83,6 @@ class Messages(commands.Cog):
 											
 										except Exception as e:
 											print(e)
-
-										
-
-										try:
-											await message.delete()
-										except:
-											pass
 										
 										if row[1].lower() != "none":
 											if row[1].lower() == "ban":
@@ -104,6 +100,7 @@ class Messages(commands.Cog):
 													await message.author.timeout(discord.utils.utcnow() + datetime.timedelta(seconds=row[2]), reason=f"AUTOMOD | Sent invite, code: {code}")
 												except Exception as e:
 													print(e)
+										return
 	
 	@Cog.listener("on_message")
 	async def filter_message_blacklist_event(self, message: discord.Message):
@@ -115,9 +112,7 @@ class Messages(commands.Cog):
 			async with conn.cursor() as cursor:
 
 				await cursor.execute(
-					"""
-					CREATE TABLE IF NOT EXISTS wordsautomod(guildid INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), words)
-					""",				
+					"CREATE TABLE IF NOT EXISTS wordsautomod(guildid INTEGER UNIQUE, punishment TEXT, duration INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), words TEXT)",				
 				)
 
 				cur = await cursor.execute(
@@ -129,27 +124,59 @@ class Messages(commands.Cog):
 				row = await cur.fetchone()
 
 				if row:
-					if row[1] == 1:
+					if row[3] == 1:
 
 						if message.content.startswith(f"{self.bot.command_prefix[0]}filter words remove") or message.content.startswith(f"{self.bot.command_prefix[0]}filter words add"):
 							if message.author.guild_permissions.manage_messages:
 								return
 
-						words = row[2]
-						await cur.close()
-
-						things = [word for word in words[0].split(",") if word]
+						things = [word for word in row[4].split(",") if word]
 
 						for thing in things:
 							if thing.lower() in message.content.lower():
-								await message.author.send(
-									embed=discord.Embed(
-										description=f"> {Emojis.WARN} {message.author.mention}: The word **{thing}** is blacklisted in **{message.guild.name}**.",
-										color=Colors.WARN_COLOR
-									)
-								)
+								try:
 
-								await message.delete()
+									embed=discord.Embed(
+										description=f"> {Emojis.WARN} {message.author.mention}: Your message in **{message.guild.name}** was flagged for containing a blocked **phrase**.",
+										color=Colors.WARN_COLOR
+									).add_field(
+										name = "Your message",
+										value=f"`{message.content}`",
+										inline=True
+									).add_field(
+										name="Flagged phrase",
+										value=f"`{thing}`",
+										inline=True
+									)
+									if row[1].lower() != "none":
+										embed.add_field(
+											name="Punishment",
+											value=f"`{row[1].capitalize()} - {humanfriendly.format_timespan(row[2]) if row[2] > 0 else ""}`",
+											inline=True
+										)
+									await message.author.send(embed=embed)
+									
+								except:
+									pass
+								
+								if row[1].lower() != "none":
+									if row[1].lower() == "ban":
+										try:
+											await message.guild.ban(message.author, reason=f"AUTOMOD | Flagged phrase, code: {thing}")
+										except:
+											pass
+									if row[1].lower() == "kick":
+										try:
+											await message.guild.kick(message.author, reason=f"AUTOMOD | Flagged phrase, code: {thing}")
+										except:
+											pass
+									if row[1].lower() == "mute":
+										try:
+											await message.author.timeout(discord.utils.utcnow() + datetime.timedelta(seconds=row[2]), reason=f"AUTOMOD | Flagged phrase, code: {thing}")
+										except Exception as e:
+											print(e)
+								
+								return await message.delete()
 
 	@Cog.listener("on_message")
 	async def afk_message_event(self, message: discord.Message) -> None:
@@ -262,10 +289,9 @@ class Messages(commands.Cog):
 		if before.content == after.content:
 			return
 
-		get_snipes = self.bot.cache.get("edit_snipe")
-		if get_snipes:
-			temp = self.bot.cache.get("edit_snipe")
-			temp.append(
+		edit_snipes = self.bot.cache.get("edit_snipe")
+		if edit_snipes:
+			edit_snipes.append(
 				{
 					"channel": before.channel.id,
 					"name": str(before.author),
@@ -275,7 +301,7 @@ class Messages(commands.Cog):
 					"edited_at": after.created_at.timestamp(),
 				}
 			)
-			return await self.bot.cache.set("edit_snipe", temp)
+			return await self.bot.cache.set("edit_snipe", edit_snipes)
 		else:
 			payload = [
 				{
@@ -288,6 +314,36 @@ class Messages(commands.Cog):
 				}
 			]
 			return await self.bot.cache.set("edit_snipe", payload)
+
+	@Cog.listener("on_reaction_remove")
+	async def reaction_snipe_event(self, user: discord.Member, reaction: discord.Reaction):
+
+		if user.bot:
+			return
+
+		reaction_snipe = self.bot.cache.get("reaction_snipe")
+		if reaction_snipe:
+			reaction_snipe.append(
+				{
+					"channel": reaction.message.channel.id,
+					"message": reaction.message.id,
+					"reaction": str(reaction.emoji),
+					"user": str(user),
+					"created_at": datetime.datetime.now().timestamp(),
+				}
+			)
+			await self.bot.cache.set("reaction_snipe", reaction_snipe)
+		else:
+			payload = [
+				{
+					"channel": reaction.message.channel.id,
+					"message": reaction.message.id,
+					"reaction": str(reaction.emoji),
+					"user": str(user),
+					"created_at": datetime.datetime.now().timestamp(),
+				}
+			]
+			await self.bot.cache.set("reaction_snipe", payload)
 
 async def setup(bot):
 	await bot.add_cog(Messages(bot))
