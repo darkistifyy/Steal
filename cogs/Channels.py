@@ -247,7 +247,7 @@ class Channels(commands.Cog):
 		if channel is None: channel = ctx.channel	
 		if target is None: target = ctx.guild.default_role
 		perms = channel.overwrites_for(target)
-		if perms.view_channel is False:
+		if not perms.view_channel:
 			if isinstance(target, discord.Role):
 				perms = target.permissions
 				if target.position > ctx.guild.me.top_role.position:
@@ -271,7 +271,7 @@ class Channels(commands.Cog):
 						return await ctx.warn(f"You cannot manage {target.mention}")	
 		
 			overwrite = channel.overwrites_for(target)
-			overwrite.view_channel = None
+			overwrite.view_channel = None if channel.permissions_for(ctx.guild.default_role).view_channel else True
 			await channel.set_permissions(target=target, overwrite=overwrite, reason=f'Executed by {ctx.author}')
 			await ctx.approve(f"Revealed {channel.mention} to {target.mention}.")
 		else:
@@ -414,7 +414,7 @@ class Channels(commands.Cog):
 						return await ctx.warn(f"You cannot manage {target.mention}")	
 
 			overwrite = channel.overwrites_for(target)
-			overwrite.send_messages = None
+			overwrite.send_messages =  None if channel.permissions_for(ctx.guild.default_role).send_messages else True
 			await channel.set_permissions(target=target, overwrite=overwrite, reason=reason)
 			await ctx.approve(f"**Unlocked** {channel.mention} for {target.mention} - **{reason.split(' |')[0]}**")
 		else:
@@ -490,7 +490,7 @@ class Channels(commands.Cog):
 
 					return await ctx.reply(
 						embed=discord.Embed(
-							description=f"> {Emojis.APPROVE} {ctx.author.mention}: Set the **welcome** channel to {channel.mention} with the script ```ruby\n{script}```",
+							description=f"> {Emojis.APPROVE} {ctx.author.mention}: Set the **welcome** channel to {channel.mention} with the script \n```ruby\n{script}```",
 							color=Colors.APPROVE_COLOR
 						)
 					)
