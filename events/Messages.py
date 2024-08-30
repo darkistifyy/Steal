@@ -16,7 +16,7 @@ class Messages(commands.Cog):
 		self.bot = bot
 		self.afkstatus = False
 		self.invitestatus = False
-		
+
 	@Cog.listener("on_message")
 	async def filter_message_invite_event(self, message: discord.Message) -> None:
 		if message.author.bot: return
@@ -162,21 +162,105 @@ class Messages(commands.Cog):
 								if row[1].lower() != "none":
 									if row[1].lower() == "ban":
 										try:
-											await message.guild.ban(message.author, reason=f"AUTOMOD | Flagged phrase, code: {thing}")
+											if not message.author.guild_permissions.ban_members:
+												await message.guild.ban(message.author, reason=f"AUTOMOD | Flagged phrase, code: {thing}")
 										except:
 											pass
 									if row[1].lower() == "kick":
 										try:
-											await message.guild.kick(message.author, reason=f"AUTOMOD | Flagged phrase, code: {thing}")
+											if not message.author.guild_permissions.kick_members:
+												await message.guild.kick(message.author, reason=f"AUTOMOD | Flagged phrase, code: {thing}")
 										except:
 											pass
 									if row[1].lower() == "mute":
 										try:
-											await message.author.timeout(discord.utils.utcnow() + datetime.timedelta(seconds=row[2]), reason=f"AUTOMOD | Flagged phrase, code: {thing}")
+											if not message.author.guild_permissions.mute_members:
+												await message.author.timeout(discord.utils.utcnow() + datetime.timedelta(seconds=row[2]), reason=f"AUTOMOD | Flagged phrase, code: {thing}")
 										except Exception as e:
 											print(e)
 								
 								return await message.delete()
+							
+
+	@Cog.listener("on_message_edit")
+	async def filter_edit_blacklist_event(self, _: discord.Message, message: discord.Message):
+		if message.author.bot: return
+		if message.is_system(): return
+		if not message.author: return
+		if isinstance(message.channel, discord.DMChannel): return
+		async with asqlite.connect("main.db") as conn:
+			async with conn.cursor() as cursor:
+
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS wordsautomod(guildid INTEGER UNIQUE, punishment TEXT, duration INTEGER, toggle BOOLEAN NOT NULL CHECK (toggle IN (0, 1)), words TEXT)",				
+				)
+
+				cur = await cursor.execute(
+					"""
+					SELECT * FROM wordsautomod WHERE guildid = $1 
+					""", message.guild.id
+				)
+
+				row = await cur.fetchone()
+
+				if row:
+					if row[3] == 1:
+
+						if message.content.startswith(f"{self.bot.command_prefix[0]}filter words remove") or message.content.startswith(f"{self.bot.command_prefix[0]}filter words add"):
+							if message.author.guild_permissions.manage_messages:
+								return
+
+						things = [word for word in row[4].split(",") if word]
+
+						for thing in things:
+							if thing.lower() in message.content.lower():
+								try:
+
+									embed=discord.Embed(
+										description=f"> {Emojis.WARN} {message.author.mention}: Your message in **{message.guild.name}** was flagged for containing a blocked **phrase**.",
+										color=Colors.WARN_COLOR
+									).add_field(
+										name = "Your message",
+										value=f"`{message.content}`",
+										inline=True
+									).add_field(
+										name="Flagged phrase",
+										value=f"`{thing}`",
+										inline=True
+									)
+									if row[1].lower() != "none":
+										embed.add_field(
+											name="Punishment",
+											value=f"`{row[1].capitalize()} - {humanfriendly.format_timespan(row[2]) if row[2] > 0 else ""}`",
+											inline=True
+										)
+									await message.author.send(embed=embed)
+									
+								except:
+									pass
+								
+								if row[1].lower() != "none":
+									if row[1].lower() == "ban":
+										try:
+											if not message.author.guild_permissions.ban_members:
+												await message.guild.ban(message.author, reason=f"AUTOMOD | Flagged phrase, code: {thing}")
+										except:
+											pass
+									if row[1].lower() == "kick":
+										try:
+											if not message.author.guild_permissions.kick_members:
+												await message.guild.kick(message.author, reason=f"AUTOMOD | Flagged phrase, code: {thing}")
+										except:
+											pass
+									if row[1].lower() == "mute":
+										try:
+											if not message.author.guild_permissions.mute_members:
+												await message.author.timeout(discord.utils.utcnow() + datetime.timedelta(seconds=row[2]), reason=f"AUTOMOD | Flagged phrase, code: {thing}")
+										except Exception as e:
+											print(e)
+								
+								return await message.delete()
+
 
 	@Cog.listener("on_message")
 	async def afk_message_event(self, message: discord.Message) -> None:
@@ -245,7 +329,83 @@ class Messages(commands.Cog):
 									color=Colors.BASE_COLOR
 								)
 							)
-							
+
+	@Cog.listener("on_message_delete")
+	async def delete_message_log(self, message: discord.Message):
+		if message.author.bot:
+			return
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+				cur = await cursor.execute(
+					"SELECT * FROM msglogs WHERE guildid = $1",
+					message.guild.id,
+				)
+
+				row = await cur.fetchone()
+
+				if row:
+					channel = message.guild.get_channel(row[1])
+					if channel:
+						try:
+							await channel.send(
+								embed=discord.Embed(
+									color=Colors.BASE_COLOR,
+								).add_field(
+									name="Deleted message",
+									value=f"> A **message** from {message.author.mention} (`{message.author}`) was **deleted** in {message.channel}"
+								).add_field(
+									name="Message content",
+									value=f">>> {message.content}",
+									inline=False
+								).set_author(
+									name=message.author,
+									icon_url=message.author.display_avatar.url
+								)
+
+							)
+						except:
+							pass
+					
+	@Cog.listener("on_message_edit")
+	async def edit_message_log(self, before: discord.Message, after: discord.Message):
+		if before.author.bot:
+			return
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+				cur = await cursor.execute(
+					"SELECT * FROM msglogs WHERE guildid = $1",
+					before.guild.id,
+				)
+
+				row = await cur.fetchone()
+
+				if row:
+					channel = before.guild.get_channel(row[1])
+					if channel:
+						try:
+							await channel.send(
+								embed=discord.Embed(
+									color=Colors.BASE_COLOR,
+								).add_field(
+									name="Edited message",
+									value=f"{before.author.mention} (`{before.author}`) **edited** a message in {before.channel.mention}\n{f'> [**Jump Here**]({after.jump_url})' if after else ''}"
+								).add_field(
+									name="Before",
+									value=f">>> {before.content}",
+									inline=False
+								).add_field(
+									name="After",
+									value=f">>> {after.content}",
+									inline=False
+								).set_author(
+									name=before.author,
+									icon_url=before.author.display_avatar.url
+								)
+							)
+						except:
+							pass
+					
+
 	@Cog.listener("on_message_delete")
 	async def delete_snipe(self, message: discord.Message):
 		if message.author.bot:
