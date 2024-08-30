@@ -518,10 +518,95 @@ class BotManagement(commands.Cog):
 					except:
 						return await ctx.warn("**Failed** to send you the **Exception traceback**.")
 
-	@command()
-	async def boing(self, ctx:StealContext):
-		row = []
-		row[1]
+	@group(
+			name="blacklist",
+			description="Blacklists a user/guild from using the bot."
+	)
+	async def blacklist(self, ctx: StealContext):
+		if not ctx.invoked_subcommand:
+			return
+
+	@blacklist.command(
+			name="user",
+			description="Blacklists a user",
+	)
+	async def userblacklist(self, ctx: StealContext, user: discord.User):
+		if ctx.author.id not in self.bot.owner_ids: await ctx.deny("Fuck off.")
+		if user.id in self.bot.owner_ids: await ctx.deny("Fuck off.")
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS userblacklist(userid INTEGER)"
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM userblacklist WHERE userid = $1",
+					user.id,
+				)
+
+				row = await cur.fetchone()
+
+				if not row:
+					await cursor.execute(
+						"INSERT INTO userblacklist (userid) VALUES ($1)",
+						user.id,
+					)
+
+					try:
+						await user.send(
+							embed=discord.Embed(
+								description=f"{Emojis.DENY} {user.mention}: You have been blacklisted from using {self.bot.user.name.split("#")[0]}",
+								color=Colors.DENY_COLOR
+							).set_author(
+								name=self.bot.user,
+								icon_url=self.bot.user.display_avatar.url
+							)
+						)
+					except:
+						pass
+
+					return await ctx.approve(f"Blacklisted user **{user}**")
+				
+				return await ctx.warn(f"{user} is already blacklisted.")
+
+	@group(
+			name="unblacklist",
+			description="Unblacklists a user/guild from using the bot."
+	)
+	async def unblacklist(self, ctx: StealContext):
+		if not ctx.invoked_subcommand:
+			return
+
+	@unblacklist.command(
+			name="user",
+			description="Blacklists a user",
+	)
+	async def userunblacklist(self, ctx: StealContext, user: discord.User):
+		if ctx.author.id not in self.bot.owner_ids: await ctx.deny("Fuck off.")
+		if user.id in self.bot.owner_ids: await ctx.deny("Fuck off.")
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS userblacklist(userid INTEGER)"
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM userblacklist WHERE userid = $1",
+					user.id,
+				)
+
+				row = await cur.fetchone()
+
+				if row:
+					await cursor.execute(
+						"DELETE FROM userblacklist WHERE userid = $1",
+						user.id,
+					)
+
+					return await ctx.approve(f"Unblacklisted user **{user}**")
+				
+				return await ctx.warn(f"{user} is not blacklisted.")
+
 
 async def setup(bot):
 	await bot.add_cog(BotManagement(bot))
