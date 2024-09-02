@@ -64,8 +64,12 @@ class StealHelp(HelpCommand):
     async def send_command_help(self, command: Command) -> None:
         if command.hidden and self.context.author.id not in self.context.bot.owner_ids: 
             return
-        
-        prefix = self.context.clean_prefix
+
+        prefix = self.context.clean_prefix 
+
+        permissions = command.extras.get("permissions", [])
+        friendly_permissions = ", ".join(f"{perm.replace('_', ' ').title()}" for perm in permissions)
+
         return await self.context.send(
             embed = discord.Embed(
                 color = Colors.BASE_COLOR,
@@ -73,9 +77,10 @@ class StealHelp(HelpCommand):
                 description = f'>>> {command.description or "No Description Provided"}'
             )
             .set_author(name = self.context.author.display_name, icon_url = self.context.author.display_avatar.url)
-            .add_field(name = 'Aliases', value = ', '.join(command.aliases) or 'N/A', inline = True)
-            .add_field(name = 'Parameters', value = ', '.join([parameter for parameter in command.params] or 'N/A'), inline = True)
-            .add_field(name = 'Usage', value = f'>>> ```ruby\nSyntax: {prefix}{command.qualified_name} {command.signature.strip("= None").replace(" (upload a file)", "")}```', inline = False)
+            .add_field(name = 'Aliases', value = (', '.join(command.aliases) or "N/A"), inline = True)
+            .add_field(name = 'Parameters', value = (', '.join([parameter for parameter in command.params]) or 'N/A'), inline = True)
+            .add_field(name = 'Usage', value = f'>>> ```ruby\nSyntax: {prefix}{command.qualified_name} {" ".join([f"[{p.name}]" if not p.required else f"<{p.name}>" for p in command.clean_params.values()])}\nExample: {f"{prefix}{command.brief}" if command.brief else "figure it out ig."}```', inline = False)
+            .add_field(name = 'Permissions', value = f'{friendly_permissions if friendly_permissions else "None"}')
             .set_footer(text = f'Module: {command.cog_name}', icon_url = self.context.bot.user.display_avatar.url)
         )
         
@@ -100,6 +105,8 @@ class StealHelp(HelpCommand):
         for command in group.commands:
             if isinstance(command, discord.ext.commands.Group): group_commands = [*group_commands, command, *command.commands]
         commands = [group, *[command for command in group.commands if not isinstance(command, discord.ext.commands.Group)], *group_commands]
+        permissions = command.extras.get("permissions", [])
+        friendly_permissions = ", ".join(f"{perm.replace('_', ' ').title()}" for perm in permissions)
                 
         return await self.context.paginate([
             discord.Embed(
@@ -110,7 +117,8 @@ class StealHelp(HelpCommand):
                 .set_author(name = self.context.author.display_name, icon_url = self.context.author.display_avatar.url)
                 .add_field(name = 'Aliases', value = ', '.join(command.aliases) or 'N/A', inline = True)
                 .add_field(name = 'Parameters', value = ', '.join([parameter for parameter in command.params] if not isinstance(command, Group) else [parameter.name for parameter in group.commands]) or 'N/A', inline = True)
-                .add_field(name = 'Usage', value = f'>>> ```ruby\nSyntax: {prefix}{command.qualified_name} {command.signature.strip("= None").replace(" (upload a file)", "")}```', inline = False)
+                .add_field(name = 'Usage', value = f'>>> ```ruby\nSyntax: {prefix}{command.qualified_name} {" ".join([f"[{p.name}]" if not p.required else f"<{p.name}>" for p in command.clean_params.values()])}\nExample: {f"{prefix}{command.brief}" if command.brief else "figure it out ig."}```', inline = False)
+                .add_field(name = 'Permissions', value = f'{friendly_permissions if friendly_permissions else "None"}')
                 .set_footer(text = f'Page {i + 1}/{len(commands)} ({len(commands)} entries) ∙ Module: {command.cog_name}', icon_url = self.context.bot.user.display_avatar.url)
             for i, command in enumerate(commands)
         ])

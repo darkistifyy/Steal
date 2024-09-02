@@ -14,49 +14,67 @@ class StealContext(Context):
         super().__init__(**kwargs)
 
     async def approve(self, message: str, **kwargs) -> Message:
-        embed=Embed(
+        embed=discord.Embed(
             color = Colors.APPROVE_COLOR,
             description = f'> {Emojis.APPROVE} {self.author.mention}: {message}'
         )
         await self.reply(
             embed=embed,
-            **kwargs
+            **kwargs,
         )
 
     async def warn(self, message: str, **kwargs) -> Message:
-            embed=Embed(
-                color = Colors.WARN_COLOR,
-                description = f'> {Emojis.WARN} {self.author.mention}: {message}'
-            )
-            await self.reply(
-                embed=embed,
-                **kwargs
-            )
+        embed=discord.Embed(
+            color = Colors.WARN_COLOR,
+            description = f'> {Emojis.WARN} {self.author.mention}: {message}'
+        )
+        await self.reply(
+            embed=embed,
+            **kwargs,
+        )
     
     async def deny(self, message: str, **kwargs) -> Message:
+        embed=discord.Embed(
+            color = Colors.DENY_COLOR,
+            description = f'> {Emojis.DENY} {self.author.mention}: {message}'
+        )
         return await self.reply(
-            embed=Embed(
-                color = Colors.DENY_COLOR,
-                description = f'> {Emojis.DENY} {self.author.mention}: {message}'
-            ),
-            **kwargs
+            embed=embed,
+            **kwargs,
         )
 
     async def neutral(self, message: str, **kwargs) -> Message:
+        embed=discord.Embed(
+            color = Colors.NEUTRAL_COLOR,
+            description = f'> {self.author.mention}: {message}'
+        )
         return await self.reply(
-            embed=Embed(
-                color = Colors.NEUTRAL_COLOR,
-                description = f'> {message}'
-            ),
-            **kwargs
+            embed=embed,
+            **kwargs,
+        )
+
+    async def msg(self, message: str, **kwargs) -> Message:
+        embed=discord.Embed(
+            color = Colors.BASE_COLOR,
+            description = f'> {message}'
+        )
+        return await self.reply(
+            embed=embed,
+            **kwargs,
         )
 
     async def music(self, message: str, **kwargs) -> Message:
-        return await self.reply(
-            embed = Embed(
-                color=Colors.BASE_COLOR, description=f"> {Emojis.MUSIC} {self.author.mention}: {message}"
-            )
+        embed=discord.Embed(
+            color = Colors.BASE_COLOR,
+            description = f'> {Emojis.MUSIC} {self.author.mention}: {message}'
         )
+        return await self.reply(
+            embed=embed,
+            **kwargs,
+        )
+
+    async def plshelp(self):
+        return await self.send_help(self.command)
 
     async def paginate(self, embeds: List[discord.Embed], **kwargs) -> Message:
 
@@ -78,5 +96,7 @@ class StealContext(Context):
             )
 
         view.response = out
+
+
 
 
