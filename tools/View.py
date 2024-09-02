@@ -191,13 +191,11 @@ class DivorceView(discord.ui.View):
 
 	@button(label="Cancel", style=discord.ButtonStyle.danger, custom_id="canceldivorce")
 	async def divorcecancel(self, interaction: PatchedInteraction, button: Button):
-		embe = discord.Embed(
-			color=Colors.DENY_COLOR,
-			description=f"**{interaction.user.mention}**: You changed your mind",
-		)
-		for child in self.children:
-			child.disabled = True
-		await interaction.response.edit_message(content=None, embed=embe, view=self)
+		await interaction.response.defer()
+		try:
+			await interaction.message.delete()
+		except:
+			pass
 		
 class VerifyView(View):
 	def __init__(self):

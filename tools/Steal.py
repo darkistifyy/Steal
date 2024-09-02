@@ -28,7 +28,7 @@ import asqlite
 import uuid
 from discord.ext import tasks, commands
 import random
-from events.Loops import snipe_delete, reminder_task, change_status
+from events.Loops import snipe_delete, reminder_task, change_status, giveaway_check, giveaway_clear
 
 from PIL import Image
 
@@ -92,6 +92,8 @@ class Steal(commands.Bot):
 
 	async def start_loops(self) -> None:
 		snipe_delete.start(self)
+		giveaway_check.start(self)
+		giveaway_clear.start(self)
 		reminder_task.start(self)
 		change_status.start(self)
 
