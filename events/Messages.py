@@ -290,9 +290,11 @@ class Messages(commands.Cog):
 						message.guild.id, row[1],
 					)
 
+					time = discord.utils.format_dt(datetime.datetime.fromtimestamp(row[3]), style='R')
+
 					await message.reply(
 						embed=discord.Embed(
-							description=f"Welcome back {message.author.mention}! You were gone for **{humanize.precisedelta(datetime.datetime.fromtimestamp(int(row[3])), format=f'%0.0f')}**",
+							description=f"Welcome back {message.author.mention}! You dissappeared **{time}**",
 							color=Colors.BASE_COLOR
 						)
 					)
@@ -323,9 +325,10 @@ class Messages(commands.Cog):
 						user = self.bot.get_user(row[1])
 						if user.mentioned_in(message):
 							status = row[2]
+							time = discord.utils.format_dt(datetime.datetime.fromtimestamp(row[3]), style='R')
 							await message.reply(
 								embed=discord.Embed(
-									description=f"> {user.mention} is AFK with the status - **{status if status else "Unretriveable status"}**",
+									description=f"> {user.mention} is AFK, **{status if status else "Unretriveable status"}** - {time}",
 									color=Colors.BASE_COLOR
 								)
 							)
@@ -352,7 +355,7 @@ class Messages(commands.Cog):
 									color=Colors.BASE_COLOR,
 								).add_field(
 									name="Deleted message",
-									value=f"> A **message** from {message.author.mention} (`{message.author}`) was **deleted** in {message.channel}"
+									value=f"> A **message** from {message.author.mention} (`{message.author}`) was **deleted** in {message.channel.mention}"
 								).add_field(
 									name="Message content",
 									value=f">>> {message.content}",
@@ -368,6 +371,7 @@ class Messages(commands.Cog):
 					
 	@Cog.listener("on_message_edit")
 	async def edit_message_log(self, before: discord.Message, after: discord.Message):
+		if before.content == after.content: return
 		if before.author.bot:
 			return
 		async with asqlite.connect("main.db") as db:

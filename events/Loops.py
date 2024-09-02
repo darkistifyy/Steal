@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import random
 import datetime
-from datetime import datetime
 from typing import List, Literal, Optional
 
 import aiohttp
@@ -16,6 +15,7 @@ import asqlite
 import discord
 from discord.ext.commands import Bot
 from tools.Config import Emojis, Colors
+
 
 from requests import HTTPError
 import json
@@ -41,7 +41,7 @@ async def reminder_task(bot: Bot):
 			results = await cur.fetchall()
 
 			for result in results:
-				if datetime.now().timestamp() > result[3]:
+				if datetime.datetime.now().timestamp() > result[3]:
 					channel = bot.get_channel(int(result[2]))
 					if channel:
 						if not channel.guild.chunked:
@@ -87,3 +87,99 @@ async def change_status(bot: Bot):
 	if not temp:
 		status = random.choice(statuses)	
 	await bot.change_presence(activity=status)
+
+@tasks.loop(seconds=10)
+async def giveaway_check(bot: Bot):
+	async with asqlite.connect("main.db") as db:
+		async with db.cursor() as cursor:
+
+			await cursor.execute(
+				"CREATE TABLE IF NOT EXISTS giveaways(guildid INTEGER, channelid INTEGER, messageid INTEGER, prize TEXT, time INTEGER, ended BOOLEAN NOT NULL CHECK (ended IN (0, 1)))"
+			)
+
+			cur = await cursor.execute(
+				"SELECT * FROM giveaways"
+			)
+
+			rows = await cur.fetchall()
+
+			if not rows:
+				return
+
+
+			for row in rows:
+					time = row[4]
+					ended = row [5]
+					if datetime.datetime.now().timestamp() > time and int(ended) != 1:
+						guild = bot.get_guild(row[0])
+						channel = guild.get_channel(row[1])
+						message = await channel.fetch_message(row[2])
+						prize = row [3]
+						print(guild.id)
+						print(channel.id)
+						print(message.id)
+						print(prize)
+						
+						entries = []
+
+						for reaction in message.reactions:
+							if reaction.emoji == Emojis.GIVEAWAY:
+								async for user in reaction.users(limit=None):
+									if user.id != guild.me.id and user in guild.members:
+										entries.append(user.id)
+
+						await cursor.execute(
+							"UPDATE giveaways SET ended = $1",
+							1.0,
+						)
+
+						await db.commit()
+
+						if not entries:
+							if "GIVEAWAY ENDED" in message.content: return
+							embed = discord.Embed(
+								title=f"{prize}",
+								description=f"React below with {Emojis.GIVEAWAY} to enter the giveaway!\n> There were not enough **giveaway** entrants.",
+								color=Colors.BASE_COLOR,
+							)
+
+							return await message.edit(content="GIVEAWAY ENDED.", embed=embed)
+
+						roll = random.choice(entries)
+						winner = guild.get_member(roll)
+
+						if "GIVEAWAY ENDED" in message.content: return
+						embed = discord.Embed(
+							title=f"{prize}",
+							description=f"React below with {Emojis.GIVEAWAY} to enter the giveaway!\n> Ended {discord.utils.format_dt(datetime.datetime.fromtimestamp(time), style="R")} 🎉",
+							color=Colors.BASE_COLOR,
+						)
+
+						await message.edit(content="GIVEAWAY ENDED.", embed=embed)
+
+						await message.reply(f"Congratulations, {winner.mention}, you won **{prize}**!")			
+
+@tasks.loop(minutes=10)
+async def giveaway_clear(bot: Bot):
+	async with asqlite.connect("main.db") as db:
+		async with db.cursor() as cursor:
+
+			await cursor.execute(
+				"CREATE TABLE IF NOT EXISTS giveaways(guildid INTEGER, channelid INTEGER, messageid INTEGER, prize TEXT, time INTEGER, ended BOOLEAN NOT NULL CHECK (ended IN (0, 1)))"
+			)
+
+			cur = await cursor.execute(
+				"SELECT * FROM giveaways"
+			)
+
+			rows = await cur.fetchall()
+
+			if not rows: 
+				return
+
+			for row in rows:
+				if datetime.datetime.now().timestamp() > (datetime.datetime.fromtimestamp(row[4]) + datetime.timedelta(minutes=10)).timestamp():
+					return await cursor.execute(
+						"DELETE FROM giveaways WHERE guildid = $1 AND channelid = $2 AND messageid = $3 AND time = $4",
+						row[0], row[1], row[2], row[4]
+					)
