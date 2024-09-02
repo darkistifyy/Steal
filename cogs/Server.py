@@ -16,6 +16,7 @@ from tools.Validators import ValidTime
 from tools.EmbedBuilder import EmbedBuilder
 import humanize
 import datetime
+import random
 
 from typing import List, Optional, Union
 from tools.Config import Colors, Emojis
@@ -41,16 +42,19 @@ class Server(commands.Cog):
 	@group(
 			name = "welcome",
 			description="The welcoming members module.",
+			brief="welcome",
+			extras= {"permissions": ["manage_channels"]},
 	)
 	async def welcome(self, ctx: StealContext):
 		if not ctx.invoked_subcommand:
-			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `welcome`.')
+			return await ctx.plshelp()
 	
 
 	@welcome.command(
 			name="channel",
 			description="The channel to send welcome messages to.",
-			aliases=["join"],
+			brief="welcome channel #welcomes",
+			extras= {"permissions": ["manage_channels"]},
 	)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_messages=True)
@@ -81,12 +85,8 @@ class Server(commands.Cog):
 
 					await db.commit()
 
-					return await ctx.reply(
-						embed=discord.Embed(
-							description=f"> {Emojis.APPROVE} {ctx.author.mention}: Set the **welcome** channel to {channel.mention} with the script \n```ruby\n{script}```",
-							color=Colors.APPROVE_COLOR
-						)
-					)
+					return await ctx.approve(f"> {Emojis.APPROVE} {ctx.author.mention}: Set the **welcome** channel to {channel.mention} with the script \n```ruby\n{script}```")
+						
 				
 				toggle = row[2]
 
@@ -106,6 +106,8 @@ class Server(commands.Cog):
 			name="disable",
 			description="Disables the welcome module",
 			aliases=["off"],
+			brief="welcome disable",
+			extras= {"permissions": ["manage_channels"]},
 	)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_messages=True)
@@ -145,6 +147,8 @@ class Server(commands.Cog):
 			name="enable",
 			description="Enables the welcome module",
 			aliases=["on"],
+			brief="welcome enable",
+			extras= {"permissions": ["manage_channels"]},
 	)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_messages=True)
@@ -183,7 +187,9 @@ class Server(commands.Cog):
 	@welcome.command(
 			name="script",
 			description="The script for the welcome message.",
-			aliases=["code", "message"]
+			aliases=["code", "message"],
+			brief="welcome script {content:sup {user.mention}}",
+			extras= {"permissions": ["manage_channels"]},
 	)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_messages=True)
@@ -223,6 +229,8 @@ class Server(commands.Cog):
 	@welcome.command(
 			name="config",
 			description="The config for the welcome module",
+			brief="welcome config",
+			extras= {"permissions": ["manage_channels"]},
 	)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_messages=True)
@@ -265,7 +273,7 @@ class Server(commands.Cog):
 					embed=discord.Embed(
 						title="Welcome config",
 						color=Colors.BASE_COLOR,
-						description=f">>> **Channel**: `{channel}`\n**Toggle**: `{toggle.capitalize()}`",
+						description=f">>> **Channel**: {channel}\n**Toggle**: `{toggle.capitalize()}`",
 					).add_field(
 						name="Script",
 						value=f"```ruby\n{script}```",
@@ -278,7 +286,10 @@ class Server(commands.Cog):
 
 	@welcome.command(
 			name="test",
-			description="Test the boost response module"
+			description="Test the boost response module",
+			aliases=["send"],
+			brief="welcome test",
+			extras= {"permissions": ["manage_channels"]},
 	)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_messages=True)
@@ -313,6 +324,8 @@ class Server(commands.Cog):
 	@welcome.command(
 			name="clear",
 			description="Clears the welcome module",
+			brief="welcome clear",
+			extras= {"permissions": ["manage_channels"]},
 	)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_messages=True)
@@ -346,15 +359,19 @@ class Server(commands.Cog):
 	@group(
 			name = "boost",
 			description="The boost response module.",
+			brief="boost",
+			extras= {"permissions": ["manage_channels"]},
 	)
 	async def boost(self, ctx: StealContext):
 		if not ctx.invoked_subcommand:
-			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `boost`.')
+			return await ctx.plshelp()
 	
 
 	@boost.command(
 			name="channel",
 			description="The channel to send boost response messages to.",
+			brief="boost channel #boosts",
+			extras= {"permissions": ["manage_channels"]},
 	)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_messages=True)
@@ -387,11 +404,8 @@ class Server(commands.Cog):
 
 					return await ctx.reply(
 						embed=discord.Embed(
-							description=f"{Emojis.APPROVE} {ctx.author.mention}: Set **boost response** channel to {channel.mention} with the **script** ```{script}```",
+							description=f"{Emojis.APPROVE} {ctx.author.mention}: Set **boost response** channel to {channel.mention} with the **script**\n```ruby\n{script}```",
 							color=Colors.APPROVE_COLOR
-						).set_footer(
-							text=f"Use '{self.bot.command_prefix[0]}boost script <script>' to update the script.",
-							icon_url=self.bot.user.display_avatar.url
 						)
 					)
 
@@ -408,6 +422,8 @@ class Server(commands.Cog):
 			name="disable",
 			description="Disables the boost response module",
 			aliases=["off"],
+			brief="boost disable",
+			extras= {"permissions": ["manage_channels"]},
 	)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_messages=True)
@@ -447,6 +463,8 @@ class Server(commands.Cog):
 			name="enable",
 			description="Enables the boost response module",
 			aliases=["on"],
+			brief="boost enable",
+			extras= {"permissions": ["manage_channels"]},
 	)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_messages=True)
@@ -485,7 +503,9 @@ class Server(commands.Cog):
 	@boost.command(
 			name="script",
 			description="The script for the boost response message.",
-			aliases=["code", "message"]
+			aliases=["code", "message"],
+			brief="boost script {content:ty for the boost {user.mention}}",
+			extras= {"permissions": ["manage_channels"]},
 	)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_messages=True)
@@ -523,7 +543,10 @@ class Server(commands.Cog):
 
 	@boost.command(
 			name="test",
-			description="Test the boost response module"
+			description="Test the boost response module",
+			aliases=["send"],
+			brief="boost test",
+			extras= {"permissions": ["manage_channels"]},
 	)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_messages=True)
@@ -558,6 +581,8 @@ class Server(commands.Cog):
 	@boost.command(
 			name="config",
 			description="The config for the boost response module",
+			brief="boost config",
+			extras= {"permissions": ["manage_channels"]},
 	)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_messages=True)
@@ -612,6 +637,8 @@ class Server(commands.Cog):
 	@boost.command(
 			name="clear",
 			description="Clears the boost response module",
+			brief="boost clear",
+			extras= {"permissions": ["manage_channels"]},
 	)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_messages=True)
@@ -645,15 +672,20 @@ class Server(commands.Cog):
 	@group(
 			name="logs",
 			description="Manage server logs n shit.",
+			brief="logs",
+			aliases=["log"],
+			extras= {"permissions": ["manage_channels"]},
 	)
 	async def logs(self, ctx: StealContext):
 		if not ctx.invoked_subcommand:
-			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `boost`.')
+			await ctx.plshelp()
 	
 	@logs.command(
 			name="messages",
 			description="Log message events to a channel.",
-			aliases=["msgs"]
+			aliases=["msgs"],
+			brief="logs messages #logs",
+			extras= {"permissions": ["manage_channels"]},
 	)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
@@ -672,6 +704,194 @@ class Server(commands.Cog):
 				)
 	
 				await ctx.approve(f"Set **message logs** channel to {channel.mention}")
+
+	@group(
+		name="giveaway",
+		description="Giveaways.",
+		aliases=["gw"],
+		brief="giveaway",
+		extras={"permissions" : ["manage_messages"]}
+
+	)
+	async def giveaway(self, ctx:StealContext):
+		if not ctx.invoked_subcommand:
+			await ctx.plshelp()
+	
+	@giveaway.command(
+		name="create",
+		description="Create a giveaway.",
+		aliases=["start"],
+		brief="giveaway create 1h #general custom role",
+		extras={"permissions" : ["manage_messages"]}
+	)
+	@has_permissions(manage_messages=True)
+	@bot_has_guild_permissions(manage_messages=True)
+	async def giveaway_create(self, ctx: StealContext, duration: ValidTime, *, prize:str, channel: Optional[discord.abc.GuildChannel] = None):
+
+		if not channel:
+			channel = ctx.channel
+
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS giveaways(guildid INTEGER, channelid INTEGER, messageid INTEGER, prize TEXT, time INTEGER, ended BOOLEAN NOT NULL CHECK (ended IN (0, 1)))"
+				)
+
+				ends_in = datetime.datetime.now() + datetime.timedelta(seconds=duration)
+				ends_in_timestamp = discord.utils.format_dt(ends_in, style="R")
+
+				embed = discord.Embed(
+					title=f"{prize}",
+					description=f"React below with {Emojis.GIVEAWAY} to enter the giveaway!\n> Ends in {ends_in_timestamp}",
+					color=Colors.BASE_COLOR,
+				)
+
+				embed.set_author(
+					name=f"Giveaway by {ctx.author}",
+					icon_url=ctx.author.display_avatar.url
+				)
+
+				out = await ctx.send(embed=embed)
+
+				await out.add_reaction(
+					Emojis.GIVEAWAY
+				)
+
+				await db.execute(
+					"INSERT INTO giveaways(guildid, channelid, messageid, prize, time, ended) VALUES($1,$2,$3,$4,$5,$6)",
+					ctx.guild.id, channel.id, out.id, prize, ends_in.timestamp(), 0
+				)
+
+				await db.commit()
+
+	@giveaway.command(
+		name="reroll",
+		description="Re-Rolls a giveaway.",
+		aliases=["rr", "redo"],
+		brief="giveaway reroll [replytomessage]",
+		extras={"permissions" : ["manage_messages"]}
+	)
+	@has_permissions(manage_messages=True)
+	@bot_has_guild_permissions(manage_messages=True)
+	async def giveaway_reroll(self, ctx: StealContext, message: Optional[discord.Message]):
+		if not message:
+			if not ctx.message.reference:
+				return await ctx.warn("**Invalid Input Given**: `message is a required argument that is missing.`")
+			messageid = ctx.message.reference.message_id
+			try:
+				message = await ctx.channel.fetch_message(messageid)
+			except:
+				return await ctx.deny("That message doesn't exist somehow 😭")
+
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS giveaways(guildid INTEGER, channelid INTEGER, messageid INTEGER, prize TEXT, time INTEGER, ended BOOLEAN NOT NULL CHECK (ended IN (0, 1)))"
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM giveaways WHERE guildid = $1 AND channelid = $2 AND messageid = $3",
+					message.guild.id, message.channel.id, message.id,
+				)
+
+				row = await cur.fetchone()
+
+				if not row:
+					return await ctx.warn("**Giveaway** not found or re-roll period expired.")
+				
+				if not row[5] or row[4] > datetime.datetime.now().timestamp():
+					return await ctx.warn("That **giveaway** is still in progress.")
+				
+				entries = []
+
+				for reaction in message.reactions:
+					if reaction.emoji == Emojis.GIVEAWAY:
+						async for user in reaction.users(limit=None):
+							if user.id != message.guild.me.id:
+								entries.append(user.id)
+				
+				if not entries:
+					return await ctx.warn("There are no **giveaway** entrants.")
+
+				roll = random.choice(entries)
+				winner = message.guild.get_member(roll)
+
+				await ctx.message.reply(f"The new winner is {winner.mention}, congrats for winning **{row[3]}**!")	
+
+	@giveaway.command(
+		name="end",
+		description="Ends a giveaway.",
+		brief="giveaway end [replytomessage]",
+		aliases=["stop", "finish"],
+		extras={"permissions" : ["manage_messages"]}
+	)
+	@has_permissions(manage_messages=True)
+	@bot_has_guild_permissions(manage_messages=True)
+	async def giveaway_end(self, ctx: StealContext, message: Optional[discord.Message]):
+		if not message:
+			if not ctx.message.reference:
+				return await ctx.warn("**Invalid Input Given**: `message is a required argument that is missing.`")
+			messageid = ctx.message.reference.message_id
+			try:
+				message = await ctx.channel.fetch_message(messageid)
+			except:
+				return await ctx.deny("That message doesn't exist somehow 😭")
+
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS giveaways(guildid INTEGER, channelid INTEGER, messageid INTEGER, prize TEXT, time INTEGER, ended BOOLEAN NOT NULL CHECK (ended IN (0, 1)))"
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM giveaways WHERE guildid = $1 AND channelid = $2 AND messageid = $3",
+					message.guild.id, message.channel.id, message.id,
+				)
+
+				row = await cur.fetchone()
+
+				if not row:
+					return await ctx.warn("**Giveaway** not found or re-roll period expired.")
+				
+				entries = []
+
+				for reaction in message.reactions:
+					if reaction.emoji == Emojis.GIVEAWAY:
+						async for user in reaction.users(limit=None):
+							if user.id != message.guild.me.id:
+								entries.append(user.id)
+
+				await cursor.execute(
+					"UPDATE giveaways SET ended = $1, time = $2 WHERE guildid = $3 AND channelid = $4 AND messageid = $5",
+					1.0, datetime.datetime.now().timestamp(), message.guild.id, message.channel.id, message.id,
+				)
+
+				await db.commit()
+				if not entries:
+					embed = discord.Embed(
+						title=f"{row[3]}",
+						description=f"React below with {Emojis.GIVEAWAY} to enter the giveaway!\n> There were not enough **giveaway** entrants.",
+						color=Colors.BASE_COLOR,
+					)
+					return await message.edit(content="GIVEAWAY ENDED.", embed=embed)
+
+				roll = random.choice(entries)
+				winner = message.guild.get_member(roll)
+
+				roll = random.choice(entries)
+				winner = message.guild.get_member(roll)
+				embed = discord.Embed(
+					title=f"{row[3]}",
+					description=f"React below with {Emojis.GIVEAWAY} to enter the giveaway!\n> Ended {discord.utils.format_dt(datetime.datetime.now(), style="R")} 🎉",
+					color=Colors.BASE_COLOR,
+				)
+
+				await message.edit(content="GIVEAWAY ENDED.", embed=embed)
+			
+				return await message.reply(f"Congratulations, {winner.mention}, you won **{row[3]}**!")		
 
 async def setup(bot):
 	await bot.add_cog(Server(bot))

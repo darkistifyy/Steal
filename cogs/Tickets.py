@@ -48,7 +48,9 @@ class TicketModPanel(discord.ui.View):
 		tpic = interaction.channel.topic
 		tpic1 = tpic.replace("Closed - ", "")
 		tpic2 = tpic1.replace("Open - ", "")
-		op = await interaction.guild.fetch_member(int(tpic2))
+		op = interaction.guild.get_member(int(tpic2))
+		if not op:
+			return
 
 		if op in interaction.channel.members:
 			return
@@ -59,7 +61,7 @@ class TicketModPanel(discord.ui.View):
 
 		overwrites = {
 			interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False, view_channel = False),
-			op: discord.PermissionOverwrite(send_messages=True, view_channel=False),
+			op: discord.PermissionOverwrite(view_channel=True),
 			interaction.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
 		}
 
@@ -96,7 +98,7 @@ class TicketClose(discord.ui.View):
 
 		overwrites = {
 			interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False, view_channel = False),
-			op: discord.PermissionOverwrite(read_messages=False, send_messages=False, view_channel=False),
+			op: discord.PermissionOverwrite(view_channel=False),
 			interaction.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
 		}
 
@@ -127,7 +129,7 @@ class TicketCreate(discord.ui.View):
 
 		overwrites = {
 			interaction.guild.default_role: discord.PermissionOverwrite(read_messages=False, view_channel=False),
-			interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True, view_channel = True),
+			interaction.user: discord.PermissionOverwrite(read_messages=True,send_messages=True, view_channel = True, attach_files = True, embed_links = True),
 			interaction.guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
 		}
 
@@ -195,21 +197,28 @@ class Tickets(commands.Cog):
 		self.bot = bot
 		self.description = "Server ticket commands."
 	
-	@group(name="ticket", description='Tickets n stuff.')
+	@group(
+			name="ticket",
+			description='Tickets n stuff.',
+			brief="ticket",
+			aliases=["tickets"]
+	)
 	async def ticket(self, ctx: StealContext):
 		if ctx.invoked_subcommand is None:
-			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `ticket`.')
+			return await ctx.plshelp()
 
 	@ticket.command(
 			name='send',
 			description='Creates a ticket panel.', 
 			aliases=['p', 'panel', 'panelcreate'],
+			brief="ticket send {title: ticket lol} #tickets",
+			extras= {"permissions": ["manage_channels"]},
 	)
 	@guild_only()
-	@has_permissions(administrator=True)
+	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@cooldown(1,120, commands.BucketType.guild)
-	async def panelsend(self, ctx: StealContext,  *, script:Optional[str] = commands.param(default=None, displayed_default=None), channel:discord.TextChannel = None) -> None:
+	async def panelsend(self, ctx: StealContext,  *, script:Optional[str] = None, channel:discord.abc.GuildChannel = None) -> None:
 		async with asqlite.connect("main.db") as conn:
 			async with conn.cursor() as cursor:
 
@@ -272,11 +281,13 @@ class Tickets(commands.Cog):
 	@ticket.command(
 			name="opened",
 			description="The script that sends when a ticket is opened.",
-			aliases=["script", "setup"]
+			aliases=["script", "setup"],
+			brief="ticket opened {title:wait for staff lol}",
+			extras= {"permissions": ["manage_roles"]},
 	)
-	@has_permissions(administrator=True)
+	@has_permissions(manage_roles=True)
 	@bot_has_guild_permissions(manage_channels=True)
-	async def ticketopened(self, ctx: StealContext, *, script:Optional[str] = commands.param(default=None, displayed_default=None)):
+	async def ticketopened(self, ctx: StealContext, *, script:Optional[str] = None):
 		async with asqlite.connect("main.db") as conn:
 			async with conn.cursor() as cursor:
 
@@ -295,8 +306,8 @@ class Tickets(commands.Cog):
 				row = await cur.fetchone()
 
 				if not script:
-					default = """{embed}{color: #6a6a6a}{title: __Ticket opened__}{description: ﹒Please explain why you opened this ticket
-﹒Be patient for a response.}{author: Test Server}"""
+					default = """{embed}{title: __Ticket opened__}{description: ﹒Please explain why you opened this ticket
+﹒Be patient for a response.}{author: {guild.name} && {guild.icon}}"""
 
 				if row:
 					if row[2]:
@@ -340,11 +351,19 @@ class Tickets(commands.Cog):
 
 	@ticket.command(
 			name="support",
-			description="Sets the ticket support role."
+			description="Sets the ticket support role.",
+			brief="ticket support @mod",
+			extras= {"permissions": ["manage_roles"]},
 	)
-	@has_permissions(administrator=True)
+	@has_permissions(manage_roles=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	async def ticketsupport(self, ctx: StealContext, role:discord.Role):
+
+		if role.position > ctx.author.top_role.position and ctx.author != ctx.guild.owner:
+			return await ctx.deny(f"You cannot **manage** {role.mention}.")
+		if role.position > ctx.guild.me.top_role.position:
+			return await ctx.warn(f'I cannot **manage** {role.mention}.')
+
 		async with asqlite.connect("main.db") as conn:
 			async with conn.cursor() as cursor:
 
@@ -381,9 +400,11 @@ class Tickets(commands.Cog):
 
 	@ticket.command(
 			name="category",
-			description="Sets the ticket category."
+			description="Sets the ticket category.",
+			brief="ticket category 123456789",
+			extras= {"permissions": ["manage_channels"]},
 	)
-	@has_permissions(administrator=True)
+	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	async def ticketcategory(self, ctx: StealContext, category:discord.CategoryChannel):
 		async with asqlite.connect("main.db") as conn:
@@ -416,7 +437,9 @@ class Tickets(commands.Cog):
 				return await ctx.warn(f"Please run the `{self.bot.command_prefix[0]}ticket opened` command before this one.")
 	@ticket.command(
 			name="config",
-			description="Config for the ticket module."
+			description="Config for the ticket module.",
+			brief="ticket config",
+			extras= {"permissions": ["manage_channels"]},
 	)
 	@has_permissions(manage_channels=True)
 	async def ticketconfig(self, ctx: StealContext):
@@ -468,9 +491,11 @@ class Tickets(commands.Cog):
 
 	@ticket.command(
 			name="clear",
-			description="Clears the ticket config."
+			description="Clears the ticket config.",
+			brief="ticket clear",
+			extras= {"permissions": ["manage_channels"]},
 	)
-	@has_permissions(administrator=True)
+	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	async def ticketclear(self, ctx: StealContext):
 		async with asqlite.connect("main.db") as conn:
@@ -507,6 +532,7 @@ class Tickets(commands.Cog):
 			name='delete', 
 			description='Deletes a ticket.', 
 			aliases=['d', 'dt'], 
+			brief="ticket delete"
 	)
 	@guild_only()
 	@cooldown(1,5, commands.BucketType.channel)
@@ -526,6 +552,7 @@ class Tickets(commands.Cog):
 			name='close', 
 			description='Closes a ticket.', 
 			aliases=['lock', 'tc', 'tl'], 
+			brief="ticket close"
 	)
 	@guild_only()
 	@cooldown(1,5, commands.BucketType.channel)
@@ -580,6 +607,7 @@ class Tickets(commands.Cog):
 			name='open', 
 			description='Opens a ticket.', 
 			aliases=['unlock', 'to', 'tu'], 
+			brief="ticket open"
 	)
 	@guild_only()
 	@cooldown(1,5, commands.BucketType.channel)

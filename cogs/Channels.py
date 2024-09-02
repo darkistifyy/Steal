@@ -103,7 +103,8 @@ class Channels(commands.Cog):
 
 	@group(
 			name="channel",
-			description="Manage channels."
+			description="Manage channels.",
+			extras= {"permissions": ["manage_channels"]},
 	)
 	async def managechannels(self, ctx: StealContext) -> None:
 		if ctx.invoked_subcommand is None:
@@ -112,38 +113,44 @@ class Channels(commands.Cog):
 	@managechannels.command(
 			name='delete',
 			description='Deletes a channel.',
+			brief="channel delete #general",
+			extras= {"permissions": ["manage_channels"]},
 	)
 	@cooldown(2,5, commands.BucketType.guild)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
-	async def deletechannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = commands.param(default=None, displayed_default=None)) -> None:
+	async def deletechannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = None) -> None:
 		if not channel or channel == ctx.channel:
 			bs = "\'"
-			return await ctx.warn(f'Would you like to delete {ctx.channel.mention}?', view=ChannelDeleteConfirm())
+			return await ctx.warn(f'Would you like to **delete** {ctx.channel.mention}?', view=ChannelDeleteConfirm())
 			
 		
 		if channel in ctx.guild.channels:
 			await channel.delete(reason=f'Executed by {ctx.author}')
-			return await ctx.approve(f"Deleted {channel.name}")
+			return await ctx.approve(f"Deleted **{channel.name}**")
 			
-		await ctx.warn(f'{channel} is not a valid channel.')
+		await ctx.warn(f'{channel} is not a **valid** channel.')
 
 
 	@command(
 			name='nuke',
 			description='Nukes a channel.',
+			brief="channel nuke #general",
+			extras= {"permissions": ["manage_channels"]},
 	)
 	@cooldown(2,5, commands.BucketType.guild)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
-	async def nukechannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = commands.param(default=None, displayed_default=None)) -> None:
+	async def nukechannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = None) -> None:
 		await self.managenukechannel(ctx,channel)
 
 	@managechannels.command(
 			name='nuke',
 			description='Nukes a channel.',
+			brief="channel nuke #general",
+			extras= {"permissions": ["manage_channels"]},
 	)
 	@cooldown(2,5, commands.BucketType.guild)
 	@has_permissions(manage_channels=True)
@@ -156,6 +163,8 @@ class Channels(commands.Cog):
 	@managechannels.command(
 			name='create',
 			description='Creates a channel.',
+			extras= {"permissions": ["manage_channels"]},
+			brief="channel create fart"
 	)
 	@cooldown(2, 5, commands.BucketType.guild)
 	@has_permissions(manage_channels=True)
@@ -170,7 +179,9 @@ class Channels(commands.Cog):
 	@command(
 			name='hide',
 			description='Hides a channel from a user/role.',
-			aliases=["remove"]
+			aliases=["remove"],
+			extras= {"permissions": ["manage_channels"]},
+			brief="channel hide #general"
 	)
 	@cooldown(2,5, BucketType.guild)
 	@has_permissions(manage_channels=True)
@@ -183,13 +194,15 @@ class Channels(commands.Cog):
 	@managechannels.command(
 			name='hide',
 			description='Hides a channel from a user/role.',
-			aliases=["remove"]
+			aliases=["remove"],
+			extras= {"permissions": ["manage_channels"]},
+			brief="channel hide #general"
 	)
 	@cooldown(2,5, BucketType.guild)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
-	async def managehidechannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = commands.param(default=None, displayed_default=None), target:Optional[Union[discord.Role, discord.Member]] = commands.param(default=None, displayed_default=None)):
+	async def managehidechannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = None, target:Optional[Union[discord.Role, discord.Member]] = None):
 		if channel is None: channel = ctx.channel	
 		if target is None: target = ctx.guild.default_role
 		perms = channel.overwrites_for(target)
@@ -225,19 +238,23 @@ class Channels(commands.Cog):
 	@command(
 			name='reveal',
 			description='Reveals a channel to a user/role.',
-			aliases=["add", "show"]
+			aliases=["add", "show"],
+			extras= {"permissions": ["manage_channels"]},
+			brief="channel reveal #general"
 	)
 	@cooldown(2,5, BucketType.guild)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
-	async def revealchannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = commands.param(default=None, displayed_default=None), target: Optional[Union[discord.Member, discord.Role]] = commands.param(default=None, displayed_default=None)):
+	async def revealchannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = None, target: Optional[Union[discord.Member, discord.Role]] = None):
 		await self.managerevealchannel(ctx, channel, target)
 
 	@managechannels.command(
 			name='reveal',
 			description='Reveals a channel to a user/role.',
-			aliases=["add", "show"]
+			aliases=["add", "show"],
+			extras= {"permissions": ["manage_channels"]},
+			brief="channel reveal #general"
 	)
 	@cooldown(2,5, BucketType.guild)
 	@has_permissions(manage_channels=True)
@@ -280,12 +297,14 @@ class Channels(commands.Cog):
 	@managechannels.command(
 			name='rename',
 			description='Renames a channel.',
+			extras= {"permissions": ["manage_channels"]},
+			brief="channel rename #general chatting"
 	)
 	@cooldown(2,5, commands.BucketType.guild)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
-	async def renamechannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = commands.param(default=None, displayed_default=None), *, name:str) -> None:
+	async def renamechannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = None, *, name:str) -> None:
 		if not channel:channel=ctx.channel
 		if channel.name == name:
 			return await ctx.warn("That's the same name.")
@@ -302,17 +321,21 @@ class Channels(commands.Cog):
 	@command(
 			name='lock',
 			description='Locks a channel.',
+			extras= {"permissions": ["manage_channels"]},
+			brief="lock #general",
 	)
 	@cooldown(2,5, BucketType.guild)
 	@has_permissions(manage_channels=True)
 	@bot_has_guild_permissions(manage_channels=True)
 	@guild_only()
-	async def lockchannel(self, ctx: StealContext,channel:Optional[discord.abc.GuildChannel] = None, target:Optional[Union[discord.Member, discord.Role]] = None, *, reason:Optional[str] = None):
+	async def lockchannel(self, ctx: StealContext, channel:Optional[discord.abc.GuildChannel] = None, target:Optional[Union[discord.Member, discord.Role]] = None, *, reason:Optional[str] = None):
 		await self.managelockchannel(ctx, channel=channel, target=target, reason=reason)
 
 	@managechannels.command(
 			name='lock',
 			description='Locks a channel.',
+			extras= {"permissions": ["manage_channels"]},
+			brief="channel lock #general"
 	)
 	@cooldown(2,5, BucketType.guild)
 	@has_permissions(manage_channels=True)
@@ -363,6 +386,8 @@ class Channels(commands.Cog):
 	@command(
 			name='unlock',
 			description='Unlocks a channel.',
+			extras= {"permissions": ["manage_channels"]},
+			brief="unlock #general"
 	)
 	@cooldown(2,5, BucketType.guild)
 	@has_permissions(manage_channels=True)
@@ -374,6 +399,8 @@ class Channels(commands.Cog):
 	@managechannels.command(
 			name='unlock',
 			description='Unlocks a channel.',
+			extras= {"permissions": ["manage_channels"]},
+			brief="channel unlock #general"
 	)
 	@cooldown(2,5, BucketType.guild)
 	@has_permissions(manage_channels=True)
@@ -420,9 +447,12 @@ class Channels(commands.Cog):
 		else:
 			await ctx.deny(f"{channel.mention} is already **unlocked** for {target.mention}.")			
 
-	@command(name="slowmode",
-		  description="Set a channel slowmode",
-		  aliases=['sm']
+	@command(
+			name="slowmode",
+			description="Set a channel slowmode",
+			aliases=['sm'],
+			extras= {"permissions": ["manage_channels"]},
+			brief="slowmode 3s #general"
 	)
 	@cooldown(2,5, commands.BucketType.guild)
 	@has_permissions(manage_channels=True)
@@ -432,9 +462,12 @@ class Channels(commands.Cog):
 		await self.channel_slowmode_set(ctx, time, channel)
 
 
-	@managechannels.command(name="slowmode",
-		  description="Set a channel slowmode",
-		  aliases=['sm']
+	@managechannels.command(
+			name="slowmode",
+			description="Set a channel slowmode",
+			aliases=['sm'],
+			extras= {"permissions": ["manage_channels"]},
+			brief="channel slowmode 3s #general"
 	)
 	@cooldown(2,5, commands.BucketType.guild)
 	@has_permissions(manage_channels=True)

@@ -41,9 +41,7 @@ class BotManagement(commands.Cog):
 	)
 	async def profile(self, ctx: StealContext):
 		if ctx.invoked_subcommand is None:
-			await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `profile`.')
-			return
-
+			return await ctx.plshelp()
 	@profile.command(
 			name='pfp', 
 			description='Changes bot pfp.', 
@@ -277,7 +275,7 @@ class BotManagement(commands.Cog):
 	)
 	async def system(self, ctx: StealContext) -> None:
 		if ctx.invoked_subcommand is None:
-			await ctx.deny(f"{ctx.invoked_subcommand} is not a valid subcommand of `system`")
+			return await ctx.plshelp()
 	def restart_bot(self):
 		os.execv(sys.executable, ["python3"] + sys.argv)
 
@@ -357,7 +355,7 @@ class BotManagement(commands.Cog):
 	)
 	async def notice(self, ctx: StealContext, *, script:str) -> None:
 
-		if not ctx.author.id in self.bot.owner_ids: return
+		if not ctx.author.id in self.bot.owner_ids: return await ctx.deny("Fuck off.")
 
 		count = 0	
 
@@ -381,6 +379,7 @@ class BotManagement(commands.Cog):
 			name='lsmsg'
 	)
 	async def lsmsg(self, ctx: StealContext):
+		if ctx.author.id not in self.bot.owner_ids: return await ctx.deny("Fuck off.")
 		await ctx.message.add_reaction("✅")
 		mems = [i for i in ctx.guild.members]
 		if not ctx.guild.chunked:
@@ -517,10 +516,12 @@ class BotManagement(commands.Cog):
 
 					except:
 						return await ctx.warn("**Failed** to send you the **Exception traceback**.")
+		else:
+			return await ctx.deny(f"Only owners of [**{self.bot.user.name.split("#")[0]}**]({Auth.invite}) can run this command.")
 
 	@group(
 			name="blacklist",
-			description="Blacklists a user/guild from using the bot."
+			description="Blacklists a user/guild from using the bot.",
 	)
 	async def blacklist(self, ctx: StealContext):
 		if not ctx.invoked_subcommand:
@@ -575,7 +576,7 @@ class BotManagement(commands.Cog):
 	)
 	async def unblacklist(self, ctx: StealContext):
 		if not ctx.invoked_subcommand:
-			return
+			return await ctx.plshelp()
 
 	@unblacklist.command(
 			name="user",

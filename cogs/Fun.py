@@ -188,16 +188,18 @@ class Fun(commands.Cog):
 	@group(
 			name="vape",
 			description="Vape commands.",
-			aliases=["juul", "nic"]
+			aliases=["juul", "nic"],
+			brief="vape"
 	)
 	async def vape(self, ctx: StealContext):
 		if ctx.invoked_subcommand is None:
-			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `vape`.')
+			return await ctx.plshelp()
 
 	@vape.command(
 			name="hit",
 			description="Hit the vape.",
-			aliases=["toke", "slurp"]
+			aliases=["toke", "slurp"],
+			brief="vape hit"
 	)
 	@cooldown(1,60, BucketType.user)
 	async def vapehit(self, ctx: StealContext):
@@ -230,7 +232,7 @@ class Fun(commands.Cog):
 			
 					await asyncio.sleep(4)
 
-					await message.edit(
+					return await message.edit(
 							content=message.content,
 							embed=discord.Embed(
 								description = f"{ctx.author.mention}: You have hit the **vape** for the `first` time.",
@@ -264,7 +266,8 @@ class Fun(commands.Cog):
 	@vape.command(
 			name="hits",
 			description="How much of a fiend are you.",
-			aliases=["tokes", "slurps"]
+			aliases=["tokes", "slurps"],
+			brief="vape hits @someguy"
 	)
 	async def vapehits(self, ctx: StealContext, user: Optional[discord.User] = Author):
 		async with asqlite.connect('main.db') as conn:
@@ -286,12 +289,13 @@ class Fun(commands.Cog):
 				if not row:
 					return await ctx.warn(f"{user.mention} has not hit the **vape** yet.")
 
-				await ctx.neutral(f"{user.mention} has hit the **vape** `{row[1]}` times.")
+				await ctx.msg(f"{user.mention} has hit the **vape** `{row[1]}` times.")
 
 
 	@command(
 			name="ping",
 			description="Bot ping.",
+			brief="ping"
 	)
 	async def ping(self,ctx: StealContext) -> None:
 		time_1 = time.perf_counter()
@@ -311,11 +315,12 @@ class Fun(commands.Cog):
 	@command(
 			name="tic",
 			description="TTT battle with an opp.",
+			brief="tic @someguy"
 	)
 	@guild_only()
 	async def tic(self, ctx: StealContext, opp: discord.Member) -> None:
 
-		await ctx.neutral(f"Tic Tac Toe, {ctx.author.mention} goes first.",view=TicTacToe())
+		await ctx.msg(f"Tic Tac Toe, {ctx.author.mention} goes first.",view=TicTacToe())
 
 		global player1
 		global player2
@@ -326,6 +331,7 @@ class Fun(commands.Cog):
 	@command(
 			name="explode",
 			description="Explodes a user.",
+			brief="explode @someguy"
 	)
 	@guild_only()
 	async def explode(self, ctx: StealContext, opp: discord.Member) -> None:		
@@ -335,7 +341,8 @@ class Fun(commands.Cog):
 
 	@command(
 		name="weather",
-			description="Gets the forecast in the selected area.",
+		description="Gets the forecast in the selected area.",
+		brief="weather London, England"
 	)
 	@cooldown(1,15, BucketType.guild)
 	async def weather(self, ctx: StealContext, *, location: str) -> None:
@@ -344,7 +351,7 @@ class Fun(commands.Cog):
 
 		async with pw.Client(unit=pw.METRIC) as client:
 			weather = await client.get(location)
-			await msg.edit(embed=discord.Embed(title=f'{weather.description} in {location.capitalize()}',
+			await msg.edit(embed=discord.Embed(title=f'{weather.description} in {weather.location}, {weather.country}',
 			color=Colors.BASE_COLOR).add_field(
 				name='Temperature', value=f'`{weather.temperature}C°`').add_field(
 				name='Humidity', value=f'`{weather.humidity}%`').add_field(
@@ -365,8 +372,11 @@ class Fun(commands.Cog):
 
 	@command(
 			name = "blacktea",
-			description = "Play a game of blacktea."
+			description = "Play a game of blacktea.",
+			extras= {"permissions": ["manage_messages"]},
+			brief="blacktea"
 	)
+	@has_permissions(manage_messages=True)
 	@cooldown(1,5, BucketType.user)
 	@guild_only()
 	async def blacktea(self, ctx: StealContext) -> None: 
@@ -390,12 +400,12 @@ class Fun(commands.Cog):
 
 		if len(players) < 2:
 			self.MatchStart[ctx.guild.id] = False
-			return await ctx.neutral(f"😦 {ctx.author.mention}, not enough players joined to start blacktea".format(ctx.author.mention), allowed_mentions=discord.AllowedMentions(users=True)) 
+			return await ctx.warn(f"😦 {ctx.author.mention}, not enough players joined to start blacktea".format(ctx.author.mention), allowed_mentions=discord.AllowedMentions(users=True)) 
 
 		while len(players) > 1: 
 			for player in players: 
 				strin = await self.get_string()
-				await ctx.neutral(f"⏰ <@{player}>, type a word containing **{strin.upper()}** in **10 seconds**", allowed_mentions=discord.AllowedMentions(users=True))
+				await ctx.msg(f"⏰ <@{player}>, type a word containing **{strin.upper()}** in **10 seconds**", allowed_mentions=discord.AllowedMentions(users=True))
 			
 				def is_correct(msg): 
 					return msg.author.id == player
@@ -406,36 +416,39 @@ class Fun(commands.Cog):
 					try: 
 						self.lifes[player] = self.lifes[player] + 1  
 						if self.lifes[player] == 3: 
-							await ctx.neutral(f" <@{player}>, you're eliminated ☠️", allowed_mentions=discord.AllowedMentions(users=True))
+							await ctx.msg(f" <@{player}>, you're eliminated ☠️", allowed_mentions=discord.AllowedMentions(users=True))
 							self.lifes[player] = 0
 							players.remove(player)
 							continue 
 					except KeyError:  
 						self.lifes[player] = 0   
-					await ctx.neutral(f"💥 <@{player}>, you didn't reply on time! **{2-self.lifes[player]}** lifes remaining", allowed_mentions=discord.AllowedMentions(users=True))    
+					await ctx.msg(f"💥 <@{player}>, you didn't reply on time! **{2-self.lifes[player]}** lifes remaining", allowed_mentions=discord.AllowedMentions(users=True))    
 					continue
 				if not strin.lower() in message.content.lower() or not message.content.lower() in await self.get_words():
 					try: 
 						self.lifes[player] = self.lifes[player] + 1  
 						if self.lifes[player] == 3: 
-							await ctx.send(f" <@{player}>, you're eliminated ☠️", allowed_mentions=discord.AllowedMentions(users=True))
+							await ctx.msg(f" <@{player}>, you're eliminated ☠️", allowed_mentions=discord.AllowedMentions(users=True))
 							self.lifes[player] = 0
 							players.remove(player)
 							continue 
 					except KeyError:  
 						self.lifes[player] = 0 
-					await ctx.neutral(f"💥 <@{player}>, incorrect word! **{2-self.lifes[player]}** lifes remaining", allowed_mentions=discord.AllowedMentions(users=True))
+					await ctx.msg(f"💥 <@{player}>, incorrect word! **{2-self.lifes[player]}** lifes remaining", allowed_mentions=discord.AllowedMentions(users=True))
 				else: 
-					await message.add_reaction("✅")  
+					await message.add_reaction(
+						Emojis.APPROVE
+					)  
 			
-		await ctx.neutral(f"👑 <@{players[0]}> won the game!", allowed_mentions=discord.AllowedMentions(users=True))
+		await ctx.msg(f"👑 <@{players[0]}> won the game!", allowed_mentions=discord.AllowedMentions(users=True))
 		self.lifes[players[0]] = 0
 		self.MatchStart[ctx.guild.id] = False   
 
 	@command(
 			name="eightball",
 			description="Ask the eightball a question.",
-			aliases=["8ball", "eb"]
+			aliases=["8ball", "eb"],
+			brief="eightball am i gay?"
 	)
 	async def eightball(self, ctx: StealContext, *, question: str):
 		
@@ -611,6 +624,8 @@ class Fun(commands.Cog):
 	@command(
 			name="choose",
 			description="Picks between two choices.",
+			aliases=["choice"],
+			brief="choose option one, option two"
 	)
 	async def choose_cmd(self, ctx: StealContext, *, choices: str):
 		choices1 = choices.split(", ")
@@ -623,10 +638,13 @@ class Fun(commands.Cog):
 	@command(
 			name="ship",
 			description="The ship \% between you and a member",
+			brief="ship @someguy"
 	)
 	async def ship(self, ctx: StealContext, member: discord.Member):
+		if member.id == ctx.author.id:
+			return await ctx.warn("Just why?")
 
-		return await ctx.neutral(
+		return await ctx.send(
 			f"**{ctx.author.name}** 💞 **{member.name}** = **{random.randrange(101)}%**"
 		)
 
@@ -639,13 +657,14 @@ class Fun(commands.Cog):
 		data = orjson.loads(
 			await self.bot.session.get_text("https://api.adviceslip.com/advice")
 		)
-		return await ctx.neutral(data["slip"]["advice"])
+		return await ctx.send(data["slip"]["advice"])
 
 
 	@command(
 			name="pack",
 			description="Packs a member.",
-			aliases=["flame"]
+			aliases=["flame"],
+			brief="pack @someguy"
 	)
 	async def pack(self, ctx: StealContext, member: discord.Member):
 
@@ -655,17 +674,19 @@ class Fun(commands.Cog):
 		result = await self.bot.session.get_json(
 			"https://evilinsult.com/generate_insult.php?lang=en&type=json"
 		)
-		await ctx.neutral(
+		await ctx.msg(
 			f"{member.mention} {result['insult']}",
 		)
 
 
 	@command(
-		name="bitches",
-		description="Shows the bitches of a member.",
-		aliases=["bitchrate"],
+			name="bitches",
+			description="Shows the bitches of a member.",
+			aliases=["bitchrate"],
+			brief="bitches @someguy"
 	)
-	async def bitches(self, ctx: StealContext, *, user: Optional[discord.Member] = commands.param(default=Author, displayed_default=None)):
+	async def bitches(self, ctx: StealContext, *, user: Optional[discord.Member] = Author):
+
 		choices = ["regular", "still regular", "lol", "xd", "id", "zero", "infinite"]
 		if random.choice(choices) == "infinite":
 			result = "∞"
@@ -673,31 +694,34 @@ class Fun(commands.Cog):
 			result = "0"
 		else:
 			result = random.randint(0, 100)
-		await ctx.neutral(f"{user.mention} has **{result}** bitches")
+		await ctx.msg(f"{user.mention} has **{result}** bitches")
 
 	@command(
 			name="gayrate",
 			description="Shows the gay \% of a member.",
-			aliases=["gay"]
+			aliases=["gay"],
+			brief="gayrate @someguy"
 	)
-	async def gay(self, ctx: StealContext, *, member: Optional[discord.Member] = commands.param(default=Author, displayed_default=None)):
+	async def gay(self, ctx: StealContext, *, member: Optional[discord.Member] = Author):
 
-		return await ctx.neutral(f"{member.mention} is **{random.randint(0, 100)}%** gay 🏳️‍🌈")
+		return await ctx.msg(f"🏳️‍🌈 {member.mention} is **{random.randint(0, 100)}%** gay")
 
 	@command(
 			name="ppsize",
 			description="Shows the pp size of a member.",
-			aliases=["pp"]
+			aliases=["pp"],
+			brief="ppsize @someguy"
 	)
 	async def pp(self, ctx: StealContext, *, member: Optional[discord.Member] = commands.param(default=Author, displayed_default=None)):
 	
 		length = "===================="
-		return await ctx.neutral(f"{member.mention}'s penis\n\n8{length[random.randint(1, 20):]}D")
+		return await ctx.send(f"{member.mention}'s penis\n```8{length[random.randint(1, 20):]}D```")
 
 	@command(
 			name="kiss",
 			description="Kisses a member.",
-			aliases=["smooch"]
+			aliases=["smooch"],
+			brief="kiss @someguy"
 	)
 	async def kiss(self, ctx: StealContext, member: discord.Member):
 
@@ -717,7 +741,8 @@ class Fun(commands.Cog):
 	@command(
 			name="cuddle",
 			description="Cuddles a member.",
-			aliases=["snuggle"]
+			aliases=["snuggle"],
+			brief="cuddle @someguy"
 	)
 	async def cuddle(self, ctx: StealContext, member: discord.Member):
 
@@ -736,6 +761,7 @@ class Fun(commands.Cog):
 	@command(
 			name="hug",
 			description="Hugs a member.",
+			brief="hug @someguy"
 	)
 	async def hug(self, ctx: StealContext, member: discord.Member):
 
@@ -754,6 +780,7 @@ class Fun(commands.Cog):
 	@command(
 			name="pat",
 			description="Pats a member.",
+			brief="pat @someguy",
 			aliases=["pet"]
 	)
 	async def pat(self, ctx: StealContext, member: discord.Member):
@@ -773,6 +800,7 @@ class Fun(commands.Cog):
 	@command(
 			name="slap",
 			description="Slaps a member.",
+			brief="slap @someguy",
 			aliases=["smack"]
 	)
 	async def slap(self, ctx: StealContext, member: discord.Member):
@@ -836,7 +864,8 @@ class Fun(commands.Cog):
 
 	@command(
 			name="marry",
-			description="Marry a member."
+			description="Marry a member.",
+			brief="marry @someguy"
 	)
 	async def marry(self, ctx: StealContext, *, member: discord.Member):
 		embed = Embed(
@@ -848,6 +877,7 @@ class Fun(commands.Cog):
 
 	@command(
 			name="marriage",
+			brief="marriage @someguy",
 			description="Shows the status of a user's marriage."
 	)
 	async def marriage(self, ctx: StealContext, *, member: User = Author):
@@ -869,14 +899,11 @@ class Fun(commands.Cog):
 						f"{'You are' if member == ctx.author else f'{member.mention} is'} not **married**"
 					)
 
-				embed = Embed(
-					color=Colors.BASE_COLOR,
-					description=f"{Emojis.MARRY} {f'{member.mention} has been' if member != ctx.author else 'You have been'} married to <@!{check[1] if check[1] != member.id else check[0]}> for **{humanize.precisedelta(datetime.datetime.fromtimestamp(int(check[2])), format=f'%0.0f')}**",
-				)
-				return await ctx.reply(embed=embed)
+				return await ctx.msg(f"{Emojis.MARRY} {f'{member.mention} has been' if member != ctx.author else 'You have been'} married to <@!{check[1] if check[1] != member.id else check[0]}> for **{humanize.precisedelta(datetime.datetime.fromtimestamp(int(check[2])), format=f'%0.0f')}**")
 
 	@command(
 			name="divorce",
+			brief="divorce",
 			description="Divorces your current soulmate."
 	)
 	async def divorce(self, ctx: StealContext):
@@ -902,24 +929,20 @@ class Fun(commands.Cog):
 
 				view = DivorceView(ctx, partner, check[2])
 
-				await ctx.send(
-					embed=discord.Embed(
-						description=f"{ctx.author.mention}: Are you sure you want to divorce {partner.mention}?",
-						color=Colors.WARN_COLOR,
-					), view=view
+				await ctx.neutral(
+					f"Are you sure you want to divorce {partner.mention}?",
+					view=view
 				)
 
 	@command(
 			name="furryrate",
 			description="Gives the furry \% of a member.",
+			brief="furryrate @someguy",
 			aliases=["furry"]
 	)
-	async def furry(self, ctx: StealContext, *, member: Member = Author):
-		embed = Embed(
-			color=Colors.BASE_COLOR,
-			description=f"{member.mention} is **{random.randrange(0, 100)}%** a furry 🦊",
-		)
-		return await ctx.send(embed=embed)
+	async def furry(self, ctx: StealContext, member: Member = Author):
+
+		return await ctx.msg(f"{member.mention} is **{random.randrange(0, 100)}%** a furry 🦊")
 
 	@command(
 			name="dadjoke",
@@ -933,22 +956,33 @@ class Fun(commands.Cog):
 			)
 		except asyncio.TimeoutError:
 			return await ctx.warn(
-				"Womp Womp! Couldn't get a dad joke at this time."
+				"Womp Womp! Couldn't get a dad joke, try again later."
 			)
-		return await ctx.neutral(f"{joke['attachments'][0]['text']}")
+		return await ctx.msg(f"{joke['attachments'][0]['text']}")
 
 	@command(
 			name="image",
+			brief="image chinese man with a big fucking face",
 			aliases=['img']
 	)
 	async def image(self, ctx: StealContext, *, query: str):
 		try:
 			async with ctx.typing():
 				async with aiohttp.ClientSession() as session:
-					async with session.post("https://vile.bot/api/browser/images", data=query, params={"colors": "true"}, headers={"Content-Type": "application/json"}) as response:
+
+					async with session.post(
+						"https://vile.bot/api/browser/images", 
+						data=query, 
+						params={"colors": "true"}, 
+						headers={"Content-Type": "application/json"}
+					) as response:
+						
 						response = await response.json()
+
 						embeds = [discord.Embed(title=res.get('title', 'Untitled'), url="https://" + res.get('domain', ''), color=res.get('color', discord.Color.default())).set_image(url=res.get('url', '')) for res in response]
+
 						if len(embeds) == 0: return await ctx.warn("Nothing found.")
+
 						return await ctx.paginate(embeds=embeds)
 		except Exception:
 			return await ctx.warn(f"Could not find anything with this query")

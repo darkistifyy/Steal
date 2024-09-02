@@ -15,6 +15,7 @@ from managers.context import StealContext
 
 from typing import List, Optional
 from tools.Config import Colors, Emojis
+from tools.Validators import ValidTime
 
 time_convert = {"s": 1, "m": 60, "h": 3600, "d": 86400}
 
@@ -35,205 +36,164 @@ class Mod(commands.Cog):
 	@group(
 			name='nickname',
 			description='Nicknames.',
-			aliases=['nick']
+			aliases=['nick'],
+			brief="nickname",
+			extras= {"permissions": ["manage_nicknames"]},
 	)
-	async def nick(self, ctx: StealContext):
+	async def nick(self, ctx: StealContext) -> None:
 		if ctx.invoked_subcommand is None:
-			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `nick`.')
+			return await ctx.plshelp()
 		
 	@nick.command(
 			name='force',
 			description='Forces a nickname onto a user.',
+			brief='nickname force @someguy thatguy',
+			extras= {"permissions": ["manage_nicknames"]},
 		)
 	@has_permissions(manage_nicknames=True)
 	@bot_has_guild_permissions(manage_nicknames=True)
-	@cooldown(1,10, BucketType.user)
-	async def nickforce(self, ctx: StealContext, member:discord.Member, *, nick:Optional[str] = commands.param(default="No reason.", displayed_default=None)):
+	@guild_only()
+	async def nickforce(self, ctx: StealContext, member:discord.Member, *, nick:str=None) -> None:
 		try:
-			if nick is not None:
-				await member.edit(nick=nick, reason=f'Executed by {ctx.author}')
-				return await ctx.approve(f"Forced {member.mention}'s nick - **{nick}**.")
-			else:
-				await member.edit(nick=nick, reason=f'Executed by {ctx.author}')
-				return await ctx.approve(f"Removed {member.mention}'s nick.")
+			await member.edit(nick=nick, reason=f'Executed by {ctx.author}')
+			return await ctx.approve(f"**Forced** a **nickname** on {member.mention} - **{nick}**.")
 		except:
-			return await ctx.deny(f'Failed to force a nick on {member.mention}.')
+			return await ctx.deny(f'**Failed** to **force** a **nickname** on {member.mention}.')
 
 	@nick.command(
 			name='set', 
 			description='Sets your nickname.', 
+			brief="nickname set awesomenickname",
+			extras= {"permissions": ["manage_nicknames"]},
 	)
 	@has_permissions(manage_nicknames=True)
 	@bot_has_guild_permissions(manage_nicknames=True)
-	@cooldown(1,10, BucketType.user)
-	async def nickset(self, ctx: StealContext, *, nick:Optional[str] = commands.param(default="No reason.", displayed_default=None)):
+	async def nickset(self, ctx: StealContext, *, nick:str = None) -> None:
 		try:
-			if nick is not None:
-				await ctx.author.edit(nick=nick, reason=f'Executed by {ctx.author}')
-				return await ctx.approve(f"Set your nick - **{nick}**.")
-			else:
-				await ctx.author.edit(nick=nick, reason=f'Executed by {ctx.author}')
-				return await ctx.approve(f"Removed your nick.")
+			await ctx.author.edit(nick=nick, reason=f'Executed by {ctx.author}')
+			return await ctx.approve(f"**Set** your **nickname** - **{nick}**.")
 		except:
-			return await ctx.deny(f'Failed to set your nick.')
+			return await ctx.deny(f'**Failed** to **remove** your **nickname**.')
 		
 	@nick.command(
 			name='remove', 
 			description="Removes a user's nickname.", 
+			brief='nickname remove @someguy',
+			extras= {"permissions": ["manage_nicknames"]},
 	)
 	@has_permissions(manage_nicknames=True)
 	@bot_has_guild_permissions(manage_nicknames=True)
 	@cooldown(1,10, BucketType.user)
-	async def nickremove(self, ctx: StealContext, member:discord.Member):
+	async def nickremove(self, ctx: StealContext, member:Optional[discord.Member] = Author) -> None:
 		try:
 			if member.nick:
 				await member.edit(nick=None, reason=f'Executed by {ctx.author}')
-				return await ctx.approve(f"Removed {member.mention}'s nick.")
+				return await ctx.approve(f"**Removed** the **nickname** for {member.mention}.")
 			else:
-				return await ctx.deny(f'{member.mention} does not have a nick..')
+				return await ctx.deny(f'{member.mention} does not have a **nickname**.')
 		except:
-			return await ctx.deny(f'Failed to force a nick on {member.mention}.')
+			return await ctx.deny(f'**Failed** to remove the **nickname** for {member.mention}.')
 
 	@command(
-			name = "unban",
-			aliases=["uub"],
-			description='Unbans a user.',
-	)
-	@cooldown(1, 10, BucketType.user)
-	@has_permissions(ban_members=True)
-	@bot_has_guild_permissions(ban_members=True)
-	async def unbanuser(self, ctx: StealContext, user: discord.User, *, reason: Optional[str] = "No reason.") -> None:
-		await self.banremove(ctx, user=user, reason=reason)
-
-	@command(
-			name = "userban",
+			name = "ban",
 			aliases=["ub"],
 			description='Bans a user.',
+			brief = "userban @someguy lol",
+			extras= {"permissions": ["ban_members"]},
 	)
 	@cooldown(1, 10, BucketType.user)
 	@has_permissions(ban_members=True)
 	@bot_has_guild_permissions(ban_members=True)
-	async def banuser(self, ctx: StealContext, user: discord.User, *, reason: Optional[str] = "No reason.") -> None:
-		await self.banadd(ctx, user=user, reason=reason)
-
-
-	@group(name='ban', description='Bans Members.')
-	async def bangroup(self, ctx: StealContext):
-		if ctx.invoked_subcommand is None:
-			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `ban`.')
-		
-	@bangroup.command(
-			name = "add",
-			description='Bans a user.',
-	)
-	@cooldown(1, 10, BucketType.user)
-	@has_permissions(ban_members=True)
-	@bot_has_guild_permissions(ban_members=True)
-	async def banadd(self, ctx: StealContext, user: discord.User, *, reason: Optional[str] = "No reason.") -> None:
+	async def ban(self, ctx: StealContext, user: discord.User, *, reason: Optional[str] = "No reason.") -> None:
 		reason += ' | Executed by {}'.format(ctx.author)
 
-		try:
-			if user not in ctx.guild.members:
-				await ctx.guild.ban(user, reason=reason)
-				return await ctx.approve(f"Successfully banned {user} - **{reason.split(' |')[0]}**")
-			
-			member = ctx.guild.get_member(user.id)
-
-			if member == ctx.guild.owner:
-				return await ctx.warn(f"You're unable to ban the **server owner**.")
-			if member == ctx.author:
-				return await ctx.warn(f"You're unable to ban **yourself**.")
-			if ctx.author.top_role.position <= member.top_role.position:
-				return await ctx.warn(f"You're unable to ban a user with a **higher role** than **yourself**.")
-			
-			await ctx.guild.ban(member, reason=reason)
-			return await ctx.approve(f"Successfully banned {user.mention} - **{reason.split(' |')[0]}**")
-		except:
-			return await ctx.deny(f'Failed to ban {user.mention}.')
+		member = ctx.guild.get_member(user.id)
+		if not member:
+			await ctx.guild.ban(user, reason=reason)
+			return await ctx.approve(f"**Banned** {user} - **{reason.split(' |')[0]}**")
+		if member == ctx.guild.owner:
+			return await ctx.warn(f"You cannot **ban** the **server owner**.")
+		if member == ctx.author:
+			return await ctx.warn(f"You cannot **ban yourself**.")
+		if ctx.author.top_role.position <= member.top_role.position:
+			return await ctx.warn(f"You cannot **ban** a user with a **higher role** than **yourself**.")
 		
-	@bangroup.command(
-			name='remove',
+		await ctx.guild.ban(member, reason=reason)
+		return await ctx.approve(f"**Banned** {user.mention} - **{reason.split(' |')[0]}**")
+			
+	@command(
+			name='unban',
 			description='Removes a ban.', 
-			aliases=['revoke'], 
+			aliases=['unb'],
+			brief="unban someguy.user lol",
+			extras= {"permissions": ["ban_members"]},
 	)
 	@has_permissions(ban_members=True)
 	@bot_has_guild_permissions(ban_members=True)
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
-	async def banremove(self, ctx: StealContext, user:discord.User, *, reason: Optional[str] = "No reason.") -> None:
+	async def unban(self, ctx: StealContext, user:discord.User, *, reason: Optional[str] = "No reason.") -> None:
 		reason += ' | Executed by {}'.format(ctx.author)
 		try:
 			bans = [entry async for entry in ctx.guild.bans(limit=None)]
 			if user in bans:
-				return await ctx.deny(f'{user} is not banned.')
+				return await ctx.deny(f'**{user}** is not **banned**.')
 
 			await ctx.guild.unban(user, reason=reason) 
-			return await ctx.approve(f'Successfully unbanned **{user}** - **{reason.split(" |")[0]}**')
+			return await ctx.approve(f'**Unbanned {user}** - **{reason.split(" |")[0]}**')
 		except Exception as e:
 			print(e)
-			return await ctx.deny(f'Failed to unban **{user}**')
+			return await ctx.deny(f'**Failed** to **unban {user}**')
 
 	@command(
 			name = "kick",
 			aliases = ["getout", "bye"],
+			brief = "kick @someguy lol",
+			extras= {"permissions": ["kick_members"]},
 	)
 	@cooldown(1, 10, BucketType.user)
 	@has_permissions(kick_members=True)
 	@bot_has_permissions(kick_members=True)
-	async def kick(self, ctx: StealContext, user: discord.Member, *, reason: Optional[str] = commands.param(default="No reason.", displayed_default=None)) -> None:
+	async def kick(self, ctx: StealContext, user: discord.Member, *, reason: Optional[str] = "No reason.") -> None:
 		reason += ' | Executed by {}'.format(ctx.author)
 
 		try:
-			if ctx.author is ctx.guild.owner:
-				await user.kick(reason=reason)
-				return await ctx.approve(f'Successfully kicked {user.mention} for {reason.split(" |")[0]}')
+			if user.id == self.bot.user.id:
+				return await ctx.deny("I cannot **mute** myself.")
 			if user is ctx.guild.owner:
-				return await ctx.warn(f"You're unable to kick the **server owner**.")
+				return await ctx.warn(f"You cannot **kick** the **server owner**.")
 			if user is ctx.author:
-				return await ctx.warn(f"You're unable to kick **yourself**.")
+				return await ctx.warn(f"You cannot **kick yourself**.")
 			if ctx.author.top_role.position <= user.top_role.position:
-				return await ctx.warn(f"You're unable to kick a user with a **higher role** than **yourself**.")
+				return await ctx.warn(f"You cannot **kick** a user with a **higher role** than **yourself**.")
 			
 			await user.kick(reason=reason)
-			return await ctx.approve(f'Successfully kicked **{user.mention}** - **{reason.split(" |")[0]}**')
+			return await ctx.approve(f'**Kicked {user.mention}** - **{reason.split(" |")[0]}**')
 		except:
-			return await ctx.deny(f'Failed to kick **{user.mention}**.')
-		
-	@group(
-			name='mute',
-			description='Mutes a member.'
-	)
-	async def mute(self, ctx: StealContext):
-		if ctx.invoked_subcommand is None:
-			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `mute`.')
+			return await ctx.deny(f'**Failed** to **kick {user.mention}**.')
 
-	@mute.command(
-			name='add', 
+	@command(
+			name='mute', 
 			description='Mutes a user.', 
+			aliases=["m"],
+			brief="mute @someguy 10m lol",
+			extras= {"permissions": ["manage_messages"]},
 	)
 	@has_permissions(manage_messages=True)
 	@bot_has_guild_permissions(mute_members=True)
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
-	async def muteadd(self, ctx: StealContext, user: discord.Member, time: str="60s", *, reason: Optional[str] = commands.param(default="No reason.", displayed_default=None)) -> None:
+	async def mute(self, ctx: StealContext, user: discord.Member, time: ValidTime="60s", *, reason: Optional[str] = "No reason.") -> None:
 		reason += ' | Executed by {}'.format(ctx.author)
 		try:
 			if user.id == self.bot.user.id:
 				return await ctx.deny("I cannot **mute** myself.")
-
-			if user.id == ctx.author.id:
-				return await ctx.deny("You cannot **mute** yourself.")
-
-			member = ctx.guild.get_member(user.id)
-			if member:
-
-				if ctx.author.id != ctx.guild.owner_id:
-					if member.top_role.position >= ctx.guild.me.top_role.position:
-						return await ctx.warn("You cannot **mute** a member with a higher role than me.")
-					if member.top_role.position >= ctx.author.top_role.position:
-						return await ctx.warn("You cannot **mute** a member with a higher role than you.")
-			else:
-				pass
+			if user is ctx.guild.owner:
+				return await ctx.warn(f"You cannot **mute** the **server owner**.")
+			if user is ctx.author:
+				return await ctx.warn(f"You cannot **mute yourself**.")
+			if ctx.author.top_role.position <= user.top_role.position:
+				return await ctx.warn(f"You cannot **mute** a user with a **higher role** than **yourself**.")
 			
 			time = humanfriendly.parse_timespan(time)
 
@@ -241,24 +201,27 @@ class Mod(commands.Cog):
 
 			if reason:
 
-				await ctx.approve(f"Muted **{user}** for `{humanfriendly.format_timespan(time)}` - **{reason.split(' |')[0]}**")
+				await ctx.approve(f"**Muted {user}** for `{humanfriendly.format_timespan(time)}` - **{reason.split(' |')[0]}**")
 		except:
-			await ctx.deny(f"Failed to mute **{user}**")
+			await ctx.deny(f"**Failed** to mute **{user}**")
 		
-	@mute.command(
-			name='remove', 
+	@command(
+			name='unmute', 
 			description='Unmutes a member.', 
+			aliases=["um"],
+			brief='unmute @someguy lol',
+			extras= {"permissions": ["manage_messages"]},
 	)
-	@has_permissions(moderate_members=True)
+	@has_permissions(manage_messages=True)
 	@bot_has_guild_permissions(mute_members=True)
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
-	async def muteremove(self, ctx: StealContext, member:discord.Member, *, reason: Optional[str] = commands.param(default="No reason.", displayed_default=None)) -> None:
+	async def unmute(self, ctx: StealContext, member:discord.Member, *, reason: Optional[str] = commands.param(default="No reason.", displayed_default=None)) -> None:
 		reason += ' | Executed by {}'.format(ctx.author)
 		try:
 			if member.is_timed_out():
 				await member.timeout(None, reason=reason)
-				return await ctx.approve(f"Unmuted {member.mention} - **{reason.split(' |')[0]}**")
+				return await ctx.approve(f"**Unmuted** {member.mention} - **{reason.split(' |')[0]}**")
 				
 			return await ctx.warn(f"{member.mention} is not **muted**.")
 		except:
@@ -267,11 +230,13 @@ class Mod(commands.Cog):
 	@command(
 			name='purge',
 			description='Purges messages.',
-			aliases=['p']
+			aliases=['p', 'cleanup'],
+			brief="purge 20",
+			extras= {"permissions": ["manage_messages"]},
 	)
 	@has_permissions(manage_messages=True)
 	@bot_has_guild_permissions(manage_messages=True)
-	@cooldown(1, 30, BucketType.channel)
+	@cooldown(1, 15, BucketType.channel)
 	@guild_only()
 	async def purge(self, ctx: StealContext, number: Optional[int] = commands.param(default=5, displayed_default=None)) -> None:
 		if number <= 100 and ctx.author != ctx.guild.owner or ctx.author == ctx.guild.owner and number <= 200:
@@ -287,28 +252,34 @@ class Mod(commands.Cog):
 	@command(
 			name="pin",
 			description="Pins a message by replying to it.",
+			brief="pin",
+			extras= {"permissions": ["manage_messages"]},
 	)
 	@has_permissions(manage_messages=True)
 	@bot_has_guild_permissions(manage_messages=True)
 	@guild_only()
-	async def pin(self, ctx: StealContext, message:Optional[discord.Message] = commands.param(default=None, displayed_default=None)):
+	async def pin(self, ctx: StealContext, message:Optional[discord.Message]):
 		if message is None:
 			if ctx.message.reference:
 				message = ctx.message.reference.resolved
 			else:
-				return await ctx.warn("Pass a message or reply to pin it.")
-		if message is not None:
+				return await ctx.warn("Pass a **message link** or **reply** to one to **pin** it.")
+		if message:
 			if not message.pinned:
 				await message.pin()
-				await ctx.message.add_reaction(Emojis.APPROVE)
+				return await ctx.message.add_reaction(
+					Emojis.APPROVE
+				)
 			else:
-				await ctx.warn("That message is already pinned.")
+				return await ctx.warn(f"That [**message**]({message.jump_url}) is already **pinned**.")
 		else:
-			await ctx.warn("Pass a message or reply to unpin it.")
+			return await ctx.warn("Pass a **message** or **reply** to one to **pin** it.")
 
 	@command(
 			name="unpin",
 			description="Unpins a message by replying to it.",
+			brief="unpin",
+			extras= {"permissions": ["manage_messages"]},
 	)
 	@has_permissions(manage_messages=True)
 	@bot_has_guild_permissions(manage_messages=True)
@@ -318,31 +289,38 @@ class Mod(commands.Cog):
 			if ctx.message.reference:
 				message = ctx.message.reference.resolved
 			else:
-				return await ctx.warn("Pass a message or reply to unpin it.")
+				return await ctx.warn("Pass a **message** or **reply** to one to **unpin** it.")
 		if message is not None:
 			if message.pinned:
 				await message.unpin()
-				await ctx.message.add_reaction(Emojis.APPROVE)
+				await ctx.message.add_reaction(
+					Emojis.APPROVE
+				)
 			else:
-				await ctx.warn("That message is not pinned.")
+				await ctx.warn(f"That [**message**]({message.jump_url}) is not pinned.")
 		else:
-			await ctx.warn("Pass a message or reply to unpin it.")
+			await ctx.warn("Pass a **message** or **reply** to one to **unpin** it.")
 
 	@command(
 			name="quickpoll", 
 			aliases=["poll"],
-			description="Creates a quickpoll."
+			description="Creates a quickpoll.",
+			extras= {"permissions": ["manage_messages"]},
+			brief='quickpoll "am i cool?" yes, no'
 	)
-	async def quickpoll_cmd(self, ctx: StealContext, question: str, *, answers:Union[str, list]):
+	@guild_only()
+	@has_permissions(manage_messages=True)
+	@bot_has_guild_permissions(manage_messages=True)
+	async def quickpoll(self, ctx: StealContext, question: str, *, answers:Union[str, list]):
 
 		answers = [answer for answer in answers.split(",")]
 		desc = []
 
 		if len(answers) <= 1:
-			return await ctx.warn("You need more than 1 answer.")
+			return await ctx.warn("You need **more** than **1** answer.")
 
 		if len(answers) > 10:
-			return await ctx.warn("You cannot have more than 10 answers.")
+			return await ctx.warn("You **cannot** have **more** than **10** answers.")
 
 		reactions = {
 				1 : "1️⃣",
@@ -378,25 +356,32 @@ class Mod(commands.Cog):
 			number += 1
 
 	@group(
-			name="verify",
+			name="verification",
 			description="The verification system.",
-			aliases=["vrf", "verification"]
+			aliases=["vrf", "verify"],
+			brief="verification"
 	)
-	@has_permissions(administrator=True)
-	@bot_has_guild_permissions(administrator=True)
-	@guild_only()
-	async def verify(self, ctx: StealContext):
+	async def verification(self, ctx: StealContext):
 		if not ctx.invoked_subcommand:
-			return
+			return await ctx.plshelp()
 	
-	@verify.command(
+	@verification.command(
 			name="role",
 			description="The role applied on user verification.",
-			aliases=["r"]
+			aliases=["r"],
+			extras= {"permissions": ["manage_roles"]},
+			brief="verification role @member"
 	)
+	@guild_only()
+	@has_permissions(manage_roles=True)
+	@bot_has_guild_permissions(administrator=True)
 	async def verify_role(self, ctx: StealContext, role: discord.Role):
 		async with asqlite.connect("main.db") as db:
 			async with db.cursor() as cursor:
+
+				if role.position > ctx.author.top_role.position or not ctx.author.top_role and ctx.author is not ctx.guild.owner:
+					return await ctx.warn("You **cannot** set the **verification role** to a role **higher** than your **highest**..")
+
 
 				await cursor.execute(
 					"CREATE TABLE IF NOT EXISTS verify(guildid INTEGER UNIQUE, roleid INTEGER)"
@@ -412,11 +397,16 @@ class Mod(commands.Cog):
 
 				await ctx.approve(f"Set the **verification role** to {role.mention}")
 
-	@verify.command(
+	@verification.command(
 			name="config",
 			description="The verification config.",
-			aliases=["settings"]
+			aliases=["settings"],
+			brief="verification config",
+			extras= {"permissions": ["manage_channels"]},
 	)
+	@guild_only()
+	@has_permissions(manage_channels=True)
+	@bot_has_guild_permissions(administrator=True)
 	async def verify_config(self, ctx: StealContext):
 		async with asqlite.connect("main.db") as db:
 			async with db.cursor() as cursor:
@@ -438,19 +428,21 @@ class Mod(commands.Cog):
 				role = ctx.guild.get_role(row[1])
 
 				if role:
-					return await ctx.reply(f"The **verification role** for this guild is set to {role.mention}.")
-				return await ctx.warn("The **verification role** for this guild is set to an invalid **role**.")
+					return await ctx.neutral(f"The **verification role** for this guild is set to {role.mention}.")
+				return await ctx.warn("The **verification role** for this guild is set to an **invalid role**.")
 
-	@verify.command(
+	@verification.command(
 			name='send',
 			description='Creates a verification panel.', 
 			aliases=['p', 'panel', 'panelcreate'],
+			brief="verification send {title:verify here lol}",
+			extras= {"permissions": ["manage_channels"]},
 	)
 	@guild_only()
-	@has_permissions(administrator=True)
-	@bot_has_guild_permissions(manage_channels=True)
+	@has_permissions(manage_channels=True)
+	@bot_has_guild_permissions(administrator=True)
 	@cooldown(1,120, commands.BucketType.guild)
-	async def verifypanelsend(self, ctx: StealContext,  *, script:Optional[str] = commands.param(default=None, displayed_default=None), channel:discord.TextChannel = None) -> None:
+	async def verifypanelsend(self, ctx: StealContext,  *, script:Optional[str] = None, channel:discord.TextChannel = None) -> None:
 		async with asqlite.connect("main.db") as conn:
 			async with conn.cursor() as cursor:
 
@@ -467,7 +459,7 @@ class Mod(commands.Cog):
 				row = await cur.fetchone()
 
 				if not row:
-					return await ctx.warn(f"Please run the `{self.bot.command_prefix[0]}verify role` command before this one.")
+					return await ctx.warn(f"There is no **verification role** set.")
 				
 				role = ctx.guild.get_role(row[1])
 

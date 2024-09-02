@@ -24,7 +24,10 @@ class Filters(commands.Cog):
 
 	@group(
 			name="filter",
-			description="Filter module."
+			description="Filter module.",
+			extras= {"permissions": ["manage_messages"]},
+			brief="filter",
+			aliases=["filters"]
 	)
 	async def filter(self, ctx: StealContext):
 		if ctx.invoked_subcommand is None:
@@ -32,16 +35,21 @@ class Filters(commands.Cog):
 
 	@filter.group(
 			name="invites",
-			description="The invites filter module."
+			description="The invites filter module.",
+			extras= {"permissions": ["manage_messages"]},
+			brief="filter invites",
+			aliases=["invite"]
 	)
 	async def invites(self, ctx: StealContext):
 		if ctx.invoked_subcommand is None:
-			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `invites`.')
+			return await ctx.plshelp()
 		
 	@invites.command(
 			name="enable",
 			description="Enables the invites filter.",
-			aliases=["on"]
+			aliases=["on"],
+			extras= {"permissions": ["manage_messages"]},
+			brief="filter invites enable"
 	)
 	@has_permissions(manage_messages=True)
 	@bot_has_guild_permissions(administrator=True)
@@ -91,7 +99,9 @@ class Filters(commands.Cog):
 	@invites.command(
 			name="disable",
 			description="Disables the invites filter.",
-			aliases=["off"]
+			aliases=["off"],
+			extras= {"permissions": ["manage_messages"]},
+			brief="filter invites disable"
 	)
 	@has_permissions(manage_messages=True)
 	@bot_has_guild_permissions(administrator=True)
@@ -134,6 +144,8 @@ class Filters(commands.Cog):
 	@invites.command(
 			name="config",
 			description="Sends the invites filter config.",
+			extras= {"permissions": ["manage_messages"]},
+			brief="filter invites config"
 	)
 	@has_permissions(manage_messages=True)
 	@bot_has_guild_permissions(administrator=True)
@@ -169,7 +181,7 @@ class Filters(commands.Cog):
 				
 				embed=discord.Embed(
 						title="Invites Config",
-						description=f">>> **Punishment**: `{res[1]}`\n{f'Duration: `{res[1].capitalize()}`\n' if res[2] > 0 or res[1] == 'mute' else ''}**Toggle**: `{toggle}`",
+						description=f">>> **Punishment**: `{res[1]}`\n{f'**Duration**: `{humanfriendly.format_timespan(res[2])}`\n' if res[2] > 0 or res[1] == 'mute' else ''}**Toggle**: `{toggle}`",
 						color=Colors.BASE_COLOR,
 					).set_author(
 						name=ctx.guild.name,
@@ -180,6 +192,8 @@ class Filters(commands.Cog):
 	@invites.command(
 			name="clear",
 			description="Clears the invites filter config.",
+			extras= {"permissions": ["manage_messages"]},
+			brief="filter invites clear"
 	)
 	@has_permissions(manage_messages=True)
 	@bot_has_guild_permissions(administrator=True)
@@ -218,7 +232,9 @@ class Filters(commands.Cog):
 	@invites.command(
 			name="punishment",
 			description="Sets the punishment for the invites filter.",
-			aliases=["consequence", "action"]
+			aliases=["consequence", "action"],
+			extras= {"permissions": ["moderate_members"]},
+			brief="filter invites punishment mute 5m"
 	)
 	@has_permissions(moderate_members=True)
 	@bot_has_guild_permissions(administrator=True)
@@ -271,7 +287,9 @@ class Filters(commands.Cog):
 
 	@filter.group(
 			name="words",
-			description="The words filter module."
+			description="The words filter module.",
+			extras= {"permissions": ["manage_messages"]},
+			brief="filter words"
 	)
 	async def words(self, ctx: StealContext):
 		if ctx.invoked_subcommand is None:
@@ -280,7 +298,9 @@ class Filters(commands.Cog):
 	@words.command(
 			name="enable",
 			description="Enables the words filter module.",
-			aliases=["on"]
+			aliases=["on"],
+			extras= {"permissions": ["manage_messages"]},
+			brief="filter words enable"
 	)
 	@has_permissions(manage_messages=True)
 	@bot_has_guild_permissions(administrator=True)
@@ -328,7 +348,9 @@ class Filters(commands.Cog):
 	@words.command(
 			name="disable",
 			description="Disables the invites filter module.",
-			aliases=["off"]
+			aliases=["off"],
+			extras= {"permissions": ["manage_messages"]},
+			brief="filter words disable"
 	)
 	@has_permissions(manage_messages=True)
 	@bot_has_guild_permissions(administrator=True)
@@ -368,6 +390,8 @@ class Filters(commands.Cog):
 	@words.command(
 			name="add",
 			description="Blacklists a word for the words filter.",
+			extras= {"permissions": ["manage_messages"]},
+			brief="filter words add fart"
 	)
 	@has_permissions(manage_messages=True)
 	@bot_has_guild_permissions(administrator=True)
@@ -439,7 +463,9 @@ class Filters(commands.Cog):
 			
 	@words.command(
 			name="remove",
-			description="Removes a word from the word filter"
+			description="Removes a word from the word filter",
+			extras= {"permissions": ["manage_messages"]},
+			brief="filter words remove fart"
 	)
 	@has_permissions(manage_messages=True)
 	@bot_has_guild_permissions(administrator=True)
@@ -485,7 +511,9 @@ class Filters(commands.Cog):
 	@words.command(
 			name="punishment",
 			description="Sets the punishment for the invites filter.",
-			aliases=["consequence", "action"]
+			aliases=["consequence", "action"],
+			extras= {"permissions": ["manage_messages"]},
+			brief="filter words punishment mute 5m"
 	)
 	@has_permissions(moderate_members=True)
 	@bot_has_guild_permissions(administrator=True)
@@ -539,6 +567,8 @@ class Filters(commands.Cog):
 	@words.command(
 			name="config",
 			description="Sends the words filter module config.",
+			extras= {"permissions": ["manage_messages"]},
+			brief="filter words config"
 	)
 	@has_permissions(manage_messages=True)
 	@bot_has_guild_permissions(administrator=True)
@@ -589,7 +619,7 @@ class Filters(commands.Cog):
 
 				embed = discord.Embed(
 					color=Colors.BASE_COLOR,
-					description=f"**Toggle**: `{toggle}`\n\n**Words**\n",
+					description=f">>> **Punishment**: `{row[1]}`\n{f'**Duration**: `{humanfriendly.format_timespan(row[2])}`\n'}**Toggle**: `{toggle}`\n\n**Words**\n",
 					title=f"Tags (`{len(entries)}`)",
 				).set_footer(
 							icon_url=self.bot.user.display_avatar.url or None,
@@ -624,6 +654,8 @@ class Filters(commands.Cog):
 	@words.command(
 			name="clear",
 			description="Clears the words filter module config.",
+			extras= {"permissions": ["manage_messages"]},
+			brief="filter words clear"
 	)
 	@has_permissions(manage_messages=True)
 	@bot_has_guild_permissions(administrator=True)

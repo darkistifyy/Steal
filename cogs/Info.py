@@ -15,6 +15,8 @@ import requests
 import humanfriendly
 import humanize
 import time
+import asqlite
+import json
 
 from tools.View import DownloadAsset
 from tools.bytesio import dom_color
@@ -28,6 +30,7 @@ from typing import List, Optional, Union
 from tools.Config import Colors, Emojis, Flags
 from tools.View import Invite
 import math
+import asyncio
 
 class Info(commands.Cog):
 	def __init__(self, bot: Steal):
@@ -38,6 +41,7 @@ class Info(commands.Cog):
 			name="invite",
 			aliases=["support"],
 			description="Sends the support server invite link.",
+			brief="invite",
 	)
 	async def invite(self, ctx: StealContext):
 
@@ -55,6 +59,7 @@ class Info(commands.Cog):
 
 	@command(
 			name="credits",
+			brief="credits",
 			description="Sends the credits of the bot.",
 	)
 	async def credits(self, ctx: StealContext):
@@ -84,6 +89,7 @@ class Info(commands.Cog):
 			name="userinfo",
 			description="Gives userinfo.",
 			aliases=["ui", "uinfo"],
+			brief="userinfo @someguy",
 	)
 	@cooldown(1,15, commands.BucketType.user)
 	@guild_only()
@@ -187,7 +193,8 @@ class Info(commands.Cog):
 	@command(
 			name="serverinfo",
 			description="Gives server info.",
-			aliases=["si"]
+			aliases=["si"],
+			brief="serverinfo",
 	)
 	@cooldown(1,15, BucketType.user)
 	@guild_only()
@@ -257,7 +264,8 @@ class Info(commands.Cog):
 	@command(
 			name="channelinfo",
 			description="Gives channel info.",
-			aliases=["ci"]
+			aliases=["ci"],
+			brief="channelinfo #general"
 	)
 	async def channelinfo(self, ctx: StealContext, channel: Optional[discord.abc.GuildChannel] = None):
 
@@ -291,7 +299,8 @@ class Info(commands.Cog):
 	@command(
 		name = "botinfo",
 		aliases = ["bi"],
-		description = "Get information about the bot."
+		description = "Get information about the bot.",
+		brief="botinfo"
 	)
 	@cooldown(1, 5, commands.BucketType.user)
 	async def botinfo(self, ctx: Context) -> None:
@@ -322,6 +331,7 @@ class Info(commands.Cog):
 			name="inviteinfo",
 			description="Gives invite info.",
 			aliases=["ii"],
+			brief="inviteinfo discord.gg/fembakery"
 	)
 	@cooldown(1,15, BucketType.user)
 	async def inviteinfo(self, ctx: StealContext, invite: discord.Invite) -> None:
@@ -377,9 +387,10 @@ class Info(commands.Cog):
 			return lines
 
 	@command(
-			name="info",
+			name="emojiinfo",
 			aliases=["ei"],
-			description="Gives emoji info."
+			description="Gives emoji info.",
+			brief="emojiinfo :twerk:",
 	)
 	@guild_only()
 	async def emojiinfo(self, ctx: StealContext, *, emoji: Union[discord.Emoji, discord.PartialEmoji]):
@@ -399,7 +410,8 @@ class Info(commands.Cog):
 	@command(
 		name="spotify",
 		description="Shows a users currently listening info.",
-		aliases=["song", "nowplaying"]
+		aliases=["song", "nowplaying"],
+		brief="spotify @someguy",
 	)
 	@cooldown(1,15, BucketType.user)
 	@guild_only()
@@ -438,7 +450,8 @@ class Info(commands.Cog):
 	@command(
 		name="game",
 		description="Shows the game the user is currently playing.",
-		aliases=["playing"]
+		aliases=["playing"],
+		brief="game @someguy",
 	)
 	@cooldown(1,15, BucketType.user)
 	@guild_only()
@@ -462,10 +475,8 @@ class Info(commands.Cog):
 						name="Platform",
 						value=f"{activity.platform}"
 					).add_field(
-						name="",
-						value=f"{activity.type}"
-					).set_footer(
-						text=f"Started playing at {activity.created_at.strftime('%H:%M')}"
+						name="Started at",
+						value=f"Started playing at {activity.created_at.strftime('%H:%M')}"
 					).set_thumbnail(
 						url=member.display_avatar.url
 					)
@@ -477,7 +488,8 @@ class Info(commands.Cog):
 	@command(
 		name="activity",
 		description="Shows the current users activity.",
-		aliases=["doing", "act", "status"]
+		aliases=["doing", "act", "status"],
+		brief="activity @someguy",
 	)
 	@cooldown(1,15, BucketType.user)
 	@guild_only()
@@ -490,6 +502,7 @@ class Info(commands.Cog):
 
 					response = requests.get(activity.album_cover_url)
 					bytes = response.content
+					dominant_color = None
 					if bytes is not None:
 						dominant_color = await self.bot.dominant_color(bytes)
 
@@ -513,27 +526,26 @@ class Info(commands.Cog):
 
 				elif activity.type == discord.ActivityType.playing:
 
-					response = requests.get(activity.large_image_url)
+					response = requests.get(member.display_avatar.url)
 					bytes = response.content
 					if bytes is not None:
 						dominant_color = await self.bot.dominant_color(bytes)
 
 					info = discord.Embed(
 						title=f"{activity.name}",
-						description=f"🎮 {member} is **{str(activity.type).split('.')[1].capitalize()}** {activity.name}",
+						description=f"🎮 {member} is **playing** {activity.name}",
 						color=dominant_color if dominant_color else Colors.BASE_COLOR
 					).add_field(
 						name="Platform",
-						value=f"{activity.platform if activity.platform else 'Not avaliable.'}"
+						value=f"{activity.platform}"
 					).add_field(
-						name="Info",
-						value=f"{activity.large_image_text}"
-					).set_footer(
-						text=f"Started playing at {activity.created_at.strftime('%H:%M')}"
+						name="Started at",
+						value=f"Started playing at {activity.created_at.strftime('%H:%M')}"
 					).set_thumbnail(
-						url=activity.large_image_url
+						url=member.display_avatar.url
 					)
 					return await ctx.reply(embed=info)
+		
 				
 				elif activity.type == discord.ActivityType.streaming:
 
@@ -567,6 +579,7 @@ class Info(commands.Cog):
 			name='nitrohavers',
 			description='Users with nitro.',
 			aliases=['nhavers', 'nhs', 'premiumusers'],
+			brief="nitrohavers",
 	)
 	@guild_only()
 	async def nhavers(self, ctx: StealContext) -> None:
@@ -630,7 +643,8 @@ class Info(commands.Cog):
 	@command(
 			name="invites",
 			description='Invites to this guild.',
-			aliases=['invs']
+			aliases=['invs'],
+			brief="invites",
 	)
 	@guild_only()
 	async def invites(self, ctx: StealContext) -> None:
@@ -689,6 +703,7 @@ class Info(commands.Cog):
 	@command(
 			name="boosters",
 			description='Users server boosting.',
+			brief="boosters",
 	)
 	@guild_only()
 	async def boosters(self, ctx: StealContext) -> None:
@@ -746,6 +761,7 @@ class Info(commands.Cog):
 	@command(
 			name="bans",
 			description='Ban entries for this guild.',
+			brief="bans",
 	)
 	@guild_only()
 	async def bans(self, ctx: StealContext) -> None:
@@ -802,15 +818,201 @@ class Info(commands.Cog):
 	@group(
 			name='server',
 			description='Manages server.',
-			aliases=['guild']
+			aliases=['guild'],
+			brief="server",
 	)
 	async def server(self, ctx: StealContext):
 		if ctx.invoked_subcommand is None:
-			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `server`.')
+			return await ctx.plshelp()
+
+	@server.command(
+			name="lockdown",
+			description="Locks every channel in the server.",
+			brief="lockdown @member lol",
+	)
+	async def lockdown(self, ctx: StealContext, target:Optional[discord.Role], reason: Optional[str] = "No reason."):
+
+		reason += ' | Lockdown executed by {}'.format(ctx.author)
+		if target is None: target = ctx.guild.default_role
+
+		if isinstance(target, discord.Role):
+			perms = target.permissions
+			if target.position > ctx.guild.me.top_role.position:
+				return await ctx.warn(f"I cannot manage {target.mention}.")
+			if perms.manage_channels:
+				return await ctx.warn(f"I cannot manage {target.mention}.")			
+			if not ctx.author == ctx.guild.owner:
+				if target.position > ctx.author.top_role.position:
+						return await ctx.warn(f"You cannot manage {target.mention}")		
+										
+		if isinstance(target, discord.Member):
+			perms = target.guild_permissions
+			if target == ctx.guild.owner:
+				return await ctx.warn("You cannot manage the server owner.")
+			if target.top_role.position > ctx.guild.me.top_role.position:
+				return await ctx.warn(f"I cannot manage {target.mention}")
+			if perms.manage_channels:
+				return await ctx.warn(f"I cannot manage {target.mention}")	
+			if not ctx.author == ctx.guild.owner:
+				if target.top_role.position > ctx.author.top_role.position:
+					return await ctx.warn(f"You cannot manage {target.mention}")	
+
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS lockdown(guildid INTEGER UNIQUE, channels)"
+				)
+
+				total = len([c for c in ctx.guild.channels if c.overwrites_for(target).send_messages is not False and not isinstance(c, discord.CategoryChannel)])
+
+				locked_list = []
+
+				if not total:
+					return await ctx.warn(f"All **channels** are already locked for {target.mention}.")
+
+				for c in ctx.guild.channels:
+					if isinstance(c, Union[discord.ForumChannel, discord.Thread]):
+						return await c.edit(locked=True, archived=True)
+					overwrite = c.overwrites_for(target)
+					if overwrite.send_messages is None or overwrite.send_messages is True and not isinstance(c, discord.CategoryChannel):
+
+						overwrite.send_messages = False
+						await c.set_permissions(target=target, overwrite=overwrite, reason=f"Lockdown executed by {ctx.author}")
+
+						locked_list.append(c.id)
+				
+				if not locked_list:
+					return await ctx.warn(f"Could not lock any **channels** for {target.mention}.")
+
+				cur = await cursor.execute(
+					"SELECT * FROM lockdown WHERE guildid = $1",
+					ctx.guild.id,
+				)
+
+				row = await cur.fetchone()
+
+				if row:
+					if row[1]:
+						data = json.loads(row[1])
+						for ch in data and ch not in data:
+							locked_list.append(ch)
+
+				await db.execute(
+					"REPLACE INTO lockdown(guildid, channels) VALUES ($1, $2)",
+					ctx.guild.id, json.dumps(locked_list),
+				)
+				await db.commit()
+
+				await ctx.approve(f"Locked `{len(locked_list)}/{total}` **channels** for {target.mention}.")
+
+
+	@server.command(
+			name="unlockdown",
+			description="Unlocks every channel in the server.",
+			brief="unlockdown @member lol",
+	)
+	async def unlockdown(self, ctx: StealContext, target:Optional[discord.Role], reason: Optional[str] = "No reason."):
+
+		reason += ' | Unlockdown executed by {}'.format(ctx.author)
+		if target is None: target = ctx.guild.default_role
+
+		if isinstance(target, discord.Role):
+			perms = target.permissions
+			if target.position > ctx.guild.me.top_role.position:
+				return await ctx.warn(f"I cannot manage {target.mention}.")
+			if perms.manage_channels:
+				return await ctx.warn(f"I cannot manage {target.mention}.")			
+			if not ctx.author == ctx.guild.owner:
+				if target.position > ctx.author.top_role.position:
+						return await ctx.warn(f"You cannot manage {target.mention}")		
+										
+		if isinstance(target, discord.Member):
+			perms = target.guild_permissions
+			if target == ctx.guild.owner:
+				return await ctx.warn("You cannot manage the server owner.")
+			if target.top_role.position > ctx.guild.me.top_role.position:
+				return await ctx.warn(f"I cannot manage {target.mention}")
+			if perms.manage_channels:
+				return await ctx.warn(f"I cannot manage {target.mention}")	
+			if not ctx.author == ctx.guild.owner:
+				if target.top_role.position > ctx.author.top_role.position:
+					return await ctx.warn(f"You cannot manage {target.mention}")	
+
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS lockdown(guildid INTEGER UNIQUE, channels)"
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM lockdown WHERE guildid = $1",
+					ctx.guild.id,
+				)
+
+				row = await cur.fetchone()
+
+				if not row:
+					return await ctx.warn(f"All **channels** are already unlocked for {target.mention}.")
+				
+				unlocked = 0
+				ls = []
+				if row[1]:
+					ls = json.loads(row[1])
+				print(ls)
+				locked = len(ls)
+
+				if not ls:
+					await db.execute(
+						"DELETE FROM lockdown WHERE guildid = $1",
+						ctx.guild.id,
+					)
+					await db.commit()
+					return await ctx.warn(f"Could not unlock any **channels** for {target.mention}.")
+
+				for c in ls:
+
+					channel = ctx.guild.get_channel(c)
+					if channel:
+						print(channel.name)
+						overwrite = channel.overwrites_for(target)
+
+						overwrite.send_messages = None
+						await channel.set_permissions(target=target, overwrite=overwrite, reason=f"Unlockdown executed by {ctx.author}")
+
+						unlocked += 1
+						ls.remove(c)
+						await asyncio.sleep(0.5)
+					else:
+						ls.remove(c)
+						return
+
+				if ls:
+					await db.execute(
+						"REPLACE INTO lockdown(guildid, channels) VALUES ($1, $2)",
+						ctx.guild.id, json.dumps(ls),
+					)
+					await db.commit()
+				if not ls:
+					await db.execute(
+						"DELETE FROM lockdown WHERE guildid = $1",
+						ctx.guild.id,
+					)
+					await db.commit()
+
+				await ctx.approve(f"Unlocked `{unlocked}/{locked}` **channels** for {target.mention}.")
+
+		#overwrite.send_messages = False
+		#await channel.set_permissions(target=target, overwrite=overwrite, reason=reason)
+		#await ctx.approve(f"Locked {channel.mention} for {target.mention} - **{reason.split(' |')[0]}**")
+
+
 
 	@server.command(
 			name='icon',
 			description='Changes or gets server icon without args.',
+			brief="server icon [image]",
 			aliases=['pfp', 'logo'],
 	)
 	@has_permissions(manage_guild=True)
@@ -844,7 +1046,8 @@ class Info(commands.Cog):
 
 	@server.command(
 			name='splash',
-			description='Changes or gets server splash without args.'
+			description='Changes or gets server splash without args.',
+			brief="server splash [image]",
 	)
 	@has_permissions(manage_guild=True)
 	@bot_has_guild_permissions(manage_guild=True)
@@ -877,6 +1080,7 @@ class Info(commands.Cog):
 
 	@server.command(
 			name='banner',
+			brief="server banner [image]",
 			description='Changes or gets server banner without args.'
 	)
 	@has_permissions(manage_guild=True)
@@ -911,6 +1115,7 @@ class Info(commands.Cog):
 
 	@command(
 			name="members",
+			brief="members",
 			description='Server members.'
 	)
 	@guild_only()
@@ -971,6 +1176,7 @@ class Info(commands.Cog):
 	@command(
 			name="membercount",
 			description='Server members.',
+			brief="membercount",
 			aliases=['mc']
 	)
 	@guild_only()
@@ -996,6 +1202,7 @@ class Info(commands.Cog):
 	@command(
 		name="roles",
 		aliases=["rolelist"],
+		brief="roles",
 		desciption="Lists server roles."
 	)
 	@guild_only()
@@ -1052,6 +1259,7 @@ class Info(commands.Cog):
 	@command(
 		name="emojis",
 		aliases=["emojilist"],
+		brief="emojis",
 		desciption="Lists server emojis."
 	)
 	@guild_only()

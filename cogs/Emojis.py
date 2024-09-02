@@ -42,7 +42,9 @@ class Emojis(commands.Cog):
 		
 	@group(
 			name='emoji',
-			description='Manage emojis.'
+			description='Manage emojis.',
+			extras= {"permissions": ["manage_emojis"]},
+			brief="emoji"
 	)
 	async def emoji(self, ctx: StealContext):
 		if ctx.invoked_subcommand is None:
@@ -51,7 +53,10 @@ class Emojis(commands.Cog):
 	@emoji.command(
 			name="add",
 			description="Adds an emoji.",
-			aliases=['create', 'steal', 'rob', 'yoink'])
+			aliases=['create', 'steal', 'rob', 'yoink'],
+			extras= {"permissions": ["manage_emojis"]},
+			brief="emoji steal :twerk: bigshaker"
+	)
 	@has_permissions(manage_emojis=True)
 	@bot_has_guild_permissions(manage_emojis=True)
 	@guild_only()
@@ -79,7 +84,9 @@ class Emojis(commands.Cog):
 
 	@emoji.command(
 			name="delete",
-			description="Deletes an emoji."
+			description="Deletes an emoji.",
+			extras= {"permissions": ["manage_emojis"]},
+			brief="emoji delete bigshaker/:bigshaker:"
 	)
 	@has_permissions(manage_emojis=True)
 	@bot_has_guild_permissions(manage_emojis=True)
@@ -97,7 +104,9 @@ class Emojis(commands.Cog):
 	
 	@emoji.command(
 			name='rename',
-			description="Renames an emoji."
+			description="Renames an emoji.",
+			extras= {"permissions": ["manage_emojis"]},
+			brief="emoji rename :twerk:/:twerk: bigshaker"
 	)
 	@has_permissions(manage_emojis=True)
 	@bot_has_guild_permissions(manage_emojis=True)
@@ -117,8 +126,11 @@ class Emojis(commands.Cog):
 	@emoji.command(
 			name="zip",
 			description="Zips all server emojis.",
-			aliases=["archive"]
+			aliases=["archive"],
+			extras= {"permissions": ["manage_emojis"]},
+			brief="emoji zip"
 	)
+	@has_permissions(manage_emojis=True)
 	async def sticker_zip(self, ctx: StealContext):
 
 		async with ctx.typing():
@@ -133,7 +145,9 @@ class Emojis(commands.Cog):
 	@emoji.command(
 			name="enlarge",
 			description="Enlarges an emoji and sends the image.",
-			aliases=["download", "e", "jumbo"]
+			aliases=["download", "e", "jumbo"],
+			extras= {"permissions": ["manage_emojis"]},
+			brief="emoji steal enlarge twerk/:twerk:"
 	)
 	async def emojienlarge(self, ctx: StealContext, emoji: discord.PartialEmoji):
 
@@ -153,20 +167,24 @@ class Emojis(commands.Cog):
 
 	@group(
 			name="sticker",
-			description="Manage stickers."
+			description="Manage stickers.",
+			extras= {"permissions": ["manage_expressions"]},
+			brief="sticker"
 	)
 	async def stickers(self, ctx: StealContext):
 		if ctx.invoked_subcommand is None:
-			return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `sticker`.')
+			return await ctx.plshelp()
 
 	@stickers.command(
-		name="create", 
-		aliases=["add", "yoink", "steal"],
-		description="Adds a sticker."
+			name="create", 
+			aliases=["add", "yoink", "steal"],
+			description="Adds a sticker.",
+			extras= {"permissions": ["manage_expressions"]},
+			brief="sticker add <image/sticker>"
 	)
 	@has_guild_permissions(manage_expressions=True)
 	@bot_has_guild_permissions(manage_expressions=True)
-	async def addsticker(self, ctx: StealContext, *, name:Optional[str] = commands.param(default=None, displayed_default=None)):				
+	async def addsticker(self, ctx: StealContext, *, name:str):				
 
 		if len(ctx.guild.stickers) >= ctx.guild.sticker_limit:
 			return await ctx.warn(
@@ -221,6 +239,8 @@ class Emojis(commands.Cog):
 	@stickers.command(
 			name="delete", 
 			description="Deletes a sticker.",
+			extras= {"permissions": ["manage_expressions"]},
+			brief="sticker delete stickername/<sticker>"
 	)
 	@has_guild_permissions(manage_expressions=True)
 	@bot_has_guild_permissions(manage_expressions=True)
@@ -246,7 +266,9 @@ class Emojis(commands.Cog):
 
 	@stickers.command(
 			name='rename',
-			description="Renames a sticker."
+			description="Renames a sticker.",
+			extras= {"permissions": ["manage_expressions"]},
+			brief="sticker rename <sticker> newname"
 	)
 	@has_permissions(manage_emojis=True)
 	@bot_has_guild_permissions(manage_emojis=True)
@@ -269,6 +291,8 @@ class Emojis(commands.Cog):
 	@stickers.command(
 			name="zip",
 			description="Zips all server emojis.",
+			extras= {"permissions": ["manage_expressions"]},
+			brief="sticker zip",
 			aliases=["archive"]
 	)
 	@has_permissions(manage_expressions=True)
@@ -287,7 +311,8 @@ class Emojis(commands.Cog):
 	@stickers.command(
 			name="enlarge",
 			description="Enlarges a sticker and sends the image.",
-			aliases=["download", "e", "jumbo"]
+			aliases=["download", "e", "jumbo"],
+			brief="sticker enlarge <sticker>"
 	)
 	async def stickerenlarge(self, ctx: StealContext):
 
@@ -312,8 +337,12 @@ class Emojis(commands.Cog):
 	@stickers.command(
 			name="tag",
 			description="Tags all stickers with your vanity invite.",
-			aliases=["vanity"]
+			aliases=["vanity"],
+			extras= {"permissions": ["administrator"]},
+			brief="sticker tag"
 	)
+	@has_permissions(administrator=True)
+	@bot_has_guild_permissions(manage_expressions=True)
 	async def stickertag(self, ctx: StealContext):
 
 		if not ctx.guild.vanity_url_code:
