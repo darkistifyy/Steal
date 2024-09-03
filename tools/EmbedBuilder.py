@@ -292,7 +292,7 @@ class BaseModal(discord.ui.Modal):
         self.update_defaults(parent_view.embed)
         super().__init__()
 
-    def update_embed(self) -> None:
+    def update_embed(self, user: discord.Member) -> None:
         raise NotImplementedError
 
     def update_defaults(self, embed: discord.Embed):
@@ -307,7 +307,7 @@ class BaseModal(discord.ui.Modal):
         await super().on_error(interaction, error)
 
     async def on_submit(self, interaction: discord.Interaction, /) -> None:
-        self.update_embed()
+        self.update_embed(user=interaction.user)
         await self.parent_view.update_buttons()
         await interaction.response.edit_message(embed=self.parent_view.current_embed, view=self.parent_view)
 
@@ -359,9 +359,9 @@ class EditEmbedModal(BaseModal, title='Editing the embed:'):
         if embed.color:
             self.color.default = str(embed.color)
 
-    def update_embed(self):
-        self.parent_view.embed.title = self._title.value.strip() or None
-        self.parent_view.embed.description = self.description.value.strip() or None
+    def update_embed(self, user: discord.Member):
+        self.parent_view.embed.title = EmbedBuilder.embed_replacement(user, self._title.value.strip()) or None
+        self.parent_view.embed.description = EmbedBuilder.embed_replacement(user, self.description.value.strip()) or None
         failed: list[str] = []
         if self.color.value:
             try:
@@ -403,8 +403,8 @@ class EditAuthorModal(BaseModal, title='Editing the embed author:'):
         self.url.default = embed.author.url
         self.image.default = embed.author.icon_url
 
-    def update_embed(self):
-        author = self.name.value.strip()
+    def update_embed(self, user: discord.Member):
+        author = EmbedBuilder.embed_replacement(user, self.name.value.strip())
         if not author:
             self.parent_view.embed.remove_author()
 
@@ -457,8 +457,8 @@ class EditFooterModal(BaseModal, title='Editing the embed author:'):
         self.text.default = embed.footer.text
         self.image.default = embed.footer.icon_url
 
-    def update_embed(self):
-        text = self.text.value.strip()
+    def update_embed(self, user: discord.Member):
+        text = EmbedBuilder.embed_replacement(user, self.text.value.strip())
         if not text:
             self.parent_view.embed.remove_author()
 
@@ -499,7 +499,7 @@ class AddFieldModal(BaseModal, title='Add a field'):
         required=False,
     )
 
-    def update_embed(self):
+    def update_embed(self, user: discord.Member):
         failed: list[str] = []
 
         name = self.name.value.strip()
@@ -509,7 +509,7 @@ class AddFieldModal(BaseModal, title='Add a field'):
         if not value:
             raise InvalidModalField('Name and Value are required.')
         _inline = self.inline.value.strip()
-        _idx = self.index.value.strip()
+        _idx = EmbedBuilder.embed_replacement(user, self.index.value.strip())
 
         inline = True
         if _inline:
@@ -558,7 +558,7 @@ class EditFieldModal(BaseModal):
         self.inline.default = 'Yes' if self.field.inline else 'No'
         self.new_index.default = str(self.index + 1)
 
-    def update_embed(self):
+    def update_embed(self, user: discord.Member):
         failed = None
 
         name = self.name.value.strip()
@@ -579,31 +579,7 @@ class EditFieldModal(BaseModal):
             self.parent_view.embed.remove_field(self.index)
             self.parent_view.embed.insert_field_at(int(self.new_index.value) - 1, name=name, value=value, inline=inline)
         else:
-            self.parent_view.embed.set_field_at(self.index, name=name, value=value, inline=inline)
+            self.parent_view.embed.set_field_at(self.index, name= EmbedBuilder.embed_replacement(user, name), value= EmbedBuilder.embed_replacement(user, value), inline=inline)
 
         if failed:
             raise InvalidModalField(failed)
-
-
-class ChooseATagName(discord.ui.Modal):
-    name = discord.ui.TextInput[Self](label='Tag Name', max_length=200, placeholder='Must not be an existing tag.')
-    content = discord.ui.TextInput[Self](
-        label='Content', max_length=2000, required=False, placeholder='Optionally, you can also add content.'
-    )
-
-    def __init__(self, parent: EmbedEditor, title: str) -> None:
-        super().__init__(title=title)
-        self.parent = parent
-
-    async def on_submit(  # pyright: ignore[reportIncompatibleMethodOverride]
-        self, interaction: discord.Interaction[PatchedInteraction]
-    ):
-        try:
-            tag = await self.parent.cog.make_tag(
-                interaction.guild, interaction.user, self.name.value, self.content.value, embed=self.parent.embed
-            )
-        except commands.BadArgument as e:
-            await interaction.response.send_message(str(e), ephemeral=True)
-        else:
-            await interaction.response.edit_message(view=None, embed=None, content=f'Created tag {tag.name!r}')
-            self.parent.stop()

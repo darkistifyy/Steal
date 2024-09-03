@@ -28,7 +28,13 @@ import asqlite
 import uuid
 from discord.ext import tasks, commands
 import random
-from events.Loops import snipe_delete, reminder_task, change_status, giveaway_check, giveaway_clear
+from events.Loops import (snipe_delete,
+						   reminder_task,
+							 change_status,
+							   giveaway_check,
+								 giveaway_clear,
+								   error_clear,
+						)
 
 from PIL import Image
 
@@ -46,7 +52,6 @@ from managers.help import StealHelp, HelpSelect
 from tools.Session import Session
 from managers.context import StealContext
 from tools.Config import Colors, Emojis
-from discord.ext import commands
 from tools.View import VerifyView
 from tools.Config import *
 
@@ -62,9 +67,10 @@ class Steal(commands.Bot):
 		self.session = Session()
 		self.cache = Cache()
 		self.startTime = time.time()
+		self.default_prefix = ";"
 
 		super().__init__(
-			command_prefix=[';', 'sudo ', 'await '],
+			command_prefix=(self.get_prefix),
 			help_command=StealHelp(),
 			intents=intents,
 			allowed_mentions=discord.AllowedMentions(
@@ -94,6 +100,7 @@ class Steal(commands.Bot):
 		snipe_delete.start(self)
 		giveaway_check.start(self)
 		giveaway_clear.start(self)
+		error_clear.start(self)
 		reminder_task.start(self)
 		change_status.start(self)
 
@@ -138,6 +145,57 @@ class Steal(commands.Bot):
 		magnitude = min(len(suffixes) - 1, (len(str(abs(number))) - 1) // 3)
 		formatted_number = '{:.1f}'.format(number / 10 ** (3 * magnitude)).rstrip('0').rstrip('.')
 		return '{}{}'.format(formatted_number, suffixes[magnitude])
+
+	async def get_guild_prefix(bot: Steal, guild):
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS prefixes(entity INTEGER UNIQUE, prefix TEXT)",		
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM prefixes WHERE entity = $1",
+					guild.id,
+				)
+
+				guild_row = await cur.fetchone()
+
+				if guild_row:
+					return guild_row[1]
+				return None 
+
+	async def get_user_prefix(bot: Steal, user):
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS prefixes(entity INTEGER UNIQUE, prefix TEXT)",		
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM prefixes WHERE entity = $1",
+					user.id,
+				)
+
+				user_row = await cur.fetchone()
+
+				if user_row:
+					return user_row[1]
+				return None
+
+	async def get_prefix(bot: Steal, message):
+
+		userprefix = await bot.get_user_prefix(message.author)
+		guildprefix = await bot.get_guild_prefix(message.guild)
+
+		if userprefix is not None:
+			return userprefix
+		
+		elif guildprefix is not None:
+			return guildprefix
+
+		return bot.default_prefix
 
 	@property
 	def lines(self) -> int:
@@ -344,7 +402,7 @@ class Steal(commands.Bot):
 			async with db.cursor() as cursor:
 				await cursor.execute(
 					"INSERT INTO errors(code, guildid, channelid, userid, time, error, command) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-					str(code), guild.id, channel.id, user.id, time, str(error), command,
+					str(code), guild.id if guild else 0, channel.id, user.id, time, str(error), command,
 				)
 				await db.commit()
 				await ctx.send(

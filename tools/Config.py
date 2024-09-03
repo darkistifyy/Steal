@@ -1,6 +1,6 @@
 from discord import Color
 class Auth:
-    token = ""
+    token = "MTI2NDIyNTcxNjc5OTc5OTQyNw.G9rvs_.I5MxbmyycnPaif69gEA5_2i1rieneq5bf8p3Ws"
     invite = "https://discord.com/oauth2/authorize?client_id=1264225716799799427&permissions=8&integration_type=0&scope=bot"
     fnbrapi = "d599dc2e-4964-42fd-990f-6b7892ab4204"
 
