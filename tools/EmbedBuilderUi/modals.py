@@ -7,6 +7,7 @@ import discord
 from discord import ButtonStyle, Emoji, PartialEmoji
 from discord.ext import commands
 from tools.Config import Emojis, Colors
+from tools.EmbedBuilder import EmbedBuilder
 
 if TYPE_CHECKING:
     from managers.context import PatchedInteraction 
@@ -26,9 +27,7 @@ def to_boolean(argument: str) -> bool:
     else:
         raise InvalidModalField(f'{argument} is not a valid boolean value.')
 
-
 class InvalidModalField(Exception): ...
-
 
 class BaseModal(discord.ui.Modal):
     def __init__(self, parent_view: EmbedEditor) -> None:
@@ -51,7 +50,7 @@ class BaseModal(discord.ui.Modal):
         await super().on_error(interaction, error)
 
     async def on_submit(self, interaction: discord.Interaction, /) -> None:
-        self.update_embed()
+        self.update_embed(interaction.user)
         await self.parent_view.update_buttons()
         await interaction.response.edit_message(embed=self.parent_view.current_embed, view=self.parent_view)
 
@@ -103,9 +102,9 @@ class EditEmbedModal(BaseModal, title='Editing the embed:'):
         if embed.color:
             self.color.default = str(embed.color)
 
-    def update_embed(self):
-        self.parent_view.embed.title = self._title.value.strip() or None
-        self.parent_view.embed.description = self.description.value.strip() or None
+    def update_embed(self, user: discord.Member):
+        self.parent_view.embed.title =  EmbedBuilder.embed_replacement(user, self._title.value.strip()) or None
+        self.parent_view.embed.description = EmbedBuilder.embed_replacement(user, self.description.value.strip()) or None
         failed: list[str] = []
         if self.color.value:
             try:
@@ -116,7 +115,7 @@ class EditEmbedModal(BaseModal, title='Editing the embed:'):
         else:
             self.parent_view.embed.color = Colors.BASE_COLOR
 
-        sti = self.image.value.strip()
+        sti = EmbedBuilder.embed_replacement(user, self.image.value.strip())
         if URL_REGEX.fullmatch(sti):
             self.parent_view.embed.set_image(url=sti)
         elif sti:
@@ -124,7 +123,7 @@ class EditEmbedModal(BaseModal, title='Editing the embed:'):
         else:
             self.parent_view.embed.set_image(url=None)
 
-        sti = self.thumbnail.value.strip()
+        sti = EmbedBuilder.embed_replacement(user, self.thumbnail.value.strip())
         if URL_REGEX.fullmatch(sti):
             self.parent_view.embed.set_thumbnail(url=sti)
         elif sti:
@@ -147,15 +146,15 @@ class EditAuthorModal(BaseModal, title='Editing the embed author:'):
         self.url.default = embed.author.url
         self.image.default = embed.author.icon_url
 
-    def update_embed(self):
-        author = self.name.value.strip()
+    def update_embed(self, user: discord.Member):
+        author = EmbedBuilder.embed_replacement(user, self.name.value.strip())
         if not author:
             self.parent_view.embed.remove_author()
 
         failed: list[str] = []
 
         image_url = None
-        sti = self.image.value.strip()
+        sti = EmbedBuilder.embed_replacement(user, self.image.value.strip())
         if URL_REGEX.fullmatch(sti):
             if not author:
                 failed.append(
@@ -170,7 +169,7 @@ class EditAuthorModal(BaseModal, title='Editing the embed author:'):
             failed.append('Image URL did not match the http/https format.')
 
         url = None
-        sti = self.url.value.strip()
+        sti = EmbedBuilder.embed_replacement(user, self.url.value.strip())
         if URL_REGEX.fullmatch(sti):
             if not author:
                 failed.append(
@@ -204,15 +203,15 @@ class EditFooterModal(BaseModal, title='Editing the embed author:'):
         self.text.default = embed.footer.text
         self.image.default = embed.footer.icon_url
 
-    def update_embed(self):
-        text = self.text.value.strip()
+    def update_embed(self, user: discord.User):
+        text = EmbedBuilder.embed_replacement(user, self.text.value.strip())
         if not text:
             self.parent_view.embed.remove_author()
 
         failed: list[str] = []
 
         image_url = None
-        sti = self.image.value.strip()
+        sti = EmbedBuilder.embed_replacement(user, self.image.value.strip())
         if URL_REGEX.fullmatch(sti):
             if not text:
                 failed.append(
@@ -249,10 +248,10 @@ class AddFieldModal(BaseModal, title='Add a field'):
         required=False,
     )
 
-    def update_embed(self):
+    def update_embed(self, user: discord.Member):
         failed: list[str] = []
 
-        name = self.name.value.strip()
+        name = EmbedBuilder.embed_replacement(user, self.name.value.strip())
         if not name:
             raise InvalidModalField('Name and Value are required.')
         value = self.value.value.strip()
@@ -311,10 +310,10 @@ class EditFieldModal(BaseModal):
         self.inline.default = 'Yes' if self.field.inline else 'No'
         self.new_index.default = str(self.index + 1)
 
-    def update_embed(self):
+    def update_embed(self, user: discord.Member):
         failed = None
 
-        name = self.name.value.strip()
+        name = EmbedBuilder.embed_replacement(user, self.name.value.strip())
         if not name:
             raise InvalidModalField('Name and Value are required.')
         value = self.value.value.strip()
