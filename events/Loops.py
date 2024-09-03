@@ -106,8 +106,8 @@ async def giveaway_check(bot: Bot):
 			if not rows:
 				return
 
-
 			for row in rows:
+				try:
 					time = row[4]
 					ended = row [5]
 					if datetime.datetime.now().timestamp() > time and int(ended) != 1:
@@ -115,10 +115,6 @@ async def giveaway_check(bot: Bot):
 						channel = guild.get_channel(row[1])
 						message = await channel.fetch_message(row[2])
 						prize = row [3]
-						print(guild.id)
-						print(channel.id)
-						print(message.id)
-						print(prize)
 						
 						entries = []
 
@@ -157,7 +153,15 @@ async def giveaway_check(bot: Bot):
 
 						await message.edit(content="GIVEAWAY ENDED.", embed=embed)
 
-						await message.reply(f"Congratulations, {winner.mention}, you won **{prize}**!")			
+						await message.reply(f"Congratulations, {winner.mention}, you won **{prize}**!")	
+				except:
+					await cursor.execute(
+						"DELETE FROM giveaways WHERE guildid = $1 AND channelid = $2 AND messageid = $3",
+						row[0], row[1], row[2],
+					)
+
+					await db.commit()
+
 
 @tasks.loop(minutes=10)
 async def giveaway_clear(bot: Bot):
@@ -179,7 +183,32 @@ async def giveaway_clear(bot: Bot):
 
 			for row in rows:
 				if datetime.datetime.now().timestamp() > (datetime.datetime.fromtimestamp(row[4]) + datetime.timedelta(minutes=10)).timestamp():
-					return await cursor.execute(
+					await cursor.execute(
 						"DELETE FROM giveaways WHERE guildid = $1 AND channelid = $2 AND messageid = $3 AND time = $4",
 						row[0], row[1], row[2], row[4]
+					)
+				
+@tasks.loop(minutes=10)
+async def error_clear(bot: Bot):
+	async with asqlite.connect("main.db") as db:
+		async with db.cursor() as cursor:
+
+			await cursor.execute(
+				"CREATE TABLE IF NOT EXISTS errors(code TEXT UNIQUE, guildid INTEGER, channelid INTEGER, userid INTEGER, time INTEGER, error TEXT, command TEXT)"
+			)
+
+			cur = await cursor.execute(
+				"SELECT * FROM errors"
+			)
+
+			rows = await cur.fetchall()
+
+			if not rows: 
+				return
+
+			for row in rows:
+				if datetime.datetime.now().timestamp() > (datetime.datetime.fromtimestamp(row[4]) + datetime.timedelta(days=1)).timestamp():
+					await cursor.execute(
+						"DELETE FROM errors WHERE code = $1 AND time = $2",
+						row[0], row[4],
 					)

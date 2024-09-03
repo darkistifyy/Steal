@@ -126,7 +126,7 @@ class Messages(commands.Cog):
 				if row:
 					if row[3] == 1:
 
-						if message.content.startswith(f"{self.bot.command_prefix[0]}filter words remove") or message.content.startswith(f"{self.bot.command_prefix[0]}filter words add"):
+						if message.content.startswith(f"{self.bot.command_prefix}filter words remove") or message.content.startswith(f"{self.bot.command_prefix}filter words add"):
 							if message.author.guild_permissions.manage_messages:
 								return
 
@@ -206,7 +206,7 @@ class Messages(commands.Cog):
 				if row:
 					if row[3] == 1:
 
-						if message.content.startswith(f"{self.bot.command_prefix[0]}filter words remove") or message.content.startswith(f"{self.bot.command_prefix[0]}filter words add"):
+						if message.content.startswith(f"{self.bot.command_prefix}filter words remove") or message.content.startswith(f"{self.bot.command_prefix}filter words add"):
 							if message.author.guild_permissions.manage_messages:
 								return
 
@@ -268,7 +268,7 @@ class Messages(commands.Cog):
 		if message.is_system(): return
 		if not message.author: return
 		if isinstance(message.channel, discord.DMChannel): return
-		if message.content.startswith(f"{self.bot.command_prefix[0]}afk"): return
+		if message.content.startswith(f"{self.bot.command_prefix}afk"): return
 		if self.afkstatus == message.author: return
 		async with asqlite.connect("main.db") as conn:
 			async with conn.cursor() as cursor:
