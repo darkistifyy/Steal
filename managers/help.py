@@ -35,10 +35,12 @@ class StealHelp(HelpCommand):
                 text="Select a cog from the dropdown menu below"
         ).add_field(
             name="Information",
-            value="> [] = optional, <> = required"
+            value="```ruby\n [] = optional, <> = required```",
+            inline=False
         ).add_field(
             name="Support",
-            value=f"[**Server**]({Guild.INVITE}) • [**Owner**](https://discord.com/users/{self.context.bot.owner_ids[0]})"
+            value=f"[**Server**]({Guild.INVITE}) • [**Owner**](https://discord.com/users/{self.context.bot.owner_ids[0]})",
+            inline=False
         )
         
 
