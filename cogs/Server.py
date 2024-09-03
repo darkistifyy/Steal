@@ -721,7 +721,7 @@ class Server(commands.Cog):
 		name="create",
 		description="Create a giveaway.",
 		aliases=["start"],
-		brief="giveaway create 1h #general custom role",
+		brief="giveaway create 1h custom role #general",
 		extras={"permissions" : ["manage_messages"]}
 	)
 	@has_permissions(manage_messages=True)

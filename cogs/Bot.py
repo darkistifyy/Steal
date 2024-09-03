@@ -252,7 +252,7 @@ class BotManagement(commands.Cog):
 
 				embed = discord.Embed(
 					color = Colors.BASE_COLOR,
-					description=f"[**{self.bot.user.name.split("#")[0]}**]({Auth.invite}) info\n>>> **Commands:** `{len(commands)}`\n**Lines:**`{humanize.intcomma(self.bot.lines)}`\n**Guilds:**`{len(self.bot.guilds):,}`\n**Users:**`{len(self.bot.users):,}`\n**Command prefix:** `{self.bot.command_prefix[0]}`"
+					description=f"[**{self.bot.user.name.split("#")[0]}**]({Auth.invite}) info\n>>> **Commands:** `{len(commands)}`\n**Lines:**`{humanize.intcomma(self.bot.lines)}`\n**Guilds:**`{len(self.bot.guilds):,}`\n**Users:**`{len(self.bot.users):,}`\n**Command prefix:** `{await self.bot.get_prefix(message)}`"
 				)
 				embed.add_field(
 					name="Uptime",
@@ -267,6 +267,144 @@ class BotManagement(commands.Cog):
 
 			elif "steal" in message.content.lower() and not message.content.startswith(";"):
 				return await message.reply("Love steal 😩")
+
+	@group(
+			name="prefix",
+			description="The bot prefix.",
+			brief="prefix",
+	)
+	async def prefix(self, ctx: StealContext):
+		if not ctx.invoked_subcommand:
+
+			user_prefix = await self.bot.get_user_prefix(user = ctx.message.author) or "not set"
+			guild_prefix = await self.bot.get_guild_prefix(guild = ctx.message.guild) or "not set"
+
+			return await ctx.msg(f"{self.bot.user.name.split("#")[0]}'s **default prefix** is `{self.bot.default_prefix}` your **custom prefix** is `{user_prefix}` and the  **custom guild prefix** is `{guild_prefix}`")
+
+	@prefix.command(
+			name="set",
+			description="Set your custom prefix",
+			usage="prefix set ,"
+	)
+	async def prefix_set(self, ctx: StealContext, prefix:str):
+
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS prefixes(entity INTEGER UNIQUE, prefix TEXT)",		
+				)
+
+				await cursor.execute(
+					"REPLACE INTO prefixes(entity, prefix) VALUES ($1, $2)",
+					ctx.guild.id, prefix,
+				)
+
+				await db.commit()
+
+				return await ctx.approve(f"Set the **custom guild prefix** to `{prefix}`")
+	
+	@prefix.command(
+			name="remove",
+			description="Set your custom prefix",
+			aliases=["clear", "reset"],
+			usage="prefix remove"
+	)
+	async def prefix_remove(self, ctx: StealContext):
+
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS prefixes(entity INTEGER UNIQUE, prefix TEXT)",		
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM prefixes WHERE entity = $1",
+					ctx.guild.id,
+				)
+
+				row = await cur.fetchone()
+
+				if not row:
+					return await ctx.warn("There is not a **custom guild prefix** set.")
+
+				await cursor.execute(
+					"DELETE FROM prefixes WHERE entity = $1",
+					ctx.guild.id,
+				)
+
+				return await ctx.approve(f"Removed the **custom guild prefix** it is now `{self.bot.default_prefix}`")
+
+
+	@group(
+			name="selfprefix",
+			description="Your selfprefix and shit.",
+			brief="selfprefix",
+	)
+	async def selfprefix(self, ctx: StealContext):
+		if not ctx.invoked_subcommand:
+
+			user_prefix = await self.bot.get_user_prefix(user = ctx.message.author) or "not set"
+
+			return await ctx.msg(f"Your **custom prefix** is `{user_prefix}`")
+	
+
+	@selfprefix.command(
+			name="set",
+			description="Set your custom prefix",
+			usage="prefix set ,"
+	)
+	async def selfprefix_set(self, ctx: StealContext, prefix:str):
+
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS prefixes(entity INTEGER UNIQUE, prefix TEXT)",		
+				)
+
+				await cursor.execute(
+					"REPLACE INTO prefixes(entity, prefix) VALUES ($1, $2)",
+					ctx.author.id, prefix,
+				)
+
+				await db.commit()
+
+				return await ctx.approve(f"Set your **custom prefix** to `{prefix}`")
+	
+	@selfprefix.command(
+			name="remove",
+			description="Set your custom prefix",
+			aliases=["clear", "reset"],
+			usage="prefix remove"
+	)
+	async def selfprefix_remove(self, ctx: StealContext):
+
+		async with asqlite.connect("main.db") as db:
+			async with db.cursor() as cursor:
+
+				await cursor.execute(
+					"CREATE TABLE IF NOT EXISTS prefixes(entity INTEGER UNIQUE, prefix TEXT)",		
+				)
+
+				cur = await cursor.execute(
+					"SELECT * FROM prefixes WHERE entity = $1",
+					ctx.author.id,
+				)
+
+				row = await cur.fetchone()
+
+				if not row:
+					return await ctx.warn("You do not have a **custom prefix** set.")
+
+				await cursor.execute(
+					"DELETE FROM prefixes WHERE entity = $1",
+					ctx.author.id,
+				)
+
+				return await ctx.approve(f"Removed your **custom prefix** it is now `{self.bot.default_prefix}`")
+
 
 	@group(
 		name='system',
@@ -496,26 +634,25 @@ class BotManagement(commands.Cog):
 					command = row[6]
 					error = row[5]
 
-					try:
-						await ctx.author.send(
-							embed=discord.Embed(
-								title=f"Exception traceback.",
-								color=Colors.APPROVE_COLOR,
-								description=f"> **Guild**: `{guild.name}`\n> **Channel**: `{channel.name}`\n> **User**: {user.mention} (`{user.name}`)\n> **Time**: {time}\n> **Command**: `{command}`",
-							).set_thumbnail(
-								url=guild.icon.url,
-							).add_field(
-								name="Exception",
-								value=f"\n```bash\n{error}```"
-							)
+					#try:
+					await ctx.author.send(
+						embed=discord.Embed(
+							title=f"Exception traceback.",
+							color=Colors.APPROVE_COLOR,
+							description=f"> **Guild**: `{guild or 'None'}`\n> **Channel**: `{channel if channel else 'None'}`\n> **User**: {user.mention} (`{user.name}`)\n> **Time**: {time}\n> **Command**: `{command}`",
+						).set_thumbnail(
+							url=guild.icon.url if guild else user.display_avatar.url,
+						).add_field(
+							name="Exception",
+							value=f"\n```bash\n{error}```"
 						)
+					)
+					await ctx.message.add_reaction(
+						Emojis.APPROVE
+					)
 
-						await ctx.message.add_reaction(
-							Emojis.APPROVE
-						)
-
-					except:
-						return await ctx.warn("**Failed** to send you the **Exception traceback**.")
+					#except Exception as e:
+					#	return await ctx.warn(f"**Failed** to send you the **Exception traceback**.\n```ruby\n{e}```")
 		else:
 			return await ctx.deny(f"Only owners of [**{self.bot.user.name.split("#")[0]}**]({Auth.invite}) can run this command.")
 

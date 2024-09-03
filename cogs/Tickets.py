@@ -237,7 +237,7 @@ class Tickets(commands.Cog):
 				row = await cur.fetchone()
 
 				if not row:
-					return await ctx.warn(f"Please run the `{self.bot.command_prefix[0]}ticket opened` command before this one.")
+					return await ctx.warn(f"Please run the `{await self.bot.get_prefix(ctx.message)}ticket opened` command before this one.")
 
 		if channel is None: channel = ctx.channel
 		if not script:
@@ -396,7 +396,7 @@ class Tickets(commands.Cog):
 					await ctx.approve(f"Overwrote **ticket** support role to {role.mention}")
 					return
 					
-				return await ctx.warn(f"Please run the `{self.bot.command_prefix[0]}ticket opened` command before this one.")
+				return await ctx.warn(f"Please run the `{await self.bot.get_prefix(ctx.message)}ticket opened` command before this one.")
 
 	@ticket.command(
 			name="category",
@@ -434,7 +434,7 @@ class Tickets(commands.Cog):
 					await ctx.approve(f"Set **ticket** category to **{category}**")
 					return
 				
-				return await ctx.warn(f"Please run the `{self.bot.command_prefix[0]}ticket opened` command before this one.")
+				return await ctx.warn(f"Please run the `{await self.bot.get_prefix(ctx.message)}ticket opened` command before this one.")
 	@ticket.command(
 			name="config",
 			description="Config for the ticket module.",

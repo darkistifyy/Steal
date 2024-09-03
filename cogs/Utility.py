@@ -447,11 +447,12 @@ class Utility(commands.Cog):
 			description="Manage tags and shit.",
 			brief="tag"
 	)
+	@guild_only()
 	async def tag(self, ctx: StealContext):
 		if ctx.invoked_subcommand is None:
 			name = ctx.message.content.split("tag ")[1]
 			if name is None:
-				return await ctx.deny(f'`{ctx.invoked_subcommand}` is not a valid subcommand of `tag`.')
+				return await ctx.plshelp()
 			async with asqlite.connect("main.db") as conn:
 				async with conn.cursor() as cursor:
 
@@ -463,18 +464,16 @@ class Utility(commands.Cog):
 
 					cur = await cursor.execute(
 						"""
-						SELECT script FROM tags WHERE guildid = $1 AND name = $2
-						""", ctx.guild.id, name.lower(), 
+						SELECT * FROM tags WHERE guildid = $1 AND name = $2
+						""", ctx.guild.id, name,
 					)
 
-					script = await cur.fetchone()
+					row = await cur.fetchone()
 
-					if not script:
+					if not row:
 						return await ctx.warn(f"Tag `{name}` not found.")
-					
-					scriptcode = script[0]
 
-					processed_message = EmbedBuilder.embed_replacement(ctx.author, scriptcode)
+					processed_message = EmbedBuilder.embed_replacement(ctx.author, row[3])
 					content, embed, view = await EmbedBuilder.to_object(processed_message)
 					await ctx.reply(content=content, embed=embed, view=view)
 
@@ -484,6 +483,7 @@ class Utility(commands.Cog):
 			brief="tag create info {content:this is a tag}",
 			extras= {"permissions": ["manage_messages"]},
 	)
+	@guild_only()
 	@has_permissions(manage_messages=True)
 	async def tagcreate(self, ctx: StealContext, name:str, *, script: str):
 		async with asqlite.connect("main.db") as conn:
@@ -497,13 +497,13 @@ class Utility(commands.Cog):
 
 				cur = await cursor.execute(
 					"""
-					SELECT ownerid FROM tags WHERE guildid = $1 AND name = $2
+					SELECT * FROM tags WHERE guildid = $1 AND name = $2
 					""", ctx.guild.id, name.lower()
 				)
 
-				id = await cur.fetchone()
+				row = await cur.fetchone()
 
-				if not id:
+				if not row:
 
 					await cursor.execute(
 						"""
@@ -524,6 +524,7 @@ class Utility(commands.Cog):
 			brief="tag delete info",
 			extras= {"permissions": ["manage_messages"]},
 	)
+	@guild_only()
 	@has_permissions(manage_messages=True)
 	async def tagdelete(self, ctx: StealContext, *, name: str):
 		async with asqlite.connect("main.db") as conn:
@@ -558,12 +559,21 @@ class Utility(commands.Cog):
 
 				return await ctx.approve(f"Deleted tag **{name.lower()}**.")
 
+	@command(
+			name="tags",
+			description="List all server tags.",
+			brief="tags"
+	)
+	@guild_only()
+	async def get_taglist(self, ctx: StealContext):
+		return await self.taglist(ctx)
+
 	@tag.command(
 			name="list",
 			descrtiption="Lists all server tags.",
 			brief="tag list",
 	)
-	@has_permissions(manage_messages=True)
+	@guild_only()
 	async def taglist(self, ctx: StealContext):
 		async with asqlite.connect("main.db") as conn:
 			async with conn.cursor() as cursor:
@@ -580,12 +590,10 @@ class Utility(commands.Cog):
 					""", ctx.guild.id, 
 				)
 
-				tags = await cur.fetchall()
+				row = await cur.fetchall()
 
-				if not tags:
-					return await ctx.warn(f"There are no tags in this guild.")
-
-				taglist = tags
+				if not row:
+					return await ctx.warn(f"There are no **tags** in this guild.")
 
 				count = 0
 				embeds = []
@@ -596,11 +604,9 @@ class Utility(commands.Cog):
 				]"""
 				entries = [
 						f"`{i}` **{tagname}** (<@{tagowner}>)"
-						for i, [tagname, tagowner] in enumerate(taglist, start=1)
+						for i, [tagname, tagowner] in enumerate(row, start=1)
 					]
 					
-				print(entries)
-
 				l = 5
 
 				embed = discord.Embed(
@@ -705,9 +711,9 @@ class Utility(commands.Cog):
 	)
 	@has_permissions(manage_messages=True)
 	@guild_only()
-	async def embedsend(self, ctx: StealContext,reply:Optional[bool] = False, *, message:str) -> None:
+	async def embedsend(self, ctx: StealContext,reply:Optional[bool] = False, *, script:str) -> None:
 		
-		processed_message = EmbedBuilder.embed_replacement(ctx.author, message)
+		processed_message = EmbedBuilder.embed_replacement(ctx.author, script)
 		content, embed, view = await EmbedBuilder.to_object(processed_message)
 		if reply:
 			return await ctx.reply(content=content, embed=embed, view=view)
