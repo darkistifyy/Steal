@@ -18,7 +18,7 @@ class Steal(commands.Bot):
 	owner_ids=[1182755690071212092, 1039379534409117717]
     )
 
-installation = sudo$ git clone https://github.com/oxy-devv/Steal.git
+installation = sudo$ git clone https://github.com/darkistifyy/Steal.git
 python ver = 3.12.3
 
 ```
