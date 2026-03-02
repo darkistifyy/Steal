@@ -1,17 +1,21 @@
 from discord import Color
+
+
 class Auth:
-    token = "MTI2NDIyNTcxNjc5OTc5OTQyNw.G9rvs_.I5MxbmyycnPaif69gEA5_2i1rieneq5bf8p3Ws"
-    invite = "https://discord.com/oauth2/authorize?client_id=1264225716799799427&permissions=8&integration_type=0&scope=bot"
+    token = ""
+    invite = ""
     fnbrapi = "d599dc2e-4964-42fd-990f-6b7892ab4204"
 
+
 class Colors:
-    #BASE_COLOR = 0x7291df
-    #BASE_COLOR = 0x6a6a6a
+    # BASE_COLOR = 0x7291df
+    # BASE_COLOR = 0x6a6a6a
     BASE_COLOR = 0x130E18
     DENY_COLOR = Color.red()
     NEUTRAL_COLOR = BASE_COLOR
     WARN_COLOR = Color.yellow()
-    APPROVE_COLOR = 0x48db01
+    APPROVE_COLOR = 0x48DB01
+
 
 class Emojis:
     APPROVE = "<:confirm:1276652226496041012>"
@@ -27,6 +31,7 @@ class Emojis:
     MUSIC = "🎵"
     TIME = "🕰️"
 
+
 class Flags:
     MODERATOR = "<:certified_moderator:1273709147636105258>"
     BUG_HUNTER = "<:bug_hunter:1273709223271731342>"
@@ -41,6 +46,6 @@ class Flags:
     NITRO = "<:nitro:1272410157724209152>"
     BOOST = "<:boost:1272410199516385304>"
 
-class Guild:
-    INVITE = "https://discord.gg/GDqJeqn3wq"
 
+class Guild:
+    INVITE = "https://discord.gg/RwPBJQYsUD"

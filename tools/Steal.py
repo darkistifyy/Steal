@@ -1,238 +1,241 @@
 from __future__ import annotations
 
-import importlib
-from io import BytesIO
-import jishaku
-import logging
-import asyncpg
-import pathlib
 import asyncio
-import aiohttp
-import discord
+import binascii
+import datetime
+import glob
+import importlib
+import json
+import logging
+import os
+import pathlib
+import random
+import re
 import secrets
 import string
-import glob
-import json
 import sys
-import os
-import re
-import glob
-import datetime
 import time
+import uuid
+from collections import defaultdict
+from io import BytesIO
+from typing import Dict, Union
+
+import aiohttp
+import asqlite
+import asyncpg
 import colorgram
+import discord
+import jishaku
 import numpy as np
 import scipy.cluster
 import scipy.cluster.vq
-import binascii
-import asqlite
-import uuid
-from discord.ext import tasks, commands
-import random
-from events.Loops import (snipe_delete,
-						   reminder_task,
-							 change_status,
-							   giveaway_check,
-								 giveaway_clear,
-								   error_clear,
-						)
-
+from asyncpg import Pool
+from discord import Embed, Message
+from discord.ext import commands, tasks
+from humanize import precisedelta
+from num2words import num2words
 from PIL import Image
 
-from num2words import num2words
-from asyncpg import Pool
-from typing import Dict, Union
-from collections import defaultdict
-from humanize import precisedelta
-
-from discord.ext import commands
-from discord import Message, Embed
-
+from events.Loops import (
+    change_status,
+    error_clear,
+    giveaway_check,
+    giveaway_clear,
+    reminder_task,
+    snipe_delete,
+)
 from managers.cache import Cache
-from managers.help import StealHelp, HelpSelect
-from tools.Session import Session
 from managers.context import StealContext
-from tools.Config import Colors, Emojis
-from tools.View import VerifyView
+from managers.help import HelpSelect, StealHelp
 from tools.Config import *
+from tools.Config import Colors, Emojis
+from tools.Session import Session
+from tools.View import VerifyView
 
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 intents = discord.Intents.all()
 
+
 class Steal(commands.Bot):
-	def __init__(self):
-		self.errors = Dict[str, commands.CommandError]
-		self._uptime = time.time()
-		self.session = Session()
-		self.cache = Cache()
-		self.startTime = time.time()
-		self.default_prefix = ";"
+    def __init__(self):
+        self.errors = Dict[str, commands.CommandError]
+        self._uptime = time.time()
+        self.session = Session()
+        self.cache = Cache()
+        self.startTime = time.time()
+        self.default_prefix = ";"
 
-		super().__init__(
-			command_prefix=(self.get_prefix),
-			help_command=StealHelp(),
-			intents=intents,
-			allowed_mentions=discord.AllowedMentions(
-				everyone=False,
-				users=True,
-				roles=False,
-				replied_user=False
-			),
-			case_insensitive=True,
-			owner_ids=[1182755690071212092],
-		)
+        super().__init__(
+            command_prefix=(self.get_prefix),
+            help_command=StealHelp(),
+            intents=intents,
+            allowed_mentions=discord.AllowedMentions(
+                everyone=False, users=True, roles=False, replied_user=False
+            ),
+            case_insensitive=True,
+            owner_ids=[1135399585670496386],
+        )
 
-	async def load_modules(self, dir:str) -> None:
-		for module in os.listdir(f'{dir}'):
-			if not module.endswith(".py"):return
-			try:
-				print(module)
-				await self.load_extension(f"{dir}.{module[:-3]}")
-				log.info(f'Loaded module: {module}')
-			except commands.ExtensionFailed:
-				log.warning(f'Extension failed to load: {module}')
-				raise
-			except Exception as e:
-				log.error(f'Error loading module {module}: {e}')
+    async def load_modules(self, dir: str) -> None:
+        for module in os.listdir(f"{dir}"):
+            if not module.endswith(".py"):
+                return
+            try:
+                print(module)
+                await self.load_extension(f"{dir}.{module[:-3]}")
+                log.info(f"Loaded module: {module}")
+            except commands.ExtensionFailed:
+                log.warning(f"Extension failed to load: {module}")
+                raise
+            except Exception as e:
+                log.error(f"Error loading module {module}: {e}")
 
-	async def start_loops(self) -> None:
-		snipe_delete.start(self)
-		giveaway_check.start(self)
-		giveaway_clear.start(self)
-		error_clear.start(self)
-		reminder_task.start(self)
-		change_status.start(self)
+    async def start_loops(self) -> None:
+        snipe_delete.start(self)
+        giveaway_check.start(self)
+        giveaway_clear.start(self)
+        error_clear.start(self)
+        reminder_task.start(self)
+        change_status.start(self)
 
-	async def __chunk_guilds(self):
-		for guild in self.guilds:
-			await asyncio.sleep(2)
-			await guild.chunk(cache=True)
+    async def __chunk_guilds(self):
+        for guild in self.guilds:
+            await asyncio.sleep(2)
+            await guild.chunk(cache=True)
 
-	async def on_ready(self) -> None:
-		log.info(f'Logged in as {self.user.name}#{self.user.discriminator} ({self.user.id})')
-		log.info(f'Connected to {len(self.guilds)} guilds')
-		log.info(f'Connected to {len(self.users)} users')
+    async def on_ready(self) -> None:
+        log.info(
+            f"Logged in as {self.user.name}#{self.user.discriminator} ({self.user.id})"
+        )
+        log.info(f"Connected to {len(self.guilds)} guilds")
+        log.info(f"Connected to {len(self.users)} users")
 
-		asyncio.ensure_future(self.__chunk_guilds())
+        asyncio.ensure_future(self.__chunk_guilds())
 
-		await self.start_loops()
+        await self.start_loops()
 
-	async def setup_hook(self) -> None:
-		await self.load_modules('cogs')
-		await self.load_modules('events')
+    async def setup_hook(self) -> None:
+        await self.load_modules("cogs")
+        await self.load_modules("events")
 
-		from cogs.Tickets import TicketModPanel, TicketClose, TicketCreate
+        from cogs.Tickets import TicketClose, TicketCreate, TicketModPanel
 
-		self.add_view(TicketClose())
-		self.add_view(TicketCreate())
-		self.add_view(TicketModPanel())
+        self.add_view(TicketClose())
+        self.add_view(TicketCreate())
+        self.add_view(TicketModPanel())
 
-		try:
-			print("Jishaku.")
-			await self.load_extension("jishaku")
-			log.info("Loaded module: Jishaku.")
-		except commands.ExtensionFailed:
-			log.warning(f'Extension failed to load: Jishaku.')
-			raise
-		except Exception as e:
-			log.error(f'Error loading module Jishaku.: {e}')		
+        try:
+            print("Jishaku.")
+            await self.load_extension("jishaku")
+            log.info("Loaded module: Jishaku.")
+        except commands.ExtensionFailed:
+            log.warning(f"Extension failed to load: Jishaku.")
+            raise
+        except Exception as e:
+            log.error(f"Error loading module Jishaku.: {e}")
 
-		return await super().setup_hook()
+        return await super().setup_hook()
 
-	def humanize_number(self, number: int) -> str:
-		suffixes = ['', 'k', 'm', 'b', 't']
-		magnitude = min(len(suffixes) - 1, (len(str(abs(number))) - 1) // 3)
-		formatted_number = '{:.1f}'.format(number / 10 ** (3 * magnitude)).rstrip('0').rstrip('.')
-		return '{}{}'.format(formatted_number, suffixes[magnitude])
+    def humanize_number(self, number: int) -> str:
+        suffixes = ["", "k", "m", "b", "t"]
+        magnitude = min(len(suffixes) - 1, (len(str(abs(number))) - 1) // 3)
+        formatted_number = (
+            "{:.1f}".format(number / 10 ** (3 * magnitude)).rstrip("0").rstrip(".")
+        )
+        return "{}{}".format(formatted_number, suffixes[magnitude])
 
-	async def get_guild_prefix(bot: Steal, guild):
-		async with asqlite.connect("main.db") as db:
-			async with db.cursor() as cursor:
+    async def get_guild_prefix(bot: Steal, guild):
+        async with asqlite.connect("main.db") as db:
+            async with db.cursor() as cursor:
+                await cursor.execute(
+                    "CREATE TABLE IF NOT EXISTS prefixes(entity INTEGER UNIQUE, prefix TEXT)",
+                )
 
-				await cursor.execute(
-					"CREATE TABLE IF NOT EXISTS prefixes(entity INTEGER UNIQUE, prefix TEXT)",		
-				)
+                cur = await cursor.execute(
+                    "SELECT * FROM prefixes WHERE entity = $1",
+                    guild.id,
+                )
 
-				cur = await cursor.execute(
-					"SELECT * FROM prefixes WHERE entity = $1",
-					guild.id,
-				)
+                guild_row = await cur.fetchone()
 
-				guild_row = await cur.fetchone()
+                await cursor.close()
 
-				if guild_row:
-					return guild_row[1]
-				return None 
+                if guild_row:
+                    return guild_row[1]
+                return None
 
-	async def get_user_prefix(bot: Steal, user):
-		async with asqlite.connect("main.db") as db:
-			async with db.cursor() as cursor:
+    async def get_user_prefix(bot: Steal, user):
+        async with asqlite.connect("main.db") as db:
+            async with db.cursor() as cursor:
+                await cursor.execute(
+                    "CREATE TABLE IF NOT EXISTS prefixes(entity INTEGER UNIQUE, prefix TEXT)",
+                )
 
-				await cursor.execute(
-					"CREATE TABLE IF NOT EXISTS prefixes(entity INTEGER UNIQUE, prefix TEXT)",		
-				)
+                cur = await cursor.execute(
+                    "SELECT * FROM prefixes WHERE entity = $1",
+                    user.id,
+                )
 
-				cur = await cursor.execute(
-					"SELECT * FROM prefixes WHERE entity = $1",
-					user.id,
-				)
+                user_row = await cur.fetchone()
 
-				user_row = await cur.fetchone()
+                await cursor.close()
 
-				if user_row:
-					return user_row[1]
-				return None
+                if user_row:
+                    return user_row[1]
+                return None
 
-	async def get_prefix(bot: Steal, message):
+    async def get_prefix(bot: Steal, message):
 
-		userprefix = await bot.get_user_prefix(message.author)
-		guildprefix = await bot.get_guild_prefix(message.guild)
+        userprefix = await bot.get_user_prefix(message.author)
+        guildprefix = await bot.get_guild_prefix(message.guild)
 
-		if userprefix is not None:
-			return userprefix
-		
-		elif guildprefix is not None:
-			return guildprefix
+        if userprefix is not None:
+            return userprefix
 
-		return bot.default_prefix
+        elif guildprefix is not None:
+            return guildprefix
 
-	@property
-	def lines(self) -> int:
-		"""
-		Return the code's amount of lines
-		"""
+        return bot.default_prefix
 
-		lines = 0
-		for d in [x[0] for x in os.walk(".") if not ".git" in x[0]]:
-			for file in os.listdir(d):
-				if file.endswith(".py"):
-					with open(f"{d}/{file}", "r+", encoding="utf8") as fp:
-						fp = fp.read()
-						lines += len(fp.splitlines())
-	
-		return lines
+    @property
+    def lines(self) -> int:
+        """
+        Return the code's amount of lines
+        """
 
-	def ordinal(self, number: int) -> str:
-		"""
-		convert a number to an ordinal number (ex: 1 -> 1st)
-		"""
+        lines = 0
+        for d in [x[0] for x in os.walk(".") if not ".git" in x[0]]:
+            for file in os.listdir(d):
+                if file.endswith(".py"):
+                    with open(f"{d}/{file}", "r+", encoding="utf8") as fp:
+                        fp = fp.read()
+                        lines += len(fp.splitlines())
 
-		return num2words(number, to="ordinal_num")
+        return lines
 
-	async def getbyte(self, url: str) -> BytesIO:
+    def ordinal(self, number: int) -> str:
+        """
+        convert a number to an ordinal number (ex: 1 -> 1st)
+        """
 
-		return BytesIO(await self.session.get_bytes(url))
+        return num2words(number, to="ordinal_num")
 
-		result = []
-		for name, count in intervals:
-			value = uptime_seconds // count
-			if value:
-				uptime_seconds -= value * count
-				result.append(f"{int(value)} {name}{'s' if value > 1 else ''}")
+    async def getbyte(self, url: str) -> BytesIO:
 
-		return ', '.join(result)
-	"""
+        return BytesIO(await self.session.get_bytes(url))
+
+        result = []
+        for name, count in intervals:
+            value = uptime_seconds // count
+            if value:
+                uptime_seconds -= value * count
+                result.append(f"{int(value)} {name}{'s' if value > 1 else ''}")
+
+        return ", ".join(result)
+
+    """
 	async def dominant_color(self, url: Union[discord.Asset, str]) -> int:
 		if isinstance(url, discord.Asset):
 			url = url.url
@@ -244,105 +247,103 @@ class Steal(commands.Bot):
 		colors = await asyncio.to_thread(lambda: colorgram.extract(img, 1))
 		return discord.Color.from_rgb(*list(colors[0].rgb)).value"""
 
-	async def dominant_color_url(self, url: Union[discord.Asset, str]) -> int:
-		if isinstance(url, discord.Asset):
-			url = url.url
+    async def dominant_color_url(self, url: Union[discord.Asset, str]) -> int:
+        if isinstance(url, discord.Asset):
+            url = url.url
 
-		img = Image.open(BytesIO(await self.session.get_bytes(url)))
-		img = img.convert('RGBA')
-		img = img.resize((150, 150))	
+        img = Image.open(BytesIO(await self.session.get_bytes(url)))
+        img = img.convert("RGBA")
+        img = img.resize((150, 150))
 
-		ar = np.asarray(img)	
-		mask = ar[:, :, 3] > 0
-		ar = ar[mask]		
-		ar = ar[:, : 3].astype(float)	
-		#A lot of shit i dont understand
-		codes, dist = scipy.cluster.vq.kmeans(ar, 5)		
-		vecs, dist = scipy.cluster.vq.vq(ar, codes)
-		counts, bins = np.histogram(vecs, len(codes))		
-		index_max = np.argmax(counts)
-		#something!!!
-		peak = codes[index_max]
-		colour = binascii.hexlify(bytearray(int(c) for c in peak)).decode('ascii')
-		#convert hex colour to arr gee bee :3
-		rgb = tuple(int(colour[i:i+2], 16) for i in (0, 2, 4))
-		return discord.Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2]).value
-	
+        ar = np.asarray(img)
+        mask = ar[:, :, 3] > 0
+        ar = ar[mask]
+        ar = ar[:, :3].astype(float)
+        # A lot of shit i dont understand
+        codes, dist = scipy.cluster.vq.kmeans(ar, 5)
+        vecs, dist = scipy.cluster.vq.vq(ar, codes)
+        counts, bins = np.histogram(vecs, len(codes))
+        index_max = np.argmax(counts)
+        # something!!!
+        peak = codes[index_max]
+        colour = binascii.hexlify(bytearray(int(c) for c in peak)).decode("ascii")
+        # convert hex colour to arr gee bee :3
+        rgb = tuple(int(colour[i : i + 2], 16) for i in (0, 2, 4))
+        return discord.Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2]).value
 
-	async def dominant_color(self, value: bytes) -> int:
+    async def dominant_color(self, value: bytes) -> int:
 
-		img = Image.open(BytesIO(value))
-		img = img.convert('RGBA')
-		img = img.resize((150, 150))	
+        img = Image.open(BytesIO(value))
+        img = img.convert("RGBA")
+        img = img.resize((150, 150))
 
-		ar = np.asarray(img)	
-		mask = ar[:, :, 3] > 0
-		ar = ar[mask]		
-		ar = ar[:, : 3].astype(float)	
-		#A lot of shit i dont understand
-		codes, dist = scipy.cluster.vq.kmeans(ar, 5)		
-		vecs, dist = scipy.cluster.vq.vq(ar, codes)
-		counts, bins = np.histogram(vecs, len(codes))		
-		index_max = np.argmax(counts)
-		#something!!!
-		peak = codes[index_max]
-		colour = binascii.hexlify(bytearray(int(c) for c in peak)).decode('ascii')
-		#convert hex colour to arr gee bee :3
-		rgb = tuple(int(colour[i:i+2], 16) for i in (0, 2, 4))
-		return discord.Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2]).value
+        ar = np.asarray(img)
+        mask = ar[:, :, 3] > 0
+        ar = ar[mask]
+        ar = ar[:, :3].astype(float)
+        # A lot of shit i dont understand
+        codes, dist = scipy.cluster.vq.kmeans(ar, 5)
+        vecs, dist = scipy.cluster.vq.vq(ar, codes)
+        counts, bins = np.histogram(vecs, len(codes))
+        index_max = np.argmax(counts)
+        # something!!!
+        peak = codes[index_max]
+        colour = binascii.hexlify(bytearray(int(c) for c in peak)).decode("ascii")
+        # convert hex colour to arr gee bee :3
+        rgb = tuple(int(colour[i : i + 2], 16) for i in (0, 2, 4))
+        return discord.Color.from_rgb(r=rgb[0], g=rgb[1], b=rgb[2]).value
 
-	async def generate_code(self):
-		async with asqlite.connect("main.db") as db:
-			async with db.cursor() as cursor:
-				await cursor.execute(
-					"CREATE TABLE IF NOT EXISTS errors(code TEXT UNIQUE, guildid INTEGER, channelid INTEGER, userid INTEGER, time INTEGER, error TEXT, command TEXT)"
-				)
+    async def generate_code(self):
 
-				id = f"{uuid.uuid4()}"
+        async with asqlite.connect("main.db") as db:
+            async with db.cursor() as cursor:
+                await cursor.execute(
+                    "CREATE TABLE IF NOT EXISTS errors(code TEXT UNIQUE, guildid INTEGER, channelid INTEGER, userid INTEGER, time INTEGER, error TEXT, command TEXT)"
+                )
 
-				cur = await cursor.execute(
-					"SELECT * FROM errors WHERE code = $1",
-					id,
-				)
+                id = f"{uuid.uuid4()}"
 
-				row = await cur.fetchone()
+                cur = await cursor.execute("SELECT * FROM errors WHERE code = $1", id)
 
-				if not row:
-					return id
-				else:
-					while id == row[0]:
-						await self.generate_code()
-					return id
+                row = await cur.fetchone()
 
-	def humanize_date(self, date: datetime.datetime) -> str:
-		"""
-		Humanize a datetime (ex: 2 days ago)
-		"""
+                if not row:
+                    return id
+                else:
+                    while id == row[0]:
+                        await self.generate_code()
+                    return id
 
-		if date.timestamp() < datetime.datetime.now().timestamp():
-			return f"{(precisedelta(date, format='%0.0f').replace('and', ',')).split(', ')[0]} ago"
-		else:
-			return f"in {(precisedelta(date, format='%0.0f').replace('and', ',')).split(', ')[0]}"
+    def humanize_date(self, date: datetime.datetime) -> str:
+        """
+        Humanize a datetime (ex: 2 days ago)
+        """
 
-	@property
-	def uptime(self) -> str:
-		return self.humanize_time(self._uptime)
-	
+        if date.timestamp() < datetime.datetime.now().timestamp():
+            return f"{(precisedelta(date, format='%0.0f').replace('and', ',')).split(', ')[0]} ago"
+        else:
+            return f"in {(precisedelta(date, format='%0.0f').replace('and', ',')).split(', ')[0]}"
+
+    @property
+    def uptime(self) -> str:
+        return self.humanize_time(self._uptime)
+
+    """
 	async def on_command_error(self, ctx: StealContext, exception: commands.CommandError) -> None:
 		if type(exception) in [commands.CommandNotFound, commands.NotOwner, commands.CheckFailure]: return
 		elif isinstance(exception, commands.BadColourArgument):
-			return await ctx.warn(f"I was **unable** to find that **color**.")
+			return await ctx.warn(f"Unable to find that **color**")
 		elif isinstance(exception, commands.RoleNotFound):
-			return await ctx.warn(f"I was unable to find the role **{exception.argument}**.")
+			return await ctx.warn(f"Unable to find the role **{exception.argument}**")
 		elif isinstance(exception, commands.ChannelNotFound):
-			return await ctx.warn(f"I was unable to find the channel **{exception.argument}**")
+			return await ctx.warn(f"Unable to find the channel **{exception.argument}**")
 		elif isinstance(exception, commands.ThreadNotFound):
-			return await ctx.warn(f"I was unable to find the thread **{exception.argument}**")
+			return await ctx.warn(f"Unable to find the thread **{exception.argument}**")
 		elif isinstance(exception, commands.BadUnionArgument):
 			if discord.Emoji in exception.converters or discord.PartialEmoji in exception.converters:
-				return await ctx.warn(f"Invalid **emoji** provided.")
+				return await ctx.warn(f"Unable - invalid **emoji** provided.")
 			elif discord.User in exception.converters or discord.Member in exception.converters:
-				return await ctx.warn(f"I was unable to find that **member** or the provided **ID** is invalid.")
+				return await ctx.warn(f"Unable to find that **member** - invalid **ID**")
 			return await ctx.warn(f"Could not convert **{exception.param.name}** to **{exception.converters}**")
 		elif isinstance(exception, commands.CommandInvokeError):
 			#if isinstance(exception.original, ValueError):
@@ -350,46 +351,45 @@ class Steal(commands.Bot):
 			if isinstance(exception, commands.MissingPermissions):
 				return await ctx.warn(f"I do not have permissions to do that.")
 			elif isinstance(exception.original, aiohttp.ClientConnectorError):
-				return await ctx.warn(f"**Failed** to connect to the **URL** - Possibly invalid.")
-			#elif isinstance(exception.original, aiohttp.ClientResponseError): 
+				return await ctx.warn(f"Failed to connect to the **URL** - potentially invalid")
+			#elif isinstance(exception.original, aiohttp.ClientResponseError):
 			#	if exception.original.status == 522:
 			#		return await ctx.warn(f"**Timed out** while requesting data - probably the API's fault")
 			#	return await ctx.warn(f"**API** returned a **{exception.original.status}** status - try again later.")
 			elif isinstance(exception.original, discord.Forbidden):
-				return await ctx.warn(f"I do not have permission to do that.")
+				return await ctx.warn(f"I do not have permission to do that")
 			elif isinstance(exception.original, discord.NotFound):
-				return await ctx.warn(f"**Not found** - the **ID** is invalid")
+				return await ctx.warn(f"**Not found** - invalid **ID**")
 			#elif isinstance(exception.original, aiohttp.ContentTypeError):
 			#	return await ctx.warn(f"**Invalid content** - the **API** returned an unexpected response")
 			elif isinstance(exception.original, aiohttp.InvalidURL):
 				return await ctx.warn(f"The provided **url** is invalid")
 			elif isinstance(exception.original, asyncpg.StringDataRightTruncationError):
-				return await ctx.warn(f"**Data** is too **long** - try again with a shorter message")
+				return await ctx.warn(f"Data is too **long** - try again with a shorter message")
 			#return await ctx.warn(exception.original)
 		elif isinstance(exception, commands.UserNotFound):
-			return await ctx.warn("I was unable to find that **member** or the **ID** is invalid")
+			return await ctx.warn("Unable to find that **member** - invalid **ID**")
 		elif isinstance(exception, commands.MemberNotFound):
-			return await ctx.warn(f"I was unable to find a member with the name: **{exception.argument}**")
+			return await ctx.warn(f"Unable to find a **member** with the name: **{exception.argument}**")
 		elif isinstance(exception, commands.MissingPermissions):
-			return await ctx.warn(f"You're **missing** permission: `{exception.missing_permissions[0]}`")
+			return await ctx.warn(f"You're **missing** the permission: `{exception.missing_permissions[0]}`")
 		elif isinstance(exception, commands.BotMissingPermissions):
-			return await ctx.warn(f"I'm **missing** permission: `{exception.missing_permissions[0]}`")
+			return await ctx.warn(f"I'm **missing** the permission: `{exception.missing_permissions[0]}`")
 		elif isinstance(exception, commands.GuildNotFound):
-			return await ctx.warn(f"I was unable to find that **server** or the **ID** is invalid")
+			return await ctx.warn(f"Unable to find that **server** - invalid **ID**")
 		elif isinstance(exception, commands.BadInviteArgument):
-			return await ctx.warn(f"Invalid **invite code** given")
-		elif isinstance(exception, commands.UserInputError): 
-			return await ctx.warn(f"**Invalid Input Given**: \n`{exception}`")
+			return await ctx.warn(f"Unable - invalid **invite code**")
+		elif isinstance(exception, commands.UserInputError):
+			return await ctx.warn(f"Invalid input Given: \n`{exception}`")
 		elif isinstance(exception, commands.CommandOnCooldown):
-			return await ctx.neutral(f"Please wait **{exception.retry_after:.2f} seconds** before using this command again.")
+			return await ctx.neutral(f"Please wait `{exception.retry_after:.2f}` seconds before using this command again.")
 		elif isinstance(exception, commands.NoPrivateMessage):
 			return await ctx.deny(f'This command is not made to be run in **private messages**.')
 		elif isinstance(exception, commands.ExtensionNotFound):
-			return await ctx.warn(f"I'm **unable** to find the cog **{exception.args}**")
+			return await ctx.warn(f"Unable to find the **cog*: `{exception.args}`")
 		elif isinstance(exception, commands.ExtensionNotLoaded):
-			return await ctx.warn(f"**{exception.args}** is not **loaded**.")
-		elif isinstance(exception, commands.MissingPermissions):
-			return await ctx.warn(f"I do not have permissions to do that.")
+			return await ctx.warn(f"`{exception.args}` is not **loaded**.")
+
 		error = exception.with_traceback(exception.__traceback__)
 		code = await self.generate_code()
 		user = ctx.author
@@ -397,7 +397,7 @@ class Steal(commands.Bot):
 		guild = ctx.guild
 		time = datetime.datetime.now().timestamp()
 		command = str(ctx.command)
-		
+
 		async with asqlite.connect("main.db") as db:
 			async with db.cursor() as cursor:
 				await cursor.execute(
@@ -405,14 +405,9 @@ class Steal(commands.Bot):
 					str(code), guild.id if guild else 0, channel.id, user.id, time, str(error), command,
 				)
 				await db.commit()
-				await ctx.send(
-					content=f"`{code}`",
-					embed=discord.Embed(
-						description=f"> {Emojis.WARN} {user.mention}: I ran into an **error** with the **exception code** above. Join the [**Support Server**]({Guild.INVITE}) for assistance.",
-						color=Colors.WARN_COLOR,
-					)
-				)
+				await cursor.close()
 
+				await ctx.exception(code)"""
 
-	async def get_context(self, message, *, cls= StealContext):
-		return await super().get_context(message, cls=cls)
+    async def get_context(self, message, *, cls=StealContext):
+        return await super().get_context(message, cls=cls)

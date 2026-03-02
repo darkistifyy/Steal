@@ -29,7 +29,6 @@ class Session:
         proxy: Optional[str] = None,
     ):
 
-
         async with aiohttp.ClientSession(headers=headers or self.headers) as cs:
             async with cs.get(url, headers=headers, params=params, proxy=proxy) as r:
                 return await r.json()
@@ -57,4 +56,3 @@ class Session:
         async with aiohttp.ClientSession(headers=headers or self.headers) as cs:
             async with cs.get(url, headers=headers, params=params, proxy=proxy) as r:
                 return await r.read()
-            

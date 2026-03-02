@@ -1,265 +1,331 @@
 from __future__ import annotations
 
-import sys, os, discord
-from discord.ext import commands
+import os
+import sys
 from typing import Union
+
+import discord
 import validators
+from discord.ext import commands
+
 from tools.Config import Colors
+
 
 class MyException(Exception):
     pass
 
+
 class EmbedBuilder:
- def ordinal(num: int) -> str:
-   """Convert from number to ordinal (10 - 10th)""" 
-   numb = str(num) 
-   if numb.startswith("0"): numb = numb.strip('0')
-   if numb in ["11", "12", "13"]: return numb + "th"
-   if numb.endswith("1"): return numb + "st"
-   elif numb.endswith("2"):  return numb + "nd"
-   elif numb.endswith("3"): return numb + "rd"
-   else: return numb + "th"    
+    def ordinal(num: int) -> str:
+        """Convert from number to ordinal (10 - 10th)"""
+        numb = str(num)
+        if numb.startswith("0"):
+            numb = numb.strip("0")
+        if numb in ["11", "12", "13"]:
+            return numb + "th"
+        if numb.endswith("1"):
+            return numb + "st"
+        elif numb.endswith("2"):
+            return numb + "nd"
+        elif numb.endswith("3"):
+            return numb + "rd"
+        else:
+            return numb + "th"
 
- def get_parts(params):
-    params=params.replace('{embed}', '')
-    
-#   print([p[1:][:-1] for p in params.split('$v')])
-    return [p for p in params.split('{')]
+    def get_parts(params):
+        params = params.replace("{embed}", "")
 
- def embed_replacement(user: discord.Member, params: str=None):
-    if params is None: return None
-    if '{user}' in params:
-        params=params.replace('{user}', str(user))
-    if '{user.mention}' in params:
-        params=params.replace('{user.mention}', user.mention)
-    if '{user.name}' in params:
-        params=params.replace('{user.name}', user.name)
-    if '{user.avatar}' in params:
-        params=params.replace('{user.avatar}', str(user.display_avatar.url))
-    if '{user.joined_at}' in params:
-        params=params.replace('{user.joined_at}', discord.utils.format_dt(user.joined_at, style='R'))
-    if '{user.created_at}' in params:
-        params=params.replace('{user.created_at}', discord.utils.format_dt(user.created_at, style='R'))
-    if '{user.discriminator}' in params:
-        params=params.replace('{user.discriminator}', user.discriminator)
-    if '{guild.name}' in params:
-        params=params.replace('{guild.name}', user.guild.name)
-    if '{guild.count}' in params:
-        params=params.replace('{guild.count}', str(user.guild.member_count))
-    if '{guild.count.format}' in params:
-        params=params.replace('{guild.count.format}', EmbedBuilder.ordinal(len(user.guild.members)))
-    if '{guild.id}' in params:
-        params=params.replace('{guild.id}', user.guild.id)
-    if '{guild.created_at}' in params:
-        params=params.replace('{guild.created_at}', discord.utils.format_dt(user.guild.created_at, style='R'))
-    if '{guild.boost_count}' in params:
-        params=params.replace('{guild.boost_count}', str(user.guild.premium_subscription_count))
-    if '{guild.booster_count}' in params:
-        params=params.replace('{guild.booster_count}', str(len(user.guild.premium_subscribers)))
-    if '{guild.boost_count.format}' in params:
-        params=params.replace('{guild.boost_count.format}', EmbedBuilder.ordinal(user.guild.premium_subscription_count))
-    if '{guild.booster_count.format}' in params:
-        params=params.replace('{guild.booster_count.format}', EmbedBuilder.ordinal(len(user.guild.premium_subscribers)))
-    if '{guild.boost_tier}' in params:
-        params=params.replace('{guild.boost_tier}', str(user.guild.premium_tier))
-    if '{guild.vanity}' in params: 
-        params=params.replace('{guild.vanity}', "/" + user.guild.vanity_url_code or "none")         
-    if '{invisible}' in params: 
-        params=params.replace('{invisible}', '2B2D31') 
-    if '{botcolor}' in params: 
-        params=params.replace('{botcolor}', f'{Colors.BASE_COLOR}')       
-    if '{guild.icon}' in params:
-      if user.guild.icon:
-        params=params.replace('{guild.icon}', user.guild.icon.url)
-      else: 
-        params=params.replace('{guild.icon}', "https://none.none")        
+        #   print([p[1:][:-1] for p in params.split('$v')])
+        return [p for p in params.split("{")]
 
-    return params
+    def embed_replacement(user: discord.Member, params: str = None):
+        if params is None:
+            return None
+        if "{user}" in params:
+            params = params.replace("{user}", str(user))
+        if "{user.mention}" in params:
+            params = params.replace("{user.mention}", user.mention)
+        if "{user.name}" in params:
+            params = params.replace("{user.name}", user.name)
+        if "{user.avatar}" in params:
+            params = params.replace("{user.avatar}", str(user.display_avatar.url))
+        if "{user.joined_at}" in params:
+            params = params.replace(
+                "{user.joined_at}", discord.utils.format_dt(user.joined_at, style="R")
+            )
+        if "{user.created_at}" in params:
+            params = params.replace(
+                "{user.created_at}", discord.utils.format_dt(user.created_at, style="R")
+            )
+        if "{user.discriminator}" in params:
+            params = params.replace("{user.discriminator}", user.discriminator)
+        if "{guild.name}" in params:
+            params = params.replace("{guild.name}", user.guild.name)
+        if "{guild.count}" in params:
+            params = params.replace("{guild.count}", str(user.guild.member_count))
+        if "{guild.count.format}" in params:
+            params = params.replace(
+                "{guild.count.format}", EmbedBuilder.ordinal(len(user.guild.members))
+            )
+        if "{guild.id}" in params:
+            params = params.replace("{guild.id}", user.guild.id)
+        if "{guild.created_at}" in params:
+            params = params.replace(
+                "{guild.created_at}",
+                discord.utils.format_dt(user.guild.created_at, style="R"),
+            )
+        if "{guild.boost_count}" in params:
+            params = params.replace(
+                "{guild.boost_count}", str(user.guild.premium_subscription_count)
+            )
+        if "{guild.booster_count}" in params:
+            params = params.replace(
+                "{guild.booster_count}", str(len(user.guild.premium_subscribers))
+            )
+        if "{guild.boost_count.format}" in params:
+            params = params.replace(
+                "{guild.boost_count.format}",
+                EmbedBuilder.ordinal(user.guild.premium_subscription_count),
+            )
+        if "{guild.booster_count.format}" in params:
+            params = params.replace(
+                "{guild.booster_count.format}",
+                EmbedBuilder.ordinal(len(user.guild.premium_subscribers)),
+            )
+        if "{guild.boost_tier}" in params:
+            params = params.replace("{guild.boost_tier}", str(user.guild.premium_tier))
+        if "{guild.vanity}" in params:
+            params = params.replace(
+                "{guild.vanity}", "/" + user.guild.vanity_url_code or "none"
+            )
+        if "{invisible}" in params:
+            params = params.replace("{invisible}", "2B2D31")
+        if "{botcolor}" in params:
+            params = params.replace("{botcolor}", f"{Colors.BASE_COLOR}")
+        if "{guild.icon}" in params:
+            if user.guild.icon:
+                params = params.replace("{guild.icon}", user.guild.icon.url)
+            else:
+                params = params.replace("{guild.icon}", "https://none.none")
 
- def copy_embed(self, message: discord.Message) -> str:
-    to_return = ""
-    if embeds := message.embeds:
-        embed: dict = discord.Embed.to_dict(embeds[0])
-        to_return += "{embed}"
-        if embed.get("color"):
-            to_return += "{color: " + hex(embed["color"]).replace("0x", "#") + "}"
-        if embed.get("title"):
-            to_return += "{title: " + embed["title"] + "}"
-        if embed.get("description"):
-            to_return += "{description: " + embed["description"] + "}"
-        if embed.get("author"):
-            author = embed["author"]
-            to_return += "{author: "
-            if author.get("name"):
-                to_return += f"{author.get('name')}"
-            if author.get("icon_url"):
-                to_return += f" && {author.get('icon_url')}"
-            if author.get("url"):
-                to_return += f" && {author.get('url')}"
-            to_return += "}"
-        if embed.get("thumbnail"):
-            to_return += "{thumbnail: " + embed["thumbnail"]["url"]
-        if embed.get("image"):
-            to_return += "{image: " + embed["image"]["url"] + "}"
-        if embed.get("fields"):
-            for field in embed["fields"]:
-                to_return += (
-                    "{field: "
-                    + f"{field['name']} && {field['value']}{' && inline' if field['inline'] else ''}"
-                    + "}"
+        return params
+
+    def copy_embed(self, message: discord.Message) -> str:
+        to_return = ""
+        if embeds := message.embeds:
+            embed: dict = discord.Embed.to_dict(embeds[0])
+            to_return += "{embed}"
+            if embed.get("color"):
+                to_return += "{color: " + hex(embed["color"]).replace("0x", "#") + "}"
+            if embed.get("title"):
+                to_return += "{title: " + embed["title"] + "}"
+            if embed.get("description"):
+                to_return += "{description: " + embed["description"] + "}"
+            if embed.get("author"):
+                author = embed["author"]
+                to_return += "{author: "
+                if author.get("name"):
+                    to_return += f"{author.get('name')}"
+                if author.get("icon_url"):
+                    to_return += f" && {author.get('icon_url')}"
+                if author.get("url"):
+                    to_return += f" && {author.get('url')}"
+                to_return += "}"
+            if embed.get("thumbnail"):
+                to_return += "{thumbnail: " + embed["thumbnail"]["url"]
+            if embed.get("image"):
+                to_return += "{image: " + embed["image"]["url"] + "}"
+            if embed.get("fields"):
+                for field in embed["fields"]:
+                    to_return += (
+                        "{field: "
+                        + f"{field['name']} && {field['value']}{' && inline' if field['inline'] else ''}"
+                        + "}"
+                    )
+            if embed.get("footer"):
+                to_return += "{footer: "
+                footer = embed["footer"]
+                if footer.get("text"):
+                    to_return += f"{footer.get('text')}"
+                if footer.get("icon_url"):
+                    to_return += f" && {footer.get('icon_url')}"
+                to_return += "}"
+        if message.content:
+            to_return += "{content: " + "}"
+        return to_return.replace("```", "")
+
+    async def to_object(params):
+
+        x = {}
+        fields = []
+        content = None
+        view = discord.ui.View()
+
+        for part in EmbedBuilder.get_parts(params):
+            part = part.replace("}", "")
+
+            if part.startswith("content:"):
+                content = part[len("content:") :]
+
+            if part.startswith("title:"):
+                x["title"] = part[len("title:") :]
+
+            if part.startswith("description:"):
+                x["description"] = part[len("description:") :]
+
+            if part.startswith("color:"):
+                try:
+                    x["color"] = int(part[len("color:") :].replace("#", ""), 16)
+                except:
+                    x["color"] = Colors.BASECOLOR
+
+            if part.startswith("image:"):
+                if validators.url(part[len("image:") :].strip()):
+                    x["image"] = {"url": part[len("image:") :].strip()}
+                else:
+                    raise MyException("The embed image is not a well formed url.")
+
+            if part.startswith("thumbnail:"):
+                if validators.url(part[len("thumbnail:") :].strip()):
+                    x["thumbnail"] = {"url": part[len("thumbnail:") :].strip()}
+                else:
+                    raise MyException("The embed thumbnail is not a well formed url.")
+
+            if part.startswith("author:"):
+                z = part[len("author:") :].split(" && ")
+                try:
+                    name = z[0] if z[0] else None
+                except:
+                    name = None
+                try:
+                    icon_url = z[1] if z[1] else None
+                except:
+                    icon_url = None
+                try:
+                    url = z[2] if z[2] else None
+                except:
+                    url = None
+
+                x["author"] = {"name": name}
+                if icon_url:
+                    if validators.url(icon_url.strip("icon:").strip()):
+                        x["author"]["icon_url"] = icon_url.strip("icon:").strip()
+                    else:
+                        raise MyException(
+                            "The embed author_icon_url is not a well formed url."
+                        )
+                if url:
+                    if validators.url(icon_url.strip("icon:").strip()):
+                        x["author"]["url"] = url.strip("url:").strip()
+                    else:
+                        raise MyException(
+                            "The embed author_url is not a well formed url."
+                        )
+
+        if x:
+            if "color" not in x:
+                x["color"] = Colors.BASE_COLOR
+
+            if part.startswith("field:"):
+                z = part[len("field:") :].split(" && ")
+                try:
+                    name = z[0] if z[0] else None
+                except:
+                    name = None
+                try:
+                    value = z[1] if z[1] else None
+                except:
+                    value = None
+                try:
+                    inline = z[2] if z[2] else True
+                except:
+                    inline = True
+
+                if isinstance(inline, str):
+                    if inline == "true":
+                        inline = True
+
+                    elif inline == "false":
+                        inline = False
+
+                fields.append({"name": name, "value": value, "inline": inline})
+
+            if part.startswith("footer:"):
+                z = part[len("footer:") :].split(" && ")
+                try:
+                    text = z[0] if z[0] else None
+                except:
+                    text = None
+                try:
+                    icon_url = z[1] if z[1] else None
+                except:
+                    icon_url = None
+                x["footer"] = {"text": text}
+                if icon_url:
+                    if validators.url(icon_url.strip("icon:").strip()):
+                        x["footer"]["icon_url"] = icon_url.strip("icon:").strip()
+                    else:
+                        raise MyException(
+                            "The embed author_url is not a well formed url."
+                        )
+
+            if part.startswith("button:"):
+                z = part[len("button:") :].split(" && ")
+                disabled = True
+                style = discord.ButtonStyle.gray
+                emoji = None
+                label = None
+                url = None
+                for m in z:
+                    if "label:" in m:
+                        label = m.replace("label:", "")
+                    if "url:" in m:
+                        url = m.replace("url:", "").strip()
+                        disabled = False
+                    if "emoji:" in m:
+                        emoji = m.replace("emoji:", "").strip()
+                    if "disabled" in m:
+                        disabled = True
+                    if "style:" in m:
+                        if m.replace("style:", "").strip() == "red":
+                            style = discord.ButtonStyle.red
+                        elif m.replace("style:", "").strip() == "green":
+                            style = discord.ButtonStyle.green
+                        elif m.replace("style:", "").strip() == "gray":
+                            style = discord.ButtonStyle.gray
+                        elif m.replace("style:", "").strip() == "blue":
+                            style = discord.ButtonStyle.blurple
+
+                view.add_item(
+                    discord.ui.Button(
+                        style=style,
+                        label=label,
+                        emoji=emoji,
+                        url=url,
+                        disabled=disabled,
+                    )
                 )
-        if embed.get("footer"):
-            to_return += "{footer: "
-            footer = embed["footer"]
-            if footer.get("text"):
-                to_return += f"{footer.get('text')}"
-            if footer.get("icon_url"):
-                to_return += f" && {footer.get('icon_url')}"
-            to_return += "}"
-    if message.content:
-        to_return += "{content: " + "}"
-    return to_return.replace("```", "")
 
- async def to_object(params):
+        if not x:
+            embed = None
+        else:
+            x["fields"] = fields
+            embed = discord.Embed.from_dict(x)
+        return content, embed, view
 
-    x={}
-    fields=[]
-    content=None
-    view=discord.ui.View()
 
-    for part in EmbedBuilder.get_parts(params):
-        part = part.replace('}', '')
-        
-        if part.startswith('content:'):
-            content=part[len('content:'):]
+class EmbedScript(commands.Converter):
+    async def convert(self, ctx: commands.Context, argument: str):
+        x = await EmbedBuilder.to_object(
+            EmbedBuilder.embed_replacement(ctx.author, argument)
+        )
+        if x[0] or x[1]:
+            return {"content": x[0], "embed": x[1], "view": x[2]}
+        return {"content": EmbedBuilder.embed_replacement(ctx.author, argument)}
 
-        if part.startswith('title:'):
-            x['title']=part[len('title:'):]
-        
-        if part.startswith('description:'):
-            x['description']=part[len('description:'):]
-
-        if part.startswith('color:'):
-            try:
-                x['color']=int(part[len('color:'):].replace("#", ""), 16)
-            except:
-                x['color']=Colors.BASECOLOR
-
-        if part.startswith('image:'):
-            if validators.url(part[len('image:'):].strip()):
-                x['image']={'url': part[len('image:'):].strip()}
-            else: raise MyException("The embed image is not a well formed url.")
-
-        if part.startswith('thumbnail:'):
-            if validators.url(part[len('thumbnail:'):].strip()):
-                x['thumbnail']={'url': part[len('thumbnail:'):].strip()}
-            else: raise MyException("The embed thumbnail is not a well formed url.")
-        
-        if part.startswith('author:'):
-            z=part[len('author:'):].split(' && ')
-            try:
-                name=z[0] if z[0] else None
-            except:
-                name=None
-            try:
-                icon_url=z[1] if z[1] else None
-            except:
-                icon_url=None
-            try:
-                url=z[2] if z[2] else None
-            except:
-                url=None
-
-            x['author']={'name': name}
-            if icon_url:
-                if validators.url(icon_url.strip("icon:").strip()):
-                    x['author']['icon_url']=icon_url.strip("icon:").strip()
-                else:raise MyException("The embed author_icon_url is not a well formed url.")
-            if url:
-                if validators.url(icon_url.strip("icon:").strip()):
-                    x['author']['url']=url.strip("url:").strip()
-                else:raise MyException("The embed author_url is not a well formed url.")
-
-    if x:
-        if "color" not in x:
-            x['color']=Colors.BASE_COLOR
-
-        if part.startswith('field:'):
-            z=part[len('field:'):].split(' && ')
-            try:
-                name=z[0] if z[0] else None
-            except:
-                name=None
-            try:
-                value=z[1] if z[1] else None
-            except:
-                value=None
-            try:
-                inline=z[2] if z[2] else True
-            except:
-                inline=True
-
-            if isinstance(inline, str):
-                if inline == 'true':
-                    inline=True
-
-                elif inline == 'false':
-                    inline=False
-
-            fields.append({'name': name, 'value': value, 'inline': inline})
-
-        if part.startswith('footer:'):
-            z=part[len('footer:'):].split(' && ')
-            try:
-                text=z[0] if z[0] else None
-            except:
-                text=None
-            try:
-                icon_url=z[1] if z[1] else None
-            except:
-                icon_url=None
-            x['footer']={'text': text}
-            if icon_url:
-                if validators.url(icon_url.strip("icon:").strip()):
-                    x['footer']['icon_url']=icon_url.strip("icon:").strip()
-                else:raise MyException("The embed author_url is not a well formed url.")
-                
-        if part.startswith('button:'):
-            z=part[len('button:'):].split(' && ')
-            disabled=True
-            style=discord.ButtonStyle.gray
-            emoji=None 
-            label=None 
-            url=None
-            for m in z:
-             if "label:" in m: label=m.replace("label:", "")
-             if "url:" in m: 
-                url=m.replace("url:", "").strip()
-                disabled=False
-             if "emoji:" in m: emoji=m.replace("emoji:", "").strip()
-             if "disabled" in m: disabled=True     
-             if "style:" in m: 
-               if m.replace("style:", "").strip() == "red": style=discord.ButtonStyle.red 
-               elif m.replace("style:", "").strip() == "green": style=discord.ButtonStyle.green 
-               elif m.replace("style:", "").strip() == "gray": style=discord.ButtonStyle.gray 
-               elif m.replace("style:", "").strip() == "blue": style=discord.ButtonStyle.blurple   
-
-            view.add_item(discord.ui.Button(style=style, label=label, emoji=emoji, url=url, disabled=disabled))
-            
-    if not x: embed=None
-    else:
-        x['fields']=fields
-        embed=discord.Embed.from_dict(x)
-    return content, embed, view 
-
-class EmbedScript(commands.Converter): 
-  async def convert(self, ctx: commands.Context, argument: str):
-   x = await EmbedBuilder.to_object(EmbedBuilder.embed_replacement(ctx.author, argument))
-   if x[0] or x[1]: return {"content": x[0], "embed": x[1], "view": x[2]} 
-   return {"content": EmbedBuilder.embed_replacement(ctx.author, argument)}
 
 import re
-from typing import TYPE_CHECKING, Optional, Type, Union, Self
+from typing import TYPE_CHECKING, Optional, Self, Type, Union
 
 import discord
 from discord import ButtonStyle, Emoji, PartialEmoji
@@ -270,17 +336,19 @@ if TYPE_CHECKING:
     from .EmbedBuilderUi import EmbedEditor
 
 
-URL_REGEX = re.compile('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*(),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
+URL_REGEX = re.compile(
+    "http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*(),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
+)
 
 
 def to_boolean(argument: str) -> bool:
     lowered = argument.lower()
-    if lowered in ('yes', 'y', 'true', 't', '1', 'on'):
+    if lowered in ("yes", "y", "true", "t", "1", "on"):
         return True
-    elif lowered in ('no', 'n', 'false', 'f', '0', 'off'):
+    elif lowered in ("no", "n", "false", "f", "0", "off"):
         return False
     else:
-        raise InvalidModalField(f'{argument} is not a valid boolean value.')
+        raise InvalidModalField(f"{argument} is not a valid boolean value.")
 
 
 class InvalidModalField(Exception): ...
@@ -298,10 +366,14 @@ class BaseModal(discord.ui.Modal):
     def update_defaults(self, embed: discord.Embed):
         return
 
-    async def on_error(self, interaction: discord.Interaction, error: Exception, /) -> None:
+    async def on_error(
+        self, interaction: discord.Interaction, error: Exception, /
+    ) -> None:
         if isinstance(error, InvalidModalField):
             await self.parent_view.update_buttons()
-            await interaction.response.edit_message(embed=self.parent_view.current_embed, view=self.parent_view)
+            await interaction.response.edit_message(
+                embed=self.parent_view.current_embed, view=self.parent_view
+            )
             await interaction.followup.send(str(error), ephemeral=True)
             return
         await super().on_error(interaction, error)
@@ -309,10 +381,12 @@ class BaseModal(discord.ui.Modal):
     async def on_submit(self, interaction: discord.Interaction, /) -> None:
         self.update_embed(user=interaction.user)
         await self.parent_view.update_buttons()
-        await interaction.response.edit_message(embed=self.parent_view.current_embed, view=self.parent_view)
+        await interaction.response.edit_message(
+            embed=self.parent_view.current_embed, view=self.parent_view
+        )
 
 
-class EditWithModalButton(discord.ui.Button['EmbedEditor']):
+class EditWithModalButton(discord.ui.Button["EmbedEditor"]):
     def __init__(
         self,
         modal: Type[BaseModal],
@@ -325,30 +399,41 @@ class EditWithModalButton(discord.ui.Button['EmbedEditor']):
         row: Optional[int] = None,
     ):
         self.modal = modal
-        super().__init__(style=style, label=label, disabled=disabled, emoji=emoji, row=row)
+        super().__init__(
+            style=style, label=label, disabled=disabled, emoji=emoji, row=row
+        )
 
     async def callback(self, interaction: discord.Interaction):
         if not self.view:
-            raise discord.DiscordException('No view was found attached to this modal.')
+            raise discord.DiscordException("No view was found attached to this modal.")
         await interaction.response.send_modal(self.modal(self.view))
 
 
-class EditEmbedModal(BaseModal, title='Editing the embed:'):
+class EditEmbedModal(BaseModal, title="Editing the embed:"):
     _title = discord.ui.TextInput[Self](
-        label='Embed Title', placeholder='Leave any field empty to remove it', max_length=256, required=False
+        label="Embed Title",
+        placeholder="Leave any field empty to remove it",
+        max_length=256,
+        required=False,
     )
     description = discord.ui.TextInput[Self](
-        label='Embed Description',
-        placeholder='Any text, up to 4,000 characters.\n\nEmbeds can have a shared total of 6,000 characters!',
+        label="Embed Description",
+        placeholder="Any text, up to 4,000 characters.\n\nEmbeds can have a shared total of 6,000 characters!",
         style=discord.TextStyle.long,
         required=False,
     )
-    image = discord.ui.TextInput[Self](label='Embed Image URL', placeholder='Must be HTTP(S) format.', required=False)
+    image = discord.ui.TextInput[Self](
+        label="Embed Image URL", placeholder="Must be HTTP(S) format.", required=False
+    )
     thumbnail = discord.ui.TextInput[Self](
-        label='Thumbnail Image URL', placeholder='Must be HTTP(S) format.', required=False
+        label="Thumbnail Image URL",
+        placeholder="Must be HTTP(S) format.",
+        required=False,
     )
     color = discord.ui.TextInput[Self](
-        label='Embed Color', placeholder='Hex [#FFFFFF] or RGB [rgb(num, num, num)] only', required=False
+        label="Embed Color",
+        placeholder="Hex [#FFFFFF] or RGB [rgb(num, num, num)] only",
+        required=False,
     )
 
     def update_defaults(self, embed: discord.Embed):
@@ -360,15 +445,19 @@ class EditEmbedModal(BaseModal, title='Editing the embed:'):
             self.color.default = str(embed.color)
 
     def update_embed(self, user: discord.Member):
-        self.parent_view.embed.title = EmbedBuilder.embed_replacement(user, self._title.value.strip()) or None
-        self.parent_view.embed.description = EmbedBuilder.embed_replacement(user, self.description.value.strip()) or None
+        self.parent_view.embed.title = (
+            EmbedBuilder.embed_replacement(user, self._title.value.strip()) or None
+        )
+        self.parent_view.embed.description = (
+            EmbedBuilder.embed_replacement(user, self.description.value.strip()) or None
+        )
         failed: list[str] = []
         if self.color.value:
             try:
                 color = discord.Color.from_str(self.color.value)
                 self.parent_view.embed.color = color
             except (ValueError, IndexError):
-                failed.append('Invalid Color given!')
+                failed.append("Invalid Color given!")
         else:
             self.parent_view.embed.color = None
 
@@ -376,7 +465,7 @@ class EditEmbedModal(BaseModal, title='Editing the embed:'):
         if URL_REGEX.fullmatch(sti):
             self.parent_view.embed.set_image(url=sti)
         elif sti:
-            failed.append('Image URL did not match the http/https format')
+            failed.append("Image URL did not match the http/https format")
         else:
             self.parent_view.embed.set_image(url=None)
 
@@ -384,19 +473,26 @@ class EditEmbedModal(BaseModal, title='Editing the embed:'):
         if URL_REGEX.fullmatch(sti):
             self.parent_view.embed.set_thumbnail(url=sti)
         elif sti:
-            failed.append('Thumbnail URL did not match the http/https format')
+            failed.append("Thumbnail URL did not match the http/https format")
         else:
             self.parent_view.embed.set_thumbnail(url=None)
         if failed:
-            raise InvalidModalField('\n'.join(failed))
+            raise InvalidModalField("\n".join(failed))
 
 
-class EditAuthorModal(BaseModal, title='Editing the embed author:'):
+class EditAuthorModal(BaseModal, title="Editing the embed author:"):
     name = discord.ui.TextInput[Self](
-        label='Author name', max_length=256, placeholder='Leave any field empty to remove it', required=False
+        label="Author name",
+        max_length=256,
+        placeholder="Leave any field empty to remove it",
+        required=False,
     )
-    url = discord.ui.TextInput[Self](label="Author URL", placeholder='Must be HTTP(S) format.', required=False)
-    image = discord.ui.TextInput[Self](label='Author Icon URL', placeholder='Must be HTTP(S) format.', required=False)
+    url = discord.ui.TextInput[Self](
+        label="Author URL", placeholder="Must be HTTP(S) format.", required=False
+    )
+    image = discord.ui.TextInput[Self](
+        label="Author Icon URL", placeholder="Must be HTTP(S) format.", required=False
+    )
 
     def update_defaults(self, embed: discord.Embed):
         self.name.default = embed.author.name
@@ -415,43 +511,48 @@ class EditAuthorModal(BaseModal, title='Editing the embed author:'):
         if URL_REGEX.fullmatch(sti):
             if not author:
                 failed.append(
-                    'Cannot add image. NAME is required to add an author.\n(Leave all fields empty to remove author.)'
+                    "Cannot add image. NAME is required to add an author.\n(Leave all fields empty to remove author.)"
                 )
             image_url = sti
         elif sti:
             if not author:
                 failed.append(
-                    'Cannot add url. NAME is required to add an author.\n(Leave all fields empty to remove author.)'
+                    "Cannot add url. NAME is required to add an author.\n(Leave all fields empty to remove author.)"
                 )
-            failed.append('Image URL did not match the http/https format.')
+            failed.append("Image URL did not match the http/https format.")
 
         url = None
         sti = self.url.value.strip()
         if URL_REGEX.fullmatch(sti):
             if not author:
                 failed.append(
-                    'Cannot add url. NAME is required to add an author.\n(Leave all fields empty to remove author.)'
+                    "Cannot add url. NAME is required to add an author.\n(Leave all fields empty to remove author.)"
                 )
             url = sti
         elif sti:
             if not author:
                 failed.append(
-                    'Cannot add url. NAME is required to add an author.\n(Leave all fields empty to remove author.)'
+                    "Cannot add url. NAME is required to add an author.\n(Leave all fields empty to remove author.)"
                 )
-            failed.append('URL did not match the http/https format.')
+            failed.append("URL did not match the http/https format.")
 
         if author:
             self.parent_view.embed.set_author(name=author, url=url, icon_url=image_url)
 
         if failed:
-            raise InvalidModalField('\n'.join(failed))
+            raise InvalidModalField("\n".join(failed))
 
 
-class EditFooterModal(BaseModal, title='Editing the embed author:'):
+class EditFooterModal(BaseModal, title="Editing the embed author:"):
     text = discord.ui.TextInput[Self](
-        label='Footer text', max_length=256, placeholder='Leave any field empty to remove it', required=False
+        label="Footer text",
+        max_length=256,
+        placeholder="Leave any field empty to remove it",
+        required=False,
     )
-    image = discord.ui.TextInput[Self](label='Footer icon URL', placeholder='Must be HTTP(S) format.', required=False)
+    image = discord.ui.TextInput[Self](
+        label="Footer icon URL", placeholder="Must be HTTP(S) format.", required=False
+    )
 
     def update_defaults(self, embed: discord.Embed):
         self.text.default = embed.footer.text
@@ -469,32 +570,37 @@ class EditFooterModal(BaseModal, title='Editing the embed author:'):
         if URL_REGEX.fullmatch(sti):
             if not text:
                 failed.append(
-                    'Cannot add image. NAME is required to add an author.\n(Leave all fields empty to remove author.)'
+                    "Cannot add image. NAME is required to add an author.\n(Leave all fields empty to remove author.)"
                 )
             image_url = sti
         elif sti:
             if not text:
                 failed.append(
-                    'Cannot add url. NAME is required to add an author.\n(Leave all fields empty to remove author.)'
+                    "Cannot add url. NAME is required to add an author.\n(Leave all fields empty to remove author.)"
                 )
-            failed.append('Image URL did not match the http/https format.')
+            failed.append("Image URL did not match the http/https format.")
 
         if text:
             self.parent_view.embed.set_footer(text=text, icon_url=image_url)
 
         if failed:
-            raise InvalidModalField('\n'.join(failed))
+            raise InvalidModalField("\n".join(failed))
 
 
-class AddFieldModal(BaseModal, title='Add a field'):
-    name = discord.ui.TextInput[Self](label='Field Name', max_length=256)
-    value = discord.ui.TextInput[Self](label='Field Value', max_length=1024, style=discord.TextStyle.paragraph)
+class AddFieldModal(BaseModal, title="Add a field"):
+    name = discord.ui.TextInput[Self](label="Field Name", max_length=256)
+    value = discord.ui.TextInput[Self](
+        label="Field Value", max_length=1024, style=discord.TextStyle.paragraph
+    )
     inline = discord.ui.TextInput[Self](
-        label='Is inline?', placeholder='[ "Yes" | "No" ] (Default: Yes)', max_length=4, required=False
+        label="Is inline?",
+        placeholder='[ "Yes" | "No" ] (Default: Yes)',
+        max_length=4,
+        required=False,
     )
     index = discord.ui.TextInput[Self](
-        label='Index (where to place this field)',
-        placeholder='Number between 1 and 25. Default: 25 (last)',
+        label="Index (where to place this field)",
+        placeholder="Number between 1 and 25. Default: 25 (last)",
         max_length=2,
         required=False,
     )
@@ -504,10 +610,10 @@ class AddFieldModal(BaseModal, title='Add a field'):
 
         name = self.name.value.strip()
         if not name:
-            raise InvalidModalField('Name and Value are required.')
+            raise InvalidModalField("Name and Value are required.")
         value = self.value.value.strip()
         if not value:
-            raise InvalidModalField('Name and Value are required.')
+            raise InvalidModalField("Name and Value are required.")
         _inline = self.inline.value.strip()
         _idx = EmbedBuilder.embed_replacement(user, self.index.value.strip())
 
@@ -521,33 +627,40 @@ class AddFieldModal(BaseModal, title='Add a field'):
         if _idx:
             try:
                 index = int(_idx) - 1
-                self.parent_view.embed.insert_field_at(index=index, name=name, value=value, inline=inline)
+                self.parent_view.embed.insert_field_at(
+                    index=index, name=name, value=value, inline=inline
+                )
             except:
-                failed.append('Invalid index! (not a number)')
+                failed.append("Invalid index! (not a number)")
                 self.parent_view.embed.add_field(name=name, value=value, inline=inline)
         else:
             self.parent_view.embed.add_field(name=name, value=value, inline=inline)
 
         if failed:
-            raise InvalidModalField('\n'.join(failed))
+            raise InvalidModalField("\n".join(failed))
 
 
 class EditFieldModal(BaseModal):
-    name = discord.ui.TextInput[Self](label='Field Name', max_length=256)
-    value = discord.ui.TextInput[Self](label='Field Value', max_length=1024, style=discord.TextStyle.paragraph)
+    name = discord.ui.TextInput[Self](label="Field Name", max_length=256)
+    value = discord.ui.TextInput[Self](
+        label="Field Value", max_length=1024, style=discord.TextStyle.paragraph
+    )
     inline = discord.ui.TextInput[Self](
-        label='Is inline?', placeholder='[ "Yes" | "No" ] (Default: Yes)', max_length=4, required=False
+        label="Is inline?",
+        placeholder='[ "Yes" | "No" ] (Default: Yes)',
+        max_length=4,
+        required=False,
     )
     new_index = discord.ui.TextInput[Self](
-        label='Index (where to place this field)',
-        placeholder='Number between 1 and 25. Default: 25 (last)',
+        label="Index (where to place this field)",
+        placeholder="Number between 1 and 25. Default: 25 (last)",
         max_length=2,
         required=False,
     )
 
     def __init__(self, parent_view: EmbedEditor, index: int) -> None:
         self.field = parent_view.embed.fields[index]
-        self.title = f'Editing field number {index}'
+        self.title = f"Editing field number {index}"
         self.index = index
 
         super().__init__(parent_view)
@@ -555,7 +668,7 @@ class EditFieldModal(BaseModal):
     def update_defaults(self, embed: discord.Embed):
         self.name.default = self.field.name
         self.value.default = self.field.value
-        self.inline.default = 'Yes' if self.field.inline else 'No'
+        self.inline.default = "Yes" if self.field.inline else "No"
         self.new_index.default = str(self.index + 1)
 
     def update_embed(self, user: discord.Member):
@@ -563,10 +676,10 @@ class EditFieldModal(BaseModal):
 
         name = self.name.value.strip()
         if not name:
-            raise InvalidModalField('Name and Value are required.')
+            raise InvalidModalField("Name and Value are required.")
         value = self.value.value.strip()
         if not value:
-            raise InvalidModalField('Name and Value are required.')
+            raise InvalidModalField("Name and Value are required.")
         _inline = self.inline.value.strip()
 
         inline = True
@@ -577,9 +690,16 @@ class EditFieldModal(BaseModal):
                 failed = str(e)
         if self.new_index.value.isdigit():
             self.parent_view.embed.remove_field(self.index)
-            self.parent_view.embed.insert_field_at(int(self.new_index.value) - 1, name=name, value=value, inline=inline)
+            self.parent_view.embed.insert_field_at(
+                int(self.new_index.value) - 1, name=name, value=value, inline=inline
+            )
         else:
-            self.parent_view.embed.set_field_at(self.index, name= EmbedBuilder.embed_replacement(user, name), value= EmbedBuilder.embed_replacement(user, value), inline=inline)
+            self.parent_view.embed.set_field_at(
+                self.index,
+                name=EmbedBuilder.embed_replacement(user, name),
+                value=EmbedBuilder.embed_replacement(user, value),
+                inline=inline,
+            )
 
         if failed:
             raise InvalidModalField(failed)
