@@ -213,7 +213,7 @@ class Fun(commands.Cog):
 
 				cur = await cursor.execute(
 					"""
-					SELECT * FROM VAPE WHERE userid = $1
+					SELECT hits FROM vape WHERE userid = $1
 					""", ctx.author.id, 
 				)
 
@@ -227,7 +227,7 @@ class Fun(commands.Cog):
 						""", ctx.author.id, 1, 
 					)
 					await conn.commit()
-					await conn.close()
+					await cursor.close()
 					message = await ctx.send("Hitting the **vape**...")
 			
 					await asyncio.sleep(4)
@@ -240,7 +240,7 @@ class Fun(commands.Cog):
 							)
 					)
 
-				hitsint = row[1]
+				hitsint = row[0]
 				hitsint += 1
 
 				await cursor.execute(
@@ -250,7 +250,7 @@ class Fun(commands.Cog):
 				)
 
 				await conn.commit()
-				await conn.close()
+				await cursor.close()
 				message = await ctx.send("Hitting the **vape**...")
 
 				await asyncio.sleep(4)
@@ -280,16 +280,17 @@ class Fun(commands.Cog):
 
 				cur = await cursor.execute(
 					"""
-					SELECT * FROM VAPE WHERE userid = $1
-					""", (user.id, )
+					SELECT hits FROM VAPE WHERE userid = $1
+					""", user.id,
 				)	
 
 				row = await cur.fetchone()
+				await cursor.close()
 
 				if not row:
 					return await ctx.warn(f"{user.mention} has not hit the **vape** yet.")
 
-				await ctx.msg(f"{user.mention} has hit the **vape** `{row[1]}` times.")
+				await ctx.msg(f"{user.mention} has hit the **vape** `{row[0]}` times.")
 
 
 	@command(
@@ -497,7 +498,7 @@ class Fun(commands.Cog):
 				filename=f"dog{data['url'][-4:]}",
 			)
 		)
-
+	"""
 	@command(
 			name="cat",
 			description="Sends a random cat pic.",
@@ -516,7 +517,23 @@ class Fun(commands.Cog):
 				fp=await self.bot.getbyte(data["url"]),
 				filename="cat.png"
 			)
+		)"""
+	
+	@command(
+			name="cat",
+			description="Sends a random cat pic.",
+	)
+	@cooldown(3,5, BucketType.user)
+	async def cat(self,ctx: StealContext):
+
+		data = (
+			await self.bot.session.get_json(
+				"https://api.thecatapi.com/v1/images/search"
+			)
 		)
+
+		url = data[0]["url"]
+		await ctx.image(url)
 
 	@command(
 			name="capybara",
@@ -527,12 +544,9 @@ class Fun(commands.Cog):
 		data = await self.bot.session.get_json(
 			"https://api.capy.lol/v1/capybara?json=true"
 		)
-		await ctx.reply(
-			file=File(
-				fp=await self.bot.getbyte(data["data"]["url"]),
-				filename="capybara.png"
-			)
-		)
+
+		url = data["data"]["url"]
+		await ctx.image(url)
 
 	@command(
 			name="lizard",
@@ -545,30 +559,8 @@ class Fun(commands.Cog):
 			"https://nekos.life/api/v2/img/lizard",
 		)
 
-		await ctx.reply(
-			file=File(
-				fp=await self.bot.getbyte(data["url"]),
-				filename="lizard.png"
-			)
-		)
-
-
-	@command(
-			name="panda",
-			description="Sends a random panda image.",
-	)
-	async def panda(self, ctx: StealContext):
-
-		data = await self.bot.session.get_json(
-			"https://some-random-api.ml/img/panda",
-		)
-
-		await ctx.reply(
-			file=File(
-				fp=await self.bot.getbyte(data["link"]),
-				filename="panda.png"
-			)
-		)
+		url = data["url"]
+		await ctx.image(url)
 
 	@command(
 			name="fox",
@@ -581,12 +573,8 @@ class Fun(commands.Cog):
 			"https://randomfox.ca/floof/",
 		)
 
-		await ctx.reply(
-			file=File(
-				fp=await self.bot.getbyte(data["image"]),
-				filename="fox.png"
-			)
-		)
+		url = data["image"]
+		await ctx.image(url)
 
 	@command(
 			name="duck",
@@ -599,12 +587,8 @@ class Fun(commands.Cog):
 			"https://random-d.uk/api/v1/random?type=png",
 		)
 
-		await ctx.reply(
-			file=File(
-				fp=await self.bot.getbyte(data["url"]),
-				filename="duck.png"
-			)
-		)
+		url = data["url"]
+		await ctx.image(url)
 
 	@command(
 			name='uselessfact',
@@ -618,7 +602,7 @@ class Fun(commands.Cog):
 				"https://uselessfacts.jsph.pl/random.json?language=en"
 			)
 		)["text"]
-		await ctx.neutral(data)
+		await ctx.msg(data)
 
 
 	@command(
@@ -633,7 +617,7 @@ class Fun(commands.Cog):
 			return await ctx.warn("please put a `,` between your choices")
 
 		final = random.choice(choices1)
-		await ctx.neutral(f"I choose **{final}**")
+		await ctx.msg(f"I choose **{final}**")
 
 	@command(
 			name="ship",
@@ -644,7 +628,7 @@ class Fun(commands.Cog):
 		if member.id == ctx.author.id:
 			return await ctx.warn("Just why?")
 
-		return await ctx.send(
+		return await ctx.msg(
 			f"**{ctx.author.name}** 💞 **{member.name}** = **{random.randrange(101)}%**"
 		)
 
@@ -657,7 +641,7 @@ class Fun(commands.Cog):
 		data = orjson.loads(
 			await self.bot.session.get_text("https://api.adviceslip.com/advice")
 		)
-		return await ctx.send(data["slip"]["advice"])
+		return await ctx.msg(data["slip"]["advice"])
 
 
 	@command(
@@ -728,14 +712,18 @@ class Fun(commands.Cog):
 		if member == ctx.author:
 			return await ctx.deny("Get help.")
 
-		gif = await self.bot.session.get_json(
-			"https://api.otakugifs.xyz/gif?reaction=kiss"
-		)
+		#gif = await self.bot.session.get_json(
+		#	"https://api.otakugifs.xyz/gif?reaction=kiss"
+		#)
+		gif = "https://c.tenor.com/PszS3z-dkVkAAAAd/tenor.gif"
+
 		embed = Embed(
 			color=Colors.BASE_COLOR,
 			description=f"**{ctx.author.name}** kissed **{member.name}**",
 		)
-		embed.set_image(url=gif["url"])
+		#embed.set_image(url="https://tenor.com/view/kiss-smooch-mwah-mwa-cat-gif-4525223581887336793")
+		embed.set_image(url=gif)
+		#embed.set_image(url=gif["url"])
 		return await ctx.reply(embed=embed)
 
 	@command(

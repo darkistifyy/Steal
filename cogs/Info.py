@@ -52,7 +52,7 @@ class Info(commands.Cog):
 			color=Colors.BASE_COLOR
 		).set_author(
 			name=ctx.author,
-			icon_url=ctx.author.display_avatar.url or None
+			icon_url=ctx.author.display_avatar or None
 		)
 		, view=view)
 		view.message = out
@@ -72,13 +72,9 @@ class Info(commands.Cog):
 			name="Oxy:",
 			value=f"> [**Bot owner and main developer**](<https://discord.com/users/{self.bot.owner_ids[0]}>).",
 			inline=False
-		).add_field(
-			name=f"Ziggy:",
-			value=f"> [**Is ziggy.**](<https://discord.com/users/{self.bot.owner_ids[1]}>)",
-			inline=False
 		).set_author(
 			name=ctx.author,
-			icon_url=ctx.author.display_avatar.url or None
+			icon_url=ctx.author.display_avatar or None
 		)
 
 		out = await ctx.send(embed=embed, view=view)
@@ -184,9 +180,9 @@ class Info(commands.Cog):
 		await ctx.send(
 			embed=info.set_author(
 				name=f"{ctx.author.name}",
-				icon_url=ctx.author.display_avatar.url or None
+				icon_url=ctx.author.display_avatar or None
 			).set_thumbnail(
-				url=member.display_avatar.url or None
+				url=ctx.guild.icon or None
 			)
 			)
 
@@ -236,12 +232,12 @@ class Info(commands.Cog):
 			role_list = None
 		
 		avatarbytes = await ctx.guild.icon.read() if ctx.guild.icon else None
-		if avatarbytes is not None:
+		if avatarbytes:
 			dominant_color = await self.bot.dominant_color(avatarbytes)
 
 		embed = discord.Embed(
 			description=f'{server_creation} ({server_creation_relative})',
-			color=dominant_color if dominant_color else Colors.BASE_COLOR
+			color=dominant_color if avatarbytes else Colors.BASE_COLOR
 		).add_field(
 			name='Information',
 			value=f'>>> Owner: {server_owner}\nVerification level: {str(server_verification)}\nNitro boosts: {str(server_boosts)} (`Level {str(server_boost_level)}`)',
@@ -257,7 +253,7 @@ class Info(commands.Cog):
 		).set_author(
 			name=ctx.guild.name,
 			url=f"https://discord.com/channels/{ctx.guild.id}/",
-			icon_url=ctx.guild.icon.url if ctx.guild.icon else None
+			icon_url=ctx.guild.icon or None
 		)
 		await ctx.send(embed=embed)
 
@@ -322,8 +318,8 @@ class Info(commands.Cog):
 			value=f"`{humanize.naturaldelta(datetime.timedelta(seconds=int(round(time.time()-self.bot.startTime)))).capitalize()}`",inline=True
 		)
 
-		embed.set_thumbnail(url=self.bot.user.display_avatar.url)
-		embed.set_author(name=ctx.author.name, icon_url=ctx.author.display_avatar.url)
+		embed.set_thumbnail(url=self.bot.user.display_avatar)
+		embed.set_author(name=ctx.author.name, icon_url=ctx.author.display_avatar)
 
 		await ctx.send(embed=embed)
 
@@ -372,7 +368,7 @@ class Info(commands.Cog):
 		).set_author(
 			name=f"{invite.id} ({invite.guild.id})",
 			url=invite.url,
-			icon_url=invite.guild.icon.url if invite.guild.icon else None
+			icon_url=invite.guild.icon or None
 		)
 		await ctx.send(embed=embed)
 
@@ -462,7 +458,7 @@ class Info(commands.Cog):
 
 				if activity.type == discord.ActivityType.playing:
 
-					response = requests.get(member.display_avatar.url)
+					response = requests.get(member.display_avatar)
 					bytes = response.content
 					if bytes is not None:
 						dominant_color = await self.bot.dominant_color(bytes)
@@ -478,7 +474,7 @@ class Info(commands.Cog):
 						name="Started at",
 						value=f"Started playing at {activity.created_at.strftime('%H:%M')}"
 					).set_thumbnail(
-						url=member.display_avatar.url
+						url=member.display_avatar
 					)
 					return await ctx.reply(embed=info)
 		
@@ -509,7 +505,7 @@ class Info(commands.Cog):
 					info = discord.Embed(
 						title=f"{activity.title}",
 						url=f"{activity.track_url}",
-						description=f"🎵 {member} is **{str(activity.type).split('.')[1].capitalize()} to** [{activity.title}]({activity.track_url})",
+						description=f"🎵 {member if member != ctx.author else ""} is **{str(activity.type).split('.')[1].capitalize()} to** [{activity.title}]({activity.track_url})",
 						color=dominant_color if dominant_color else Colors.BASE_COLOR
 					).add_field(
 						name="Lyricist/Artist",
@@ -526,14 +522,14 @@ class Info(commands.Cog):
 
 				elif activity.type == discord.ActivityType.playing:
 
-					response = requests.get(member.display_avatar.url)
+					response = requests.get(member.display_avatar)
 					bytes = response.content
 					if bytes is not None:
 						dominant_color = await self.bot.dominant_color(bytes)
 
 					info = discord.Embed(
 						title=f"{activity.name}",
-						description=f"🎮 {member} is **playing** {activity.name}",
+						description=f"🎮 {member if member != ctx.author else ""} is **playing** {activity.name}",
 						color=dominant_color if dominant_color else Colors.BASE_COLOR
 					).add_field(
 						name="Platform",
@@ -542,7 +538,7 @@ class Info(commands.Cog):
 						name="Started at",
 						value=f"Started playing at {activity.created_at.strftime('%H:%M')}"
 					).set_thumbnail(
-						url=member.display_avatar.url
+						url=member.display_avatar
 					)
 					return await ctx.reply(embed=info)
 		
@@ -557,7 +553,7 @@ class Info(commands.Cog):
 					info = discord.Embed(
 						title=f"{activity.name}",
 						url=activity.url,
-						description=f"🖥️ {member} is **{str(activity.type).split('.')[1].capitalize()}** {activity.game}",
+						description=f"🖥️ {member if member != ctx.author else ""} is **{str(activity.type).split('.')[1].capitalize()}** {activity.game}",
 						color=dominant_color if dominant_color else Colors.BASE_COLOR
 					).add_field(
 						name="Platform",
@@ -573,7 +569,7 @@ class Info(commands.Cog):
 					return await ctx.reply(embed=info)
 
 		
-		await ctx.deny(f"{member.mention} is not doing a supported activity right now.")
+		await ctx.deny(f"{member.mention if member != ctx.author else ""} is not doing a supported activity right now.")
 
 	@command(
 			name='nitrohavers',
@@ -611,7 +607,7 @@ class Info(commands.Cog):
 			title=f"Nitro Users (`{len(entries)}`)",
 			description=""
 		).set_footer(
-					icon_url=self.bot.user.display_avatar.url or None,
+					icon_url=self.bot.user.display_avatar or None,
 					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
 				)
 
@@ -626,7 +622,7 @@ class Info(commands.Cog):
 					title=f"Nitro Users (`{len(entries)}`)",
 					description=""
 				).set_footer(
-					icon_url=self.bot.user.display_avatar.url or None,
+					icon_url=self.bot.user.display_avatar or None,
 					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
 				)
 
@@ -634,7 +630,7 @@ class Info(commands.Cog):
 		
 		if count > 0:
 			embeds.append(embed.set_footer(
-					icon_url=self.bot.user.display_avatar.url or None,
+					icon_url=self.bot.user.display_avatar or None,
 					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
 				))
 		
@@ -671,7 +667,7 @@ class Info(commands.Cog):
 			title=f"Invites (`{len(entries)}`)",
 			description=""
 		).set_footer(
-					icon_url=self.bot.user.display_avatar.url or None,
+					icon_url=self.bot.user.display_avatar or None,
 					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
 				)
 
@@ -686,7 +682,7 @@ class Info(commands.Cog):
 					title=f"Invites (`{len(entries)}`)",
 					description=""
 				).set_footer(
-					icon_url=self.bot.user.display_avatar.url or None,
+					icon_url=self.bot.user.display_avatar or None,
 					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
 				)
 
@@ -694,7 +690,7 @@ class Info(commands.Cog):
 		
 		if count > 0:
 			embeds.append(embed.set_footer(
-					icon_url=self.bot.user.display_avatar.url or None,
+					icon_url=self.bot.user.display_avatar or None,
 					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
 				))
 		
@@ -728,7 +724,7 @@ class Info(commands.Cog):
 			title=f"Boosters (`{len(entries)}`)",
 			description=""
 		).set_footer(
-					icon_url=self.bot.user.display_avatar.url or None,
+					icon_url=self.bot.user.display_avatar or None,
 					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
 				)
 
@@ -743,7 +739,7 @@ class Info(commands.Cog):
 					title=f"Boosters (`{len(entries)}`)",
 					description=""
 				).set_footer(
-					icon_url=self.bot.user.display_avatar.url or None,
+					icon_url=self.bot.user.display_avatar or None,
 					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
 				)
 
@@ -751,7 +747,7 @@ class Info(commands.Cog):
 		
 		if count > 0:
 			embeds.append(embed.set_footer(
-					icon_url=self.bot.user.display_avatar.url or None,
+					icon_url=self.bot.user.display_avatar or None,
 					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
 				))
 		
@@ -785,7 +781,7 @@ class Info(commands.Cog):
 			title=f"Bans (`{len(entries)}`)",
 			description=""
 		).set_footer(
-					icon_url=self.bot.user.display_avatar.url or None,
+					icon_url=self.bot.user.display_avatar or None,
 					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
 				)
 
@@ -800,7 +796,7 @@ class Info(commands.Cog):
 					title=f"Bans (`{len(entries)}`)",
 					description=""
 				).set_footer(
-					icon_url=self.bot.user.display_avatar.url or None,
+					icon_url=self.bot.user.display_avatar or None,
 					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
 				)
 
@@ -808,7 +804,7 @@ class Info(commands.Cog):
 		
 		if count > 0:
 			embeds.append(embed.set_footer(
-					icon_url=self.bot.user.display_avatar.url or None,
+					icon_url=self.bot.user.display_avatar or None,
 					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
 				))
 		
@@ -1031,14 +1027,14 @@ class Info(commands.Cog):
 
 			return await ctx.reply(embed=discord.Embed(
 				title=f"{ctx.guild}'s icon",
-				url=ctx.guild.icon.url,
+				url=ctx.guild.icon,
 				color=await self.bot.dominant_color(avatarbytes)
 			).set_image(
-				url=ctx.guild.icon.url
+				url=ctx.guild.icon
 				).set_author(
 					name=f"{ctx.author}",
-					url=ctx.guild.icon.url,
-					icon_url=ctx.author.display_avatar.url if ctx.author.display_avatar else None
+					url=ctx.guild.icon,
+					icon_url=ctx.author.display_avatar or None
 				)
 			)
 		else:
@@ -1065,14 +1061,14 @@ class Info(commands.Cog):
 
 			return await ctx.reply(embed=discord.Embed(
 				title=f"{ctx.guild}'s splash",
-				url=ctx.guild.splash.url,
+				url=ctx.guild.splash,
 				color=await self.bot.dominant_color(avatarbytes)
 			).set_image(
-				url=ctx.guild.splash.url
+				url=ctx.guild.splash
 				).set_author(
 					name=f"{ctx.author}",
-					url=ctx.guild.icon.url,
-					icon_url=ctx.author.display_avatar.url if ctx.author.display_avatar else None
+					url=ctx.guild.icon or None,
+					icon_url=ctx.author.display_avatar or None
 				)
 			)
 		else:
@@ -1103,11 +1099,11 @@ class Info(commands.Cog):
 				url=ctx.guild.banner.url,
 				color=await self.bot.dominant_color(avatarbytes)
 			).set_image(
-				url=ctx.guild.banner.url
+				url=ctx.guild.banner
 				).set_author(
 					name=f"{ctx.author}",
-					url=ctx.guild.icon.url,
-					icon_url=ctx.author.display_avatar.url if ctx.author.display_avatar else None
+					url=ctx.guild.icon or None,
+					icon_url=ctx.author.display_avatar or None
 				)
 			)
 		else:
@@ -1144,7 +1140,7 @@ class Info(commands.Cog):
 			title=f"Members (`{len(entries)}`)",
 			description=f"There are `{len(bots)}` bots, `{len(members)}` users and `{len(members)-len(bots)}` total members.\n\n"
 		).set_footer(
-					icon_url=self.bot.user.display_avatar.url or None,
+					icon_url=self.bot.user.display_avatar or None,
 					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
 				)
 
@@ -1159,7 +1155,7 @@ class Info(commands.Cog):
 					title=f"Members (`{len(entries)}`)",
 					description=f"There are `{len(bots)}` bots, `{len(members)}` users and `{len(members)-len(bots)}` total members.\n\n"
 				).set_footer(
-					icon_url=self.bot.user.display_avatar.url or None,
+					icon_url=self.bot.user.display_avatar or None,
 					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
 				)
 
@@ -1167,7 +1163,7 @@ class Info(commands.Cog):
 		
 		if count > 0:
 			embeds.append(embed.set_footer(
-					icon_url=self.bot.user.display_avatar.url or None,
+					icon_url=self.bot.user.display_avatar or None,
 					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
 				))
 		
@@ -1228,7 +1224,7 @@ class Info(commands.Cog):
 			title=f"Roles ({len(entries)})",
 			description=""
 		).set_footer(
-					icon_url=self.bot.user.display_avatar.url or None,
+					icon_url=self.bot.user.display_avatar or None,
 					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
 				)
 
@@ -1243,14 +1239,14 @@ class Info(commands.Cog):
 					title=f"Roles ({len(entries)})",
 					description=""
 				).set_footer(
-					icon_url=self.bot.user.display_avatar.url or None,
+					icon_url=self.bot.user.display_avatar or None,
 					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
 				)
 				count = 0
 		
 		if count > 0:
 			embeds.append(embed.set_footer(
-					icon_url=self.bot.user.display_avatar.url or None,
+					icon_url=self.bot.user.display_avatar or None,
 					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
 				))
 		
@@ -1285,7 +1281,7 @@ class Info(commands.Cog):
 			title=f"Emojis (`{len(entries)}`)",
 			description=""
 		).set_footer(
-					icon_url=self.bot.user.display_avatar.url or None,
+					icon_url=self.bot.user.display_avatar or None,
 					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
 				)
 
@@ -1300,7 +1296,7 @@ class Info(commands.Cog):
 					title=f"Emojis (`{len(entries)}`)",
 					description=""
 				).set_footer(
-					icon_url=self.bot.user.display_avatar.url or None,
+					icon_url=self.bot.user.display_avatar or None,
 					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
 				)
 
@@ -1308,7 +1304,7 @@ class Info(commands.Cog):
 		
 		if count > 0:
 			embeds.append(embed.set_footer(
-					icon_url=self.bot.user.display_avatar.url or None,
+					icon_url=self.bot.user.display_avatar or None,
 					text=f'Page {len(embeds) + 1}/{math.ceil(len(entries) / l)} ({len(entries)} entries)'
 				))
 		

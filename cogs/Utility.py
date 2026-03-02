@@ -839,7 +839,7 @@ class Utility(commands.Cog):
 	@command(
 			name="banner",
 			brief="banner @someguy",
-			description='Gets someones avatar.',
+			description='Gets someones banner.',
 	)
 	async def banner(self, ctx: StealContext, member:Optional[discord.User] = commands.param(default=None, displayed_default=None)) -> None:
 		if not member:member=ctx.author

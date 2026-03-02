@@ -8,6 +8,7 @@ import asyncio
 from discord.ui import *
 from sklearn import *
 import asqlite
+import isHex
 
 from tools.Steal import Steal
 from managers.context import StealContext
@@ -228,8 +229,9 @@ class Roles(commands.Cog):
 	@bot_has_guild_permissions(manage_roles=True)
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
-	async def colorrole(self, ctx: StealContext, role:discord.Role, hex:Optional[ValidHex] = None) -> None:
-		if hex is None:
+	async def colorrole(self, ctx: StealContext, role:discord.Role, hex:Optional[str]) -> None:
+		print(hex)
+		if not isHex.isHexUpper(hex.upper()):
 			return await ctx.approve(f"Hex **color** of {role.mention} - **{role.color}**")
 		
 		if role.position > ctx.author.top_role.position and ctx.author != ctx.guild.owner:

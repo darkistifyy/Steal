@@ -137,7 +137,10 @@ class Emojis(commands.Cog):
 			buff = BytesIO()
 			with zipfile.ZipFile(buff, "w") as zip:
 				for emoji in ctx.guild.emojis:
-					zip.writestr(f"{emoji.name}.png", data=await emoji.read())
+					if emoji.animated:
+						zip.writestr(f"{emoji.name}.gif", data=await emoji.read())
+					else:
+						zip.writestr(f"{emoji.name}.png", data=await emoji.read())
 
 			buff.seek(0)
 			await ctx.send(file=discord.File(buff, filename=f"emojis-{ctx.guild.name}.zip"))

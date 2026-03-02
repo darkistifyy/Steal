@@ -161,11 +161,11 @@ class Mod(commands.Cog):
 			if user.id == self.bot.user.id:
 				return await ctx.deny("I cannot **mute** myself.")
 			if user is ctx.guild.owner:
-				return await ctx.warn(f"You cannot **kick** the **server owner**.")
+				return await ctx.deny(f"You cannot **kick** the server owner")
 			if user is ctx.author:
-				return await ctx.warn(f"You cannot **kick yourself**.")
+				return await ctx.deny(f"You cannot **kick** yourself")
 			if ctx.author.top_role.position <= user.top_role.position:
-				return await ctx.warn(f"You cannot **kick** a user with a **higher role** than **yourself**.")
+				return await ctx.deny(f"Unable - {user.mention} has role superiority over you")
 			
 			await user.kick(reason=reason)
 			return await ctx.approve(f'**Kicked {user.mention}** - **{reason.split(" |")[0]}**')
@@ -183,27 +183,25 @@ class Mod(commands.Cog):
 	@bot_has_guild_permissions(mute_members=True)
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
-	async def mute(self, ctx: StealContext, user: discord.Member, time: ValidTime="60s", *, reason: Optional[str] = "No reason.") -> None:
+	async def mute(self, ctx: StealContext, user: discord.Member, time: ValidTime="5m", *, reason: Optional[str] = "No reason.") -> None:
 		reason += ' | Executed by {}'.format(ctx.author)
-		try:
-			if user.id == self.bot.user.id:
-				return await ctx.deny("I cannot **mute** myself.")
-			if user is ctx.guild.owner:
-				return await ctx.warn(f"You cannot **mute** the **server owner**.")
-			if user is ctx.author:
-				return await ctx.warn(f"You cannot **mute yourself**.")
-			if ctx.author.top_role.position <= user.top_role.position:
-				return await ctx.warn(f"You cannot **mute** a user with a **higher role** than **yourself**.")
+		if user.id == self.bot.user.id:
+			return await ctx.deny("I cannot **mute** myself")
+		if user is ctx.guild.owner:
+			return await ctx.deny(f"You cannot **mute** the server owner")
+		if user is ctx.author:
+			return await ctx.deny(f"You cannot **mute** yourself")
+		if ctx.author.top_role.position <= user.top_role.position:
+			return await ctx.deny(f"Unable - {user.mention} has role superiority over you")
+		if ctx.permissions.manage_messages in user.guild_permissions:
+			return await ctx.deny(f"{user.mention} cannot be **muted**")
 			
-			time = humanfriendly.parse_timespan(time)
+		time = humanfriendly.parse_timespan(str(time))
 
-			await user.timeout(discord.utils.utcnow() + datetime.timedelta(seconds=time), reason=reason)
+		await user.timeout(discord.utils.utcnow() + datetime.timedelta(seconds=int(time)), reason=reason)
 
-			if reason:
-
-				await ctx.approve(f"**Muted {user}** for `{humanfriendly.format_timespan(time)}` - **{reason.split(' |')[0]}**")
-		except:
-			await ctx.deny(f"**Failed** to mute **{user}**")
+		if reason:
+			await ctx.approve(f"**Muted** {user.mention} for `{humanfriendly.format_timespan(time)}` - **{reason.split(' |')[0]}**")
 		
 	@command(
 			name='unmute', 
@@ -216,7 +214,7 @@ class Mod(commands.Cog):
 	@bot_has_guild_permissions(mute_members=True)
 	@cooldown(1, 10, BucketType.user)
 	@guild_only()
-	async def unmute(self, ctx: StealContext, member:discord.Member, *, reason: Optional[str] = commands.param(default="No reason.", displayed_default=None)) -> None:
+	async def unmute(self, ctx: StealContext, member:discord.Member, *, reason: Optional[str] = "No reason.") -> None:
 		reason += ' | Executed by {}'.format(ctx.author)
 		try:
 			if member.is_timed_out():
@@ -232,7 +230,7 @@ class Mod(commands.Cog):
 			description='Purges messages.',
 			aliases=['p', 'cleanup'],
 			brief="purge 20",
-			extras= {"permissions": ["manage_messages"]},
+			extras= {"permissions": ["manage_channel"]},
 	)
 	@has_permissions(manage_messages=True)
 	@bot_has_guild_permissions(manage_messages=True)
@@ -394,6 +392,7 @@ class Mod(commands.Cog):
 				)
 
 				await db.commit()
+				await cursor.close()
 
 				await ctx.approve(f"Set the **verification role** to {role.mention}")
 
@@ -421,6 +420,7 @@ class Mod(commands.Cog):
 				)
 
 				row = await cur.fetchone()
+				await cursor.close()
 
 				if not row:
 					return await ctx.warn("There is no **verification** config for this guild.")
@@ -457,6 +457,7 @@ class Mod(commands.Cog):
 				)
 
 				row = await cur.fetchone()
+				await cursor.close()
 
 				if not row:
 					return await ctx.warn(f"There is no **verification role** set.")
